@@ -48,13 +48,15 @@ const obtener_dependencias = async (req = request, res = response) => {
 };
 
 const agregar_dependencia = async (req = request, res = response) => {
-  const { sigla } = req.body;
+  const { sigla, codigo } = req.body;
   try {
-    const existeSigla = await Dependendencia.findOne({ sigla });
+    const existeSigla = await Dependendencia.findOne(
+      { $or: [{ sigla }, { codigo }] }
+    );
     if (existeSigla) {
       return res.status(400).json({
         ok: false,
-        message: "Ya existe una dependencia con la sigla introducida",
+        message: "El codigo o sigla de la dependencia ya existen",
       });
     }
     const newDependencia = new Dependendencia(req.body);
@@ -65,14 +67,14 @@ const agregar_dependencia = async (req = request, res = response) => {
     });
   } catch (error) {
     console.log(error);
-    res.json({
+    res.status(500).json({
       ok: false,
       message: "Error al registrar al dependencia",
     });
   }
 };
 const editar_dependencia = async (req = request, res = response) => {
-  const { sigla } = req.body;
+  const { sigla, codigo } = req.body;
   const id_dependencia = req.params.id;
   try {
     const dependenciadb = await Dependendencia.findById(id_dependencia);
@@ -87,7 +89,16 @@ const editar_dependencia = async (req = request, res = response) => {
       if (existeSigla) {
         return res.status(400).json({
           ok: false,
-          message: "Ya existe una dependencia con la sigla introducida",
+          message: "La sigla de la institucion ya existe",
+        });
+      }
+    }
+    if (dependenciadb.codigo !== codigo) {
+      const existeCodigo = await Dependendencia.findOne({ codigo });
+      if (existeCodigo) {
+        return res.status(400).json({
+          ok: false,
+          message: "El codigo de la dependencia ya existe",
         });
       }
     }
@@ -95,7 +106,7 @@ const editar_dependencia = async (req = request, res = response) => {
       id_dependencia,
       req.body,
       { new: true }
-    );
+    ).populate("institucion", "sigla");
     res.json({
       ok: true,
       dependencia,

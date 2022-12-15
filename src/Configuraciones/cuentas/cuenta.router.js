@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const controller = require("./cuenta.controller");
-const validarBody = require("../../middlewares/validar_body");
+const validarBody = require("../../../middlewares/validar_body");
 const { check } = require("express-validator");
 const controllerDependencias = require('../dependencias/dependencias.controller')
 

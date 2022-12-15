@@ -1,33 +1,33 @@
 const { Schema, model } = require('mongoose')
 
 const BandejaSalidaScheme = Schema({
-    funcionario_emisor: {
-        funcionario: {
+    emisor: {
+        cuenta: {
             type: Schema.Types.ObjectId,
-            ref: 'funcionarios'
+            ref: 'cuentas'
+        },
+        funcionario: {
+            type: String,
+            required: true
         },
         cargo: {
             type: String,
-            required:true
+            required: true
         }
     },
-    funcionario_receptor: {
-        funcionario: {
+    receptor: {
+        cuenta: {
             type: Schema.Types.ObjectId,
-            ref: 'funcionarios'
+            ref: 'cuentas'
+        },
+        funcionario: {
+            type: String,
+            required: true
         },
         cargo: {
             type: String,
-            required:true
+            required: true
         }
-    },
-    cuenta_emisor: {
-        type: Schema.Types.ObjectId,
-        ref: 'cuentas'
-    },
-    cuenta_receptor: {
-        type: Schema.Types.ObjectId,
-        ref: 'cuentas'
     },
     tramite: {
         type: Schema.Types.ObjectId,
@@ -43,6 +43,10 @@ const BandejaSalidaScheme = Schema({
         type: String,
         required: true
     },
+    cantidad: {
+        type: String,
+        required: true
+    },
     fecha_envio: {
         type: Date,
         required: true
@@ -53,15 +57,12 @@ const BandejaSalidaScheme = Schema({
     recibido: {
         type: Boolean
     },
-    reenviado: {
-        type: Boolean,
-        default: false
-    },
     motivo_rechazo: {
         type: String
+    },
+    numero_interno: {
+        type: String
     }
-
-
 })
 BandejaSalidaScheme.method('toJSON', function () {
     const { __v, _id, ...object } = this.toObject()

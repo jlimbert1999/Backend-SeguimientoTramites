@@ -1,11 +1,11 @@
 const { Schema, model } = require('mongoose')
 
 const BandejaEntradaScheme = Schema({
-    cuenta_emisor: {
+    emisor: {
         type: Schema.Types.ObjectId,
         ref: 'cuentas'
     },
-    cuenta_receptor: {
+    receptor: {
         type: Schema.Types.ObjectId,
         ref: 'cuentas'
     },
@@ -20,6 +20,10 @@ const BandejaEntradaScheme = Schema({
         enum: ['tramites_externos', 'tramites_internos']
     },
     motivo: {
+        type: String,
+        required: true
+    },
+    cantidad: {
         type: String,
         required: true
     },

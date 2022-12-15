@@ -68,6 +68,10 @@ const TramiteExternoScheme = Schema({
         ref: 'cuentas',
         required: true
     },
+    ubicacion: {
+        type: Schema.Types.ObjectId,
+        ref: 'cuentas'
+    },
     estado: {
         type: String,
         required: true
@@ -98,10 +102,18 @@ const TramiteExternoScheme = Schema({
     fecha_finalizacion: {
         type: Date,
     },
-    ubicacion: {
-        type: Schema.Types.ObjectId,
-        ref: 'cuentas'
-    }
+    cite: {
+        type: String
+    },
+    observaciones: [{
+        _id: false,
+        id_cuenta: String,
+        funcionario: String,
+        descripcion: String,
+        corregido: Boolean,
+        fecha: Date
+    }],
+
 })
 
 SolicitanteScheme.method('toJSON', function () {

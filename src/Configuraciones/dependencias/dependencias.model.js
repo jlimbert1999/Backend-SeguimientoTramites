@@ -10,13 +10,18 @@ const DependenciaScheme = Schema({
         required: true,
         unique: true
     },
+    codigo: {
+        type: String,
+        required: true,
+        unique: true
+    },
     institucion: {
         type: Schema.Types.ObjectId,
         ref: 'instituciones'
     },
     activo: {
         type: Boolean,
-        default:true
+        default: true
     },
 })
 DependenciaScheme.method('toJSON', function () {

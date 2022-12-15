@@ -41,7 +41,11 @@ const getMenuFrontend = (rol) => {
       {
         modulo: "Reportes",
         submodulos: [
-          { nombre: 'Registrados', ruta: 'control', icon: 'description' },
+          { nombre: 'Reporte ficha', ruta: 'reporte-ficha', icon: 'content_paste' },
+          { nombre: 'Reporte estado', ruta: 'reporte-estado', icon: 'content_paste' },
+          { nombre: 'Reporte tipo', ruta: 'reporte-tipo', icon: 'content_paste' },
+          { nombre: 'Reporte solicitante', ruta: 'reporte-contribuyente', icon: 'content_paste' },
+          { nombre: 'Busqueda solicitante', ruta: 'reporte-solicitante', icon: 'manage_search' },
         ]
       }
     ]
