@@ -1,22 +1,37 @@
 const { request, response } = require('express')
-const { TramiteExterno, Solicitante } = require('../../src/Seguimiento/tramites/tramite.model')
-const BandejaSalida = require('../../src/Seguimiento/bandejas/bandeja-salida.model')
-const Cuentas = require('../Configuraciones/cuentas/cuenta.model')
+const Internos = require('../../Seguimiento/internos/interno.model')
+const BandejaSalida = require('../../Seguimiento/bandejas/bandeja-salida.model')
+const Cuentas = require('../../Configuraciones/cuentas/cuenta.model')
 const ObjectId = require('mongoose').Types.ObjectId
 
 const GetReporteFicha = async (req = request, resp = response) => {
     const alterno = req.params.alterno
     try {
-        const tramite = await TramiteExterno.findOne({ alterno: alterno })
-            .select('estado alterno pin detalle cantidad fecha_registro cite')
-            .populate('solicitante')
-            .populate('representante')
+        const tramite = await Internos.findOne({ alterno: alterno })
+            .select('estado alterno detalle cantidad fecha_registro cite remitente destinatario')
             .populate('tipo_tramite', 'nombre -_id')
-
+            .populate({
+                path: 'ubicacion',
+                select: '_id',
+                populate: [
+                    {
+                        path: 'dependencia',
+                        select: 'nombre -_id',
+                        populate: {
+                            path: 'institucion',
+                            select: 'sigla'
+                        }
+                    },
+                    {
+                        path: 'funcionario',
+                        select: 'nombre cargo'
+                    }
+                ]
+            })
         if (!tramite) {
             return resp.status(404).json({
                 ok: true,
-                message: `No se encontro ningun tramite con el alterno: ${alterno}`
+                message: `No se encontro ningun tramite interno con el alterno: ${alterno}`
             })
         }
         const workflow = await BandejaSalida.find({ tramite: tramite._id, recibido: true })
@@ -43,7 +58,6 @@ const GetReporteFicha = async (req = request, resp = response) => {
                         path: 'institucion',
                         select: 'sigla -_id'
                     }
-
                 }
             })
         return resp.json({
@@ -52,7 +66,7 @@ const GetReporteFicha = async (req = request, resp = response) => {
             workflow
         })
     } catch (error) {
-        console.log('[SERVER]: error (obtener data para reporte ficha)', error)
+        console.log('[SERVER]: error (obtener data para reporte ficha interna)', error)
         return resp.status(500).json({
             ok: false,
             message: 'Error al generar reporte ficha'
@@ -63,15 +77,31 @@ const GetReporteFicha = async (req = request, resp = response) => {
 const GetReporteRuta = async (req = request, resp = response) => {
     const alterno = req.params.alterno
     try {
-        const tramite = await TramiteExterno.findOne({ alterno: alterno })
-            .select('estado alterno pin detalle cantidad fecha_registro cite')
-            .populate('solicitante')
-            .populate('representante')
+        const tramite = await Internos.findOne({ alterno: alterno })
+            .select('estado alterno detalle cantidad fecha_registro cite remitente destinatario')
             .populate('tipo_tramite', 'nombre -_id')
+            .populate({
+                path: 'ubicacion',
+                select: '_id',
+                populate: [
+                    {
+                        path: 'dependencia',
+                        select: 'nombre -_id',
+                        populate: {
+                            path: 'institucion',
+                            select: 'sigla'
+                        }
+                    },
+                    {
+                        path: 'funcionario',
+                        select: 'nombre cargo'
+                    }
+                ]
+            })
         if (!tramite) {
             return resp.status(404).json({
                 ok: true,
-                message: `No se encontro ningun tramite con el alterno: ${alterno}`
+                message: `No se encontro ningun tramite interno con el alterno: ${alterno}`
             })
         }
         const workflow = await BandejaSalida.find({ tramite: tramite._id, recibido: true })
@@ -106,7 +136,7 @@ const GetReporteRuta = async (req = request, resp = response) => {
             workflow
         })
     } catch (error) {
-        console.log('[SERVER]: error (obtener data para reporte ficha)', error)
+        console.log('[SERVER]: error (obtener data para reporte ficha interno)', error)
         return resp.status(500).json({
             ok: false,
             message: 'Error al generar reporte ficha'
@@ -145,23 +175,14 @@ const GertReporteEstado = async (req = request, resp = response) => {
             },
             { $project: { _id: 1, login: 1 } }
         ])
-        tramites = await TramiteExterno.find({
+        tramites = await Internos.find({
             estado, fecha_registro: {
                 $gt: fecha_inicial,
                 $lt: fecha_final
             }, cuenta: {
                 $in: ids_cuentas
             }
-        }).select('alterno fecha_registro detalle')
-            .populate({
-                path: 'cuenta',
-                select: 'login -_id',
-                populate: {
-                    path: 'funcionario',
-                    select: 'nombre cargo'
-                }
-            })
-            .populate('solicitante', 'nombre -_id')
+        }).select('alterno fecha_registro detalle remitente destinatario')
             .populate({
                 path: 'ubicacion',
                 select: '_id',
@@ -192,102 +213,102 @@ const GertReporteEstado = async (req = request, resp = response) => {
         })
     }
 }
-const GetReporteSolicitante = async (req = request, resp = response) => {
-    const termino = req.params.termino
-    try {
-        const regex = new RegExp(termino, 'i')
-        const solicitantes = await Solicitante.find({ $or: [{ nombre: regex }, { dni: regex }] }).select('_id')
-        if (solicitantes.length == 0) {
-            return resp.status(404).json({
-                ok: true,
-                message: 'No existe ningun solicitante con el DNI o Nombre introducidos'
-            })
-        }
-        const tramites = await TramiteExterno.find({ solicitante: { $in: solicitantes } })
-            .populate('tipo_tramite', 'nombre -_id')
-            .populate('solicitante')
-            .populate('representante')
-            .populate({
-                path: 'ubicacion',
-                select: '_id',
-                populate: [
-                    {
-                        path: 'dependencia',
-                        select: 'nombre -_id',
-                        populate: {
-                            path: 'institucion',
-                            select: 'sigla -_id'
-                        }
-                    },
-                    {
-                        path: 'funcionario',
-                        select: 'nombre cargo -_id'
-                    }
-                ]
-            })
-        return resp.json({
-            ok: true,
-            tramites
-        })
-    } catch (error) {
-        console.log('[SERVER]: error (obtener data para reporte solicitantes)', error)
-        return resp.status(500).json({
-            ok: false,
-            message: 'Error al generar reporte solicitante'
-        })
-    }
-}
-const GetReporteContribuyente = async (req = request, resp = response) => {
-    const dni = req.params.dni
-    try {
-        let tramites = await TramiteExterno.aggregate([
-            {
-                $lookup: {
-                    from: "solicitantes",
-                    localField: "solicitante",
-                    foreignField: "_id",
-                    as: "solicitantes"
-                }
-            },
-            {
-                $unwind: {
-                    path: "$solicitantes"
-                }
-            },
-            {
-                $match: {
-                    "solicitantes.dni": dni
-                }
-            },
-            { $project: { _id: 0, detalle: 1, alterno: 1, estado: 1, cuenta: 1, fecha_registro: 1, "solicitantes.nombre": 1, "solicitantes.telefono": 1, "solicitantes.dni": 1, "solicitantes.expedido": 1 } }
-        ])
-        if (tramites.length === 0) {
-            return resp.status(404).json({
-                ok: true,
-                message: `No se econtraron resultados con el DNI: ${dni}`
-            })
-        }
-        await TramiteExterno.populate(tramites,
-            {
-                path: "cuenta",
-                select: 'login -_id',
-                populate: {
-                    path: 'funcionario',
-                    select: 'nombre -_id'
-                }
-            });
-        return resp.json({
-            ok: true,
-            tramites
-        })
-    } catch (error) {
-        console.log('[SERVER]: error (obtener data para reporte contribuyente)', error)
-        return resp.status(500).json({
-            ok: false,
-            message: 'Error al generar reporte contribuyente'
-        })
-    }
-}
+// const GetReporteSolicitante = async (req = request, resp = response) => {
+//     const termino = req.params.termino
+//     try {
+//         const regex = new RegExp(termino, 'i')
+//         const solicitantes = await Solicitante.find({ $or: [{ nombre: regex }, { dni: regex }] }).select('_id')
+//         if (solicitantes.length == 0) {
+//             return resp.status(404).json({
+//                 ok: true,
+//                 message: 'No existe ningun solicitante con el DNI o Nombre introducidos'
+//             })
+//         }
+//         const tramites = await TramiteExterno.find({ solicitante: { $in: solicitantes } })
+//             .populate('tipo_tramite', 'nombre -_id')
+//             .populate('solicitante')
+//             .populate('representante')
+//             .populate({
+//                 path: 'ubicacion',
+//                 select: '_id',
+//                 populate: [
+//                     {
+//                         path: 'dependencia',
+//                         select: 'nombre -_id',
+//                         populate: {
+//                             path: 'institucion',
+//                             select: 'sigla -_id'
+//                         }
+//                     },
+//                     {
+//                         path: 'funcionario',
+//                         select: 'nombre cargo -_id'
+//                     }
+//                 ]
+//             })
+//         return resp.json({
+//             ok: true,
+//             tramites
+//         })
+//     } catch (error) {
+//         console.log('[SERVER]: error (obtener data para reporte solicitantes)', error)
+//         return resp.status(500).json({
+//             ok: false,
+//             message: 'Error al generar reporte solicitante'
+//         })
+//     }
+// }
+// const GetReporteContribuyente = async (req = request, resp = response) => {
+//     const dni = req.params.dni
+//     try {
+//         let tramites = await TramiteExterno.aggregate([
+//             {
+//                 $lookup: {
+//                     from: "solicitantes",
+//                     localField: "solicitante",
+//                     foreignField: "_id",
+//                     as: "solicitantes"
+//                 }
+//             },
+//             {
+//                 $unwind: {
+//                     path: "$solicitantes"
+//                 }
+//             },
+//             {
+//                 $match: {
+//                     "solicitantes.dni": dni
+//                 }
+//             },
+//             { $project: { _id: 0, detalle: 1, alterno: 1, estado: 1, cuenta: 1, fecha_registro: 1, "solicitantes.nombre": 1, "solicitantes.telefono": 1, "solicitantes.dni": 1, "solicitantes.expedido": 1 } }
+//         ])
+//         if (tramites.length === 0) {
+//             return resp.status(404).json({
+//                 ok: true,
+//                 message: `No se econtraron resultados con el DNI: ${dni}`
+//             })
+//         }
+//         await TramiteExterno.populate(tramites,
+//             {
+//                 path: "cuenta",
+//                 select: 'login -_id',
+//                 populate: {
+//                     path: 'funcionario',
+//                     select: 'nombre -_id'
+//                 }
+//             });
+//         return resp.json({
+//             ok: true,
+//             tramites
+//         })
+//     } catch (error) {
+//         console.log('[SERVER]: error (obtener data para reporte contribuyente)', error)
+//         return resp.status(500).json({
+//             ok: false,
+//             message: 'Error al generar reporte contribuyente'
+//         })
+//     }
+// }
 const GetReporteTipoTramite = async (req = request, resp = response) => {
     const institucion = req.params.institucion
     const { tipo_tramite, fecha_inicial, fecha_final } = req.query
@@ -313,37 +334,40 @@ const GetReporteTipoTramite = async (req = request, resp = response) => {
             },
             { $project: { _id: 1 } }
         ])
-        tramites = await TramiteExterno.find({
+        tramites = await Internos.find({
             tipo_tramite, fecha_registro: {
                 $gt: fecha_inicial,
                 $lt: fecha_final
             }, cuenta: {
                 $in: ids_cuentas
             }
-        }).select('alterno fecha_registro detalle')
+        }).select('alterno fecha_registro detalle remitente destinatario estado')
             .populate({
-                path: 'cuenta',
-                select: 'login -_id',
-                populate: {
-                    path: 'funcionario',
-                    select: 'nombre cargo'
-                }
+                path: 'ubicacion',
+                select: '_id',
+                populate: [
+                    {
+                        path: 'dependencia',
+                        select: 'nombre -_id',
+                        populate: {
+                            path: 'institucion',
+                            select: 'sigla'
+                        }
+                    }
+                ]
             })
-            .populate('solicitante', 'nombre -_id')
-
         if (tramites.length === 0) {
             return resp.status(404).json({
                 ok: true,
                 message: `No se econtraron tipos de tramites con los parametros solicitados`
             })
         }
-        // console.log(tramites)
         return resp.json({
             ok: true,
             tramites
         })
     } catch (error) {
-        console.log('[SERVER]: error (obtener data reporte tipo de tramite)', error)
+        console.log('[SERVER]: error (obtener data reporte tipo de tramite interno)', error)
         return resp.status(500).json({
             ok: false,
             message: 'Error al generar reporte tipo de tramite'
@@ -355,11 +379,12 @@ const GetReporteTipoTramite = async (req = request, resp = response) => {
 
 
 
+
 module.exports = {
     GetReporteFicha,
     GertReporteEstado,
     GetReporteRuta,
-    GetReporteSolicitante,
-    GetReporteContribuyente,
+    // GetReporteSolicitante,
+    // GetReporteContribuyente,
     GetReporteTipoTramite
 }

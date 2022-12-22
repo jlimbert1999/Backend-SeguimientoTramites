@@ -3,6 +3,7 @@ const app = express()
 const http = require('http');
 const cors = require('cors')
 require('dotenv').config()
+const path = require("path");
 
 const allroutes = require('./routes')
 const dbConection = require('./database/config')
@@ -29,10 +30,16 @@ sockets(server)
 // conexion base de datos
 dbConection()
 
+// conexon con fronten
+app.use(express.static(path.join(__dirname, 'public')));
+
 // uso de rutas para servidor
 app.use(allroutes)
 
+//REDIRECCIONAR AL INDEX DEL FRONTEND
+// app.get('*', (req, res) => { res.sendFile(path.join(__dirname + '/public/index.html')) })
 
-server.listen(process.env.PORT, '192.168.1.4', () => {
+
+server.listen(process.env.PORT, '192.168.1.13', () => {
     console.log('Server listen in port', process.env.PORT)
 })

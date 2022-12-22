@@ -17,6 +17,9 @@ router.put('/:id', controller.editExterno)
 // VER TODA LA INFORMACION DE UN TRAMITE
 router.get('/:id', controller.getExterno)
 
+// CONCLUIR TRAMITE
+router.delete('/:id', controller.concludedTramite)
+
 // generacion de pdf
 router.get('/ruta/:id', controller.generateRuta)
 

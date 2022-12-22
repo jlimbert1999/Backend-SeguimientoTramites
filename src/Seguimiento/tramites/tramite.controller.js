@@ -336,7 +336,7 @@ const generateRuta = async (req = request, res = response) => {
 // Observaciones
 const addObservacion = async (req = request, res = response) => {
     const id_tramite = req.params.id
-    const { descripcion, funcionario, estado } = req.body
+    const { descripcion, funcionario } = req.body
     try {
         const tramitedb = await TramiteExterno.findById(id_tramite)
         if (tramitedb.ubicacion != req.id_cuenta) {
@@ -367,8 +367,7 @@ const addObservacion = async (req = request, res = response) => {
         })
         res.json({
             ok: true,
-            observacion,
-            estado: 'OBSERVADO'
+            observacion
         })
     } catch (error) {
         console.log('[SERVER]: error (agregar observacion)', error);
@@ -410,12 +409,10 @@ const putObservacion = async (req = request, res = response) => {
     }
 }
 
-
-
-const FinalizarTramite = async (req = request, res = response) => {
+const concludedTramite = async (req = request, res = response) => {
     const id_tramite = req.params.id
     try {
-        await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO' })
+        await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
         await BandejaEntrada.findOneAndDelete({ tramite: id_tramite })
         res.json({
             ok: true,
@@ -427,8 +424,24 @@ const FinalizarTramite = async (req = request, res = response) => {
             ok: false,
             message: 'Error al finalizar el tramite'
         })
-
     }
+}
+const stopTramite = async (req = request, res = response) => {
+    // const id_tramite = req.params.id
+    // try {
+    //     await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: 'ARCHIVADO'})
+    //     await BandejaEntrada.findOneAndDelete({ tramite: id_tramite })
+    //     res.json({
+    //         ok: true,
+    //         message: 'Tramite finalizado'
+    //     })
+    // } catch (error) {
+    //     console.log('[SERVER]:Error (finalizar tramite) => ', error)
+    //     return res.status(500).json({
+    //         ok: false,
+    //         message: 'Error al finalizar el tramite'
+    //     })
+    // }
 }
 
 module.exports = {
@@ -442,6 +455,8 @@ module.exports = {
 
     addObservacion,
     putObservacion,
+
+    concludedTramite,
 
     generateRuta
 

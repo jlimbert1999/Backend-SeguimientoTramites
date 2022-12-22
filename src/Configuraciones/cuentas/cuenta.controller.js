@@ -275,7 +275,7 @@ const crear_cuenta_asignando = async (req = request, res = response) => {
         // //guardar evento
         const newDetalle = new Cuenta_Detalles(
             {
-                id_funcionario:  funcionarioNuevo._id,
+                id_funcionario: funcionarioNuevo._id,
                 descripcion: `${funcionarioNuevo.nombre} (${funcionarioNuevo.cargo}) ingreso a la dependencia ${detalles_cuenta.dependencia.nombre}`,
                 fecha: new Date()
             }
@@ -373,6 +373,7 @@ const filtrar_cuentas = async (req = request, res = response) => {
         })
     }
 }
+
 
 
 module.exports = {

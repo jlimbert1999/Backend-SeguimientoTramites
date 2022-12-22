@@ -13,8 +13,14 @@ const RequerimientosRouter = require('./src/Configuraciones/tipos-tramites/tipoT
 const TramitesRouter = require('./src/Seguimiento/tramites/tramite.router')
 const BandejaRouter = require('./src/Seguimiento/bandejas/bandeja.router')
 
-const ReportesRouter = require('./src/Reportes/reportes.router')
+const ReportesExternosRouter = require('./src/Reportes/reporte-externo/reportes.router')
+const ReportesInternosRouter = require('./src/Reportes/reporte-interno/reportes.router')
 
+const ConsultaRouter = require('./src/Consulta/consulta.router')
+
+const InternoRouter = require('./src/Seguimiento/internos/interno.router')
+
+const PerfilRouter = require('./src/Configuraciones/perfil/perfil.router')
 
 router.use('/login', routerAuth)
 // ADMINISTRADOR
@@ -30,6 +36,14 @@ router.use('/requerimientos', [verificarToken, verificarAdminRol], Requerimiento
 router.use('/tramites-externos', [verificarToken], TramitesRouter)
 router.use('/bandejas', [verificarToken], BandejaRouter)
 
-router.use('/reportes', ReportesRouter)
+
+router.use('/tramites-internos', [verificarToken], InternoRouter)
+
+router.use('/reportes-externos', ReportesExternosRouter)
+router.use('/reportes-internos', ReportesInternosRouter)
+
+router.use('/consulta', ConsultaRouter)
+
+router.use('/perfil', verificarToken, PerfilRouter)
 
 module.exports = router

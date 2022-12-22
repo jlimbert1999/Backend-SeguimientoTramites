@@ -2,6 +2,7 @@ const BandejaEntrada = require('./bandeja-entrada.model')
 const BandejaSalida = require('./bandeja-salida.model')
 const Cuenta = require('../../../src/Configuraciones/cuentas/cuenta.model')
 const { TramiteExterno } = require('../tramites/tramite.model')
+const TramiteInterno = require('../../Seguimiento/internos/interno.model')
 
 const { request, response } = require('express')
 
@@ -58,8 +59,14 @@ const agregar_mail = async (req = request, res = response) => {
                     }
                 ]
             })
-        await TramiteExterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta, estado: 'EN REVISION' })
-
+        switch (tipo) {
+            case 'tramites_internos':
+                await TramiteInterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta, estado: 'EN REVISION' })
+                break;
+            case 'tramites_externos':
+                await TramiteExterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta, estado: 'EN REVISION' })
+                break;
+        }
         res.json({
             ok: true,
             tramite: mail

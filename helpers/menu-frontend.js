@@ -21,7 +21,34 @@ const getMenuFrontend = (rol) => {
       }
     ]
   }
-
+  else if (rol == 'recepcion') {
+    Menu = [
+      {
+        modulo: "Tramites",
+        submodulos: [
+          { nombre: 'Externos', ruta: 'tramites-externos', icon: 'description' },
+          { nombre: 'Internos', ruta: 'tramites-internos', icon: 'description' },
+        ]
+      },
+      {
+        modulo: "Bandejas",
+        submodulos: [
+          { nombre: 'Bandeja entrada', ruta: 'bandeja-entrada', icon: 'mail' },
+          { nombre: 'Bandeja salida', ruta: 'bandeja-salida', icon: 'drafts' },
+        ]
+      },
+      {
+        modulo: "Reportes",
+        submodulos: [
+          { nombre: 'Reporte ficha', ruta: 'reporte-ficha', icon: 'content_paste' },
+          { nombre: 'Reporte estado', ruta: 'reporte-estado', icon: 'content_paste' },
+          { nombre: 'Reporte tipo', ruta: 'reporte-tipo', icon: 'content_paste' },
+          { nombre: 'Reporte solicitante', ruta: 'reporte-contribuyente', icon: 'content_paste' },
+          { nombre: 'Busqueda solicitante', ruta: 'reporte-solicitante', icon: 'manage_search' },
+        ]
+      }
+    ]
+  }
   else {
     Menu = [
       {
