@@ -13,7 +13,7 @@ router.get('/:id', controller.GetInterno)
 router.put('/observacion/:id', controller.addObservacion)
 router.put('/observacion/corregir/:id', controller.putObservacion)
 
-router.get('/usuarios/:nombre', controller.getUsers)
+router.get('/usuarios/:termino', controller.getUsers)
 
 
 

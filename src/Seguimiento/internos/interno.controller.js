@@ -105,7 +105,7 @@ async function GetInterno(req = request, res = response) {
                     populate: [
                         {
                             path: 'funcionario',
-                            select: 'nombre cargo -_id'
+                            select: 'nombre paterno materno cargo -_id'
                         },
                         {
                             path: 'dependencia',
@@ -241,14 +241,15 @@ const addLeadingZeros = (num, totalLength) => {
 
 
 async function getUsers(req = request, res = response) {
-    const nombre = req.params.nombre
-    const regex = new RegExp(nombre, 'i')
+    const termino = req.params.termino
+    const regex = new RegExp(termino, 'i')
     try {
-        const usuarios = await Usuarios.find({ nombre: regex }).select('-_id nombre cargo').limit(5)
+        const usuarios = await Usuarios.find({ $or: [{ nombre: regex }, { paterno: regex }, { materno: regex }] }).select('-_id nombre paterno materno cargo').limit(5)
         return res.json({
             ok: true,
             usuarios
         })
+       
     } catch (error) {
         console.log('[SERVER]: error al obtener usuarios para registrar interno => ', error)
         return res.status(500).json({
@@ -277,7 +278,7 @@ module.exports = {
     GetInternos,
     PutInterno,
     GetInterno,
-    
+
     addObservacion,
     putObservacion,
 

@@ -6,7 +6,7 @@ const getAccount = async (req = request, res = response) => {
     try {
         const cuenta = await Cuenta.findOne({ _id: req.id_cuenta })
             .select('login')
-            .populate('funcionario', 'nombre cargo telefono dni -_id')
+            .populate('funcionario', 'nombre paterno materno cargo telefono dni -_id')
             .populate({
                 path: 'dependencia',
                 select: 'nombre -_id',
