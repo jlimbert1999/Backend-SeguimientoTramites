@@ -26,7 +26,7 @@ const GetReporteFicha = async (req = request, resp = response) => {
                     },
                     {
                         path: 'funcionario',
-                        select: 'nombre cargo'
+                        select: 'nombre paterno materno cargo'
                     }
                 ]
             })
@@ -100,7 +100,7 @@ const GetReporteRuta = async (req = request, resp = response) => {
                     },
                     {
                         path: 'funcionario',
-                        select: 'nombre cargo'
+                        select: 'nombre paterno materno cargo'
                     }
                 ]
             })

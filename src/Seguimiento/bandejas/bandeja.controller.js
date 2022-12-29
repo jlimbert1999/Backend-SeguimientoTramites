@@ -107,7 +107,7 @@ const obtener_bandeja_entrada = async (req = request, res = response) => {
                     },
                     {
                         path: 'funcionario',
-                        select: 'nombre cargo',
+                        select: 'nombre paterno materno cargo',
                     }
                 ]
             })
@@ -171,11 +171,7 @@ const obtener_usuarios_envio = async (req = request, res = response) => {
     try {
         const funcionarios = await Cuenta.find({ dependencia: id_dependencia })
             .select('_id')
-            .populate('funcionario', 'nombre cargo')
-            .populate({
-                path: 'dependencia',
-                select: 'nombre -_id'
-            })
+            .populate('funcionario', 'nombre paterno materno cargo -_id')
         res.json({
             ok: true,
             funcionarios
@@ -249,7 +245,7 @@ const getDetailsMail = async (req = request, res = response) => {
                 populate: [
                     {
                         path: 'funcionario',
-                        select: 'nombre cargo -_id'
+                        select: 'nombre paterno materno cargo -_id'
                     },
                     {
                         path: 'dependencia',

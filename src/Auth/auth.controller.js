@@ -14,7 +14,7 @@ const login = async (req = request, res = response) => {
                 path: 'institucion',
                 select: 'sigla -_id'
             }
-        }).populate('funcionario', 'nombre cargo')
+        }).populate('funcionario', 'nombre paterno materno cargo')
         if (!cuentaDB) {
             return res.status(400).send({
                 ok: false,
@@ -28,12 +28,21 @@ const login = async (req = request, res = response) => {
                 message: "El Login o Contraseña no son correctos"
             })
         }
-        let token
+        let token, nombre_completo
         if (!cuentaDB.funcionario && !cuentaDB.dependencia && cuentaDB.rol === "admin") {
             token = await jwt.generarToken(cuentaDB._id, null, "Administrador", 'Configuraciones', cuentaDB.rol, '', '', '')
         }
         else {
-            token = await jwt.generarToken(cuentaDB._id, cuentaDB.funcionario._id, cuentaDB.funcionario.nombre, cuentaDB.funcionario.cargo, cuentaDB.rol, cuentaDB.dependencia.nombre, cuentaDB.dependencia.institucion.sigla, cuentaDB.dependencia.codigo)
+            nombre_completo = `${cuentaDB.funcionario.nombre} ${cuentaDB.funcionario.paterno} ${cuentaDB.funcionario.materno ? cuentaDB.funcionario.materno : ''}`
+            token = await jwt.generarToken(
+                cuentaDB._id,
+                cuentaDB.funcionario._id,
+                nombre_completo,
+                cuentaDB.funcionario.cargo,
+                cuentaDB.rol,
+                cuentaDB.dependencia.nombre,
+                cuentaDB.dependencia.institucion.sigla,
+                cuentaDB.dependencia.codigo)
         }
         res.send({
             ok: true,
@@ -58,13 +67,22 @@ const renovar_token = async (req = request, res = response) => {
                 path: 'institucion',
                 select: 'sigla -_id'
             }
-        }).populate('funcionario', 'nombre cargo')
-        let token
+        }).populate('funcionario', 'nombre paterno materno cargo')
+        let token, nombre_completo
         if (!cuentaDB.funcionario && !cuentaDB.dependencia && cuentaDB.rol === "admin") {
             token = await jwt.generarToken(cuentaDB._id, null, "Administrador", 'Configuraciones', cuentaDB.rol, '', '', '')
         }
         else {
-            token = await jwt.generarToken(cuentaDB._id, cuentaDB.funcionario._id, cuentaDB.funcionario.nombre, cuentaDB.funcionario.cargo, cuentaDB.rol, cuentaDB.dependencia.nombre, cuentaDB.dependencia.institucion.sigla, cuentaDB.dependencia.codigo)
+            nombre_completo = `${cuentaDB.funcionario.nombre} ${cuentaDB.funcionario.paterno} ${cuentaDB.funcionario.materno ? cuentaDB.funcionario.materno : ''}`
+            token = await jwt.generarToken(
+                cuentaDB._id,
+                cuentaDB.funcionario._id,
+                nombre_completo,
+                cuentaDB.funcionario.cargo,
+                cuentaDB.rol,
+                cuentaDB.dependencia.nombre,
+                cuentaDB.dependencia.institucion.sigla,
+                cuentaDB.dependencia.codigo)
         }
         res.send({
             ok: true,

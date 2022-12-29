@@ -24,9 +24,7 @@ const agregar_usuario = async (req = request, res = response) => {
             ok: true,
             message: 'error al registrar funcionario'
         })
-
     }
-
 }
 const editar_usuario = async (req = request, res = response) => {
     const { dni } = req.body

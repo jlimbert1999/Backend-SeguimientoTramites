@@ -21,12 +21,11 @@ const getMenuFrontend = (rol) => {
       }
     ]
   }
-  else if (rol == 'recepcion') {
+  else if (rol == 'EVALUACION') {
     Menu = [
       {
         modulo: "Tramites",
         submodulos: [
-          { nombre: 'Externos', ruta: 'tramites-externos', icon: 'description' },
           { nombre: 'Internos', ruta: 'tramites-internos', icon: 'description' },
         ]
       },

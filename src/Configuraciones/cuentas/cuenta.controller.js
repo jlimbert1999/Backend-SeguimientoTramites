@@ -8,17 +8,15 @@ const bcrypt = require('bcrypt');
 
 const agregar_cuenta = async (req = request, res = response) => {
     const { cuenta, funcionario } = req.body
-    const { login } = cuenta
-    const { dni } = funcionario
     try {
-        const existeDni = await Usuario.findOne({ dni })
+        const existeDni = await Usuario.findOne({ dni: funcionario.dni })
         if (existeDni) {
             return res.status(400).json({
                 ok: false,
                 message: 'El dni introducido ya existe'
             })
         }
-        const existeLogin = await Cuenta.findOne({ login })
+        const existeLogin = await Cuenta.findOne({ login: cuenta.login })
         if (existeLogin) {
             return res.status(400).json({
                 ok: false,
@@ -34,29 +32,30 @@ const agregar_cuenta = async (req = request, res = response) => {
         cuenta.password = bcrypt.hashSync(cuenta.password.toString(), salt)
         cuenta.funcionario = userdb._id
         const newCuenta = new Cuenta(cuenta)
-        let cuentaDB = await newCuenta.save()
-        //obtener todos los detalles de la cuenta
-        let detalles_cuenta = await Cuenta.findById(cuentaDB._id).populate({
+        let accountdb = await newCuenta.save()
+        await Cuenta.populate(accountdb, {
             path: 'dependencia',
             select: 'nombre -_id',
             populate: {
                 path: 'institucion',
                 select: 'sigla -_id'
             }
-        }).populate('funcionario')
-
-        // guardar evento
+        })
+        await Cuenta.populate(accountdb, { path: 'funcionario' })
         const newDetalle = new Cuenta_Detalles(
             {
                 id_funcionario: userdb._id,
-                descripcion: `${userdb.nombre} (${userdb.cargo}) ingreso a la dependencia ${detalles_cuenta.dependencia.nombre}`,
+                descripcion: `${userdb.nombre} ${userdb.paterno} ${userdb.materno} (${userdb.cargo}) ingreso a la dependencia ${accountdb.dependencia.nombre}`,
                 fecha: new Date()
             }
         )
+        accountdb = accountdb.toObject()
+        delete accountdb.password
+        delete accountdb.__v
         await newDetalle.save()
         res.json({
             ok: true,
-            cuenta: detalles_cuenta
+            cuenta: accountdb
         })
     } catch (error) {
         console.log(`[SERVER]: error al registrar cuenta: `, error);
@@ -84,7 +83,7 @@ const obtener_cuentas = async (req = request, res = response) => {
                         select: 'sigla -_id'
                     }
                 }).populate('funcionario'),
-                Cuenta.count()
+                Cuenta.count({ funcionario: { $exists: true } })
             ]
         )
         res.json({
@@ -127,8 +126,18 @@ const editar_cuenta = async (req = request, res = response) => {
             req.body.password = bcrypt.hashSync(password, salt)
         }
         let cuenta = await Cuenta.findByIdAndUpdate(id_cuenta, req.body, { new: true })
+            .populate({
+                path: 'dependencia',
+                select: 'nombre -_id',
+                populate: {
+                    path: 'institucion',
+                    select: 'sigla -_id'
+                }
+            })
+            .populate('funcionario')
         cuenta = cuenta.toObject()
         delete cuenta.password
+        delete cuenta.__v
         res.json({
             ok: true,
             cuenta
@@ -226,12 +235,12 @@ const asignar_cuenta = async (req = request, res = response) => {
         await Cuenta_Detalles.insertMany([
             {
                 id_funcionario: funcionarioAnterior._id,
-                descripcion: `${funcionarioAnterior.nombre} (${funcionarioAnterior.cargo}) dejo la dependencia ${detalles_cuenta.dependencia.nombre}`,
+                descripcion: `${funcionarioAnterior.nombre} ${funcionarioAnterior.paterno} ${funcionarioAnterior.materno} (${funcionarioAnterior.cargo}) dejo la dependencia ${detalles_cuenta.dependencia.nombre}`,
                 fecha: new Date()
             },
             {
                 id_funcionario: funcionarioNuevo._id,
-                descripcion: `${funcionarioNuevo.nombre} (${funcionarioNuevo.cargo}) ingreso a la dependencia ${detalles_cuenta.dependencia.nombre}`,
+                descripcion: `${funcionarioNuevo.nombre} ${funcionarioNuevo.paterno} ${funcionarioNuevo.materno} (${funcionarioNuevo.cargo}) ingreso a la dependencia ${detalles_cuenta.dependencia.nombre}`,
                 fecha: new Date()
             }
         ])
@@ -276,7 +285,7 @@ const crear_cuenta_asignando = async (req = request, res = response) => {
         const newDetalle = new Cuenta_Detalles(
             {
                 id_funcionario: funcionarioNuevo._id,
-                descripcion: `${funcionarioNuevo.nombre} (${funcionarioNuevo.cargo}) ingreso a la dependencia ${detalles_cuenta.dependencia.nombre}`,
+                descripcion: `${funcionarioNuevo.nombre} ${funcionarioNuevo.paterno} ${funcionarioNuevo.materno} (${funcionarioNuevo.cargo}) ingreso a la dependencia ${detalles_cuenta.dependencia.nombre}`,
                 fecha: new Date()
             }
         )
@@ -329,7 +338,7 @@ const obtener_dependencias = async (req = request, res = response) => {
 }
 const obtener_funcionarios_asignacion = async (req = request, res = response) => {
     try {
-        const funcionarios = await Usuario.find({ cuenta: false, activo: true }, 'nombre cargo dni')
+        const funcionarios = await Usuario.find({ cuenta: false, activo: true }, 'nombre paterno materno cargo dni')
         res.send({
             ok: true,
             funcionarios

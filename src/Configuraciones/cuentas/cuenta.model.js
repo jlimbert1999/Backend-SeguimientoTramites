@@ -25,8 +25,7 @@ const CuentasScheme = Schema({
 })
 
 CuentasScheme.method('toJSON', function () {
-    const { __v, _id, ...object } = this.toObject()
-    object.id_cuenta = _id
+    const { __v, ...object } = this.toObject()
     return object
 })
 module.exports = model('cuentas', CuentasScheme)

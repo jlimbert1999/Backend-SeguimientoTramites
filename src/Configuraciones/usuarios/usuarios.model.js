@@ -5,6 +5,12 @@ const UserScheme = Schema({
         type: String,
         required: true
     },
+    paterno: {
+        type: String,
+    },
+    materno: {
+        type: String,
+    },
     dni: {
         type: String,
         required: true,
@@ -16,6 +22,10 @@ const UserScheme = Schema({
     },
     direccion: {
         type: String
+    },
+    expedido: {
+        type: String,
+        required: true
     },
     cargo: {
         type: String,

@@ -1,5 +1,7 @@
 const router = require('express').Router()
 const controller = require('./tramite.controller')
+const checkFields = require('../../../middlewares/validar_body')
+const { check, param } = require('express-validator')
 
 // TIPOS DE TRAMITE EXTERNOS
 router.get('/tipos', controller.getTiposTramite)
@@ -15,7 +17,12 @@ router.put('/:id', controller.editExterno)
 
 
 // VER TODA LA INFORMACION DE UN TRAMITE
-router.get('/:id', controller.getExterno)
+router.get('/:id',
+    [
+        param('id', 'Id tramite no es correcto').isMongoId(),
+        checkFields
+    ]
+    , controller.getExterno)
 
 // CONCLUIR TRAMITE
 router.delete('/:id', controller.concludedTramite)

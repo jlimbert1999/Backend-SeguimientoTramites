@@ -30,31 +30,31 @@ const addExterno = async (req = request, res = response) => {
 
         const newTramite = new TramiteExterno(tramite)
         const tramiteDB = await newTramite.save()
-        const elementTable = await TramiteExterno.findById(tramiteDB._id)
-            .populate('solicitante')
-            .populate('representante')
-            .populate('tipo_tramite', 'nombre -_id')
-            .populate({
-                path: 'ubicacion',
-                select: '_id',
-                populate: [
-                    {
-                        path: 'dependencia',
-                        select: 'nombre -_id',
-                        populate: {
-                            path: 'institucion',
-                            select: 'sigla -_id'
-                        }
-                    },
-                    {
-                        path: 'funcionario',
-                        select: 'nombre cargo -_id'
+
+        await TramiteExterno.populate(tramiteDB, { path: 'solicitante' })
+        await TramiteExterno.populate(tramiteDB, { path: 'representante' })
+        await TramiteExterno.populate(tramiteDB, { path: 'tipo_tramite', select: 'nombre -_id' })
+        await TramiteExterno.populate(tramiteDB, {
+            path: 'ubicacion',
+            select: '_id',
+            populate: [
+                {
+                    path: 'dependencia',
+                    select: 'nombre -_id',
+                    populate: {
+                        path: 'institucion',
+                        select: 'sigla -_id'
                     }
-                ]
-            })
+                },
+                {
+                    path: 'funcionario',
+                    select: 'nombre paterno materno cargo -_id'
+                }
+            ]
+        })
         res.json({
             ok: true,
-            tramite: elementTable
+            tramite: tramiteDB
         })
     } catch (error) {
         console.log('[SERVER]: Error (registrar tramite externo) =>', error);
@@ -94,7 +94,7 @@ const getExternos = async (req = request, res = response) => {
                         },
                         {
                             path: 'funcionario',
-                            select: 'nombre cargo -_id'
+                            select: 'nombre paterno materno cargo -_id'
                         }
                     ]
                 }),
@@ -117,19 +117,28 @@ const getExternos = async (req = request, res = response) => {
 }
 const editExterno = async (req = request, res = response) => {
     const id_tramite = req.params.id
-    const { tramite, solicitante, representante } = req.body
+    let { tramite, solicitante, representante } = req.body
     try {
+        const tramitedb = await TramiteExterno.findById(id_tramite)
+        if (!tramitedb) {
+            return res.status(400).json({
+                ok: false,
+                message: 'El tramite para la edicion no existe'
+            })
+        }
         if (representante) {
-            if (representante._id) {
-                await Representante.findByIdAndUpdate(representante._id)
-            }
-            else {
-                const newRepresentante = new Representante(representante)
-                const representanteDB = await newRepresentante.save()
-                tramite.representante = representanteDB._id
+            switch (tramitedb.representante) {
+                case null:
+                    const newRepresentante = new Representante(representante)
+                    const representanteDB = await newRepresentante.save()
+                    tramite.representante = representanteDB._id
+                    break;
+                default:
+                    await Representante.findByIdAndUpdate(tramitedb.representante, representante)
+                    break;
             }
         }
-        await Solicitante.findByIdAndUpdate(solicitante._id, solicitante)
+        await Solicitante.findByIdAndUpdate(tramitedb.solicitante, solicitante)
         const editTramite = await TramiteExterno.findByIdAndUpdate(id_tramite, tramite, { new: true })
             .populate('tipo_tramite', 'nombre -_id')
             .populate('solicitante')
@@ -148,7 +157,7 @@ const editExterno = async (req = request, res = response) => {
                     },
                     {
                         path: 'funcionario',
-                        select: 'nombre cargo -_id'
+                        select: 'nombre paterno materno cargo -_id'
                     }
                 ]
             })
@@ -203,7 +212,7 @@ const getExterno = async (req = request, res = response) => {
                     populate: [
                         {
                             path: 'funcionario',
-                            select: 'nombre cargo -_id'
+                            select: 'nombre paterno materno cargo -_id'
                         },
                         {
                             path: 'dependencia',

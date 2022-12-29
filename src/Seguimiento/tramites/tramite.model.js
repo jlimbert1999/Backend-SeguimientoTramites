@@ -5,6 +5,12 @@ const SolicitanteScheme = Schema({
         type: String,
         required: true
     },
+    paterno: {
+        type: String
+    },
+    materno: {
+        type: String
+    },
     telefono: {
         type: String,
         required: true
@@ -28,6 +34,13 @@ const RepresentanteScheme = Schema({
     nombre: {
         type: String,
         required: true
+    },
+    paterno: {
+        type: String,
+        required: true
+    },
+    materno: {
+        type: String
     },
     telefono: {
         type: String,
