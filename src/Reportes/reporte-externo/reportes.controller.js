@@ -3,6 +3,7 @@ const { TramiteExterno, Solicitante } = require('../../../src/Seguimiento/tramit
 const BandejaSalida = require('../../Seguimiento/bandejas/bandeja-salida.model')
 const Cuentas = require('../../Configuraciones/cuentas/cuenta.model')
 const ObjectId = require('mongoose').Types.ObjectId
+const TypesTramites = require('../../Configuraciones/tipos-tramites/tipoTramite.model')
 
 const GetReporteFicha = async (req = request, resp = response) => {
     const alterno = req.params.alterno
@@ -295,7 +296,7 @@ const GetReporteContribuyente = async (req = request, resp = response) => {
                     "solicitantes.dni": dni
                 }
             },
-            { $project: { _id: 0, detalle: 1, alterno: 1, estado: 1, cuenta: 1, fecha_registro: 1, ubicacion:1,"solicitantes.nombre": 1, "solicitantes.telefono": 1, "solicitantes.dni": 1, "solicitantes.expedido": 1 } }
+            { $project: { _id: 0, detalle: 1, alterno: 1, estado: 1, cuenta: 1, fecha_registro: 1, ubicacion: 1, "solicitantes.nombre": 1, "solicitantes.telefono": 1, "solicitantes.dni": 1, "solicitantes.expedido": 1 } }
         ])
         if (tramites.length === 0) {
             return resp.status(404).json({
@@ -426,7 +427,22 @@ const GetReporteTipoTramite = async (req = request, resp = response) => {
 
 
 
+const GetTypesTramites = async (req = request, resp = response) => {
+    try {
+        const tipos = await TypesTramites.find({ activo: true }).select('nombre')
+        return resp.json({
+            ok: true,
+            tipos
+        })
+    } catch (error) {
+        console.log('[SERVER]: error (obtener data para reporte ficha)', error)
+        return resp.status(500).json({
+            ok: false,
+            message: 'Error al generar reporte ficha'
+        })
 
+    }
+}
 
 module.exports = {
     GetReporteFicha,
@@ -434,5 +450,7 @@ module.exports = {
     GetReporteRuta,
     GetReporteSolicitante,
     GetReporteContribuyente,
-    GetReporteTipoTramite
+    GetReporteTipoTramite,
+
+    GetTypesTramites
 }

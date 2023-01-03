@@ -3,13 +3,16 @@ const { Schema, model } = require('mongoose')
 const SolicitanteScheme = Schema({
     nombre: {
         type: String,
-        required: true
+        required: true,
+        uppercase: true
     },
     paterno: {
-        type: String
+        type: String,
+        uppercase: true
     },
     materno: {
-        type: String
+        type: String,
+        uppercase: true
     },
     telefono: {
         type: String,
@@ -24,7 +27,6 @@ const SolicitanteScheme = Schema({
     },
     expedido: {
         type: String
-
     },
     documento: {
         type: String
@@ -33,20 +35,22 @@ const SolicitanteScheme = Schema({
 const RepresentanteScheme = Schema({
     nombre: {
         type: String,
-        required: true
+        required: true,
+        uppercase: true
     },
     paterno: {
         type: String,
-        required: true
+        required: true,
+        uppercase: true
     },
     materno: {
-        type: String
+        type: String,
+        uppercase: true
     },
     telefono: {
         type: String,
         required: true
     },
-
     dni: {
         type: String,
         required: true
@@ -99,7 +103,8 @@ const TramiteExternoScheme = Schema({
     },
     detalle: {
         type: String,
-        required: true
+        required: true,
+        uppercase: true
     },
     cantidad: {
         type: String,

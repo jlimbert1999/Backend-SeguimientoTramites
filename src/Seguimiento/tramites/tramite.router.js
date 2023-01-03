@@ -4,7 +4,8 @@ const checkFields = require('../../../middlewares/validar_body')
 const { check, param } = require('express-validator')
 
 // TIPOS DE TRAMITE EXTERNOS
-router.get('/tipos', controller.getTiposTramite)
+router.get('/tipos/:segmento', controller.getTypes)
+router.get('/segmentos', controller.getGroupsTypes)
 
 // AGREGAR OBSERVACIONES
 router.put('/observacion/:id', controller.addObservacion)
@@ -29,5 +30,7 @@ router.delete('/:id', controller.concludedTramite)
 
 // generacion de pdf
 router.get('/ruta/:id', controller.generateRuta)
+
+router.get('/filtrar/:termino', controller.filter)
 
 module.exports = router

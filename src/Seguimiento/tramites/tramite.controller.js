@@ -4,11 +4,12 @@ const { TramiteExterno, Solicitante, Representante } = require('./tramite.model'
 const TiposTramites = require('../../Configuraciones/tipos-tramites/tipoTramite.model')
 const BandejaSalida = require('../../Seguimiento/bandejas/bandeja-salida.model')
 const BandejaEntrada = require('../../Seguimiento/bandejas/bandeja-entrada.model')
+const { ErrorResponse, SuccessResponse } = require('../../../helpers/responses')
 
-// TRAMITES EXTERNOS
 const addExterno = async (req = request, res = response) => {
-    let { representante, solicitante, tramite } = req.body
+    let { tramite, representante, solicitante } = req.body
     tramite.cuenta = req.id_cuenta
+    tramite.ubicacion = req.id_cuenta
     tramite.alterno = `${tramite.alterno}-${process.env.CONFIG_YEAR}`
     try {
         if (representante) {
@@ -23,7 +24,7 @@ const addExterno = async (req = request, res = response) => {
         const regex = new RegExp(tramite.alterno, 'i')
         let correlativo = await TramiteExterno.find({ alterno: regex }).count()
         correlativo += 1
-        tramite.alterno = `${tramite.alterno}-${addLeadingZeros(correlativo, 5)}`
+        tramite.alterno = `${tramite.alterno}-${addLeadingZeros(correlativo, 6)}`
         tramite.estado = 'INSCRITO'
         tramite.fecha_registro = new Date()
         tramite.pin = Math.floor(100000 + Math.random() * 900000)
@@ -40,7 +41,7 @@ const addExterno = async (req = request, res = response) => {
             populate: [
                 {
                     path: 'dependencia',
-                    select: 'nombre -_id',
+                    select: 'nombre sigla -_id',
                     populate: {
                         path: 'institucion',
                         select: 'sigla -_id'
@@ -86,7 +87,7 @@ const getExternos = async (req = request, res = response) => {
                     populate: [
                         {
                             path: 'dependencia',
-                            select: 'nombre -_id',
+                            select: 'nombre sigla -_id',
                             populate: {
                                 path: 'institucion',
                                 select: 'sigla -_id'
@@ -128,7 +129,7 @@ const editExterno = async (req = request, res = response) => {
         }
         if (representante) {
             switch (tramitedb.representante) {
-                case null:
+                case undefined:
                     const newRepresentante = new Representante(representante)
                     const representanteDB = await newRepresentante.save()
                     tramite.representante = representanteDB._id
@@ -149,7 +150,7 @@ const editExterno = async (req = request, res = response) => {
                 populate: [
                     {
                         path: 'dependencia',
-                        select: 'nombre -_id',
+                        select: 'nombre sigla -_id',
                         populate: {
                             path: 'institucion',
                             select: 'sigla -_id'
@@ -161,16 +162,9 @@ const editExterno = async (req = request, res = response) => {
                     }
                 ]
             })
-        res.json({
-            ok: true,
-            tramite: editTramite
-        })
+        SuccessResponse(res, editTramite)
     } catch (error) {
-        console.log('[SERVER]: error (actualizar tramite externo)', error);
-        res.status(500).json({
-            ok: true,
-            message: 'Error en el servidor'
-        })
+        ErrorResponse(res, error)
     }
 }
 
@@ -273,28 +267,31 @@ const filtrar_tramites = async (req = request, res = response) => {
 
 
 
-const getTiposTramite = async (req = request, res = response) => {
+const getTypes = async (req = request, res = response) => {
+    const segmento = req.params.segmento
+    if (!segmento) {
+        return res.status(400).json({
+            ok: false,
+            message: 'Seleccione el segmento de tramite'
+        })
+    }
     try {
-        const tiposTramites = await TiposTramites.find({ tipo: 'EXTERNO', activo: true })
-        let segmentos = []
-        tiposTramites.forEach(tipo_tramite => {
-            if (!segmentos.includes(tipo_tramite.segmento)) {
-                segmentos.push(tipo_tramite.segmento)
-            }
+        let tipos = await TiposTramites.find({ segmento, activo: true }).select('nombre requerimientos')
+        tipos.forEach((element, i) => {
+            tipos[i].requerimientos = element.requerimientos.filter(requerimiento => requerimiento.activo === true)
         })
-        res.json({
-            ok: true,
-            tiposTramites,
-            segmentos
-
-        })
+        SuccessResponse(res, tipos)
     } catch (error) {
-        console.log('[SERVER]: error (obtener tipos de tramites para registro)', error);
-        res.status(500).json({
-            ok: true,
-            message: 'error obtener tipos de tramites para registro'
-        })
+        ErrorResponse(res, error)
+    }
+}
 
+const getGroupsTypes = async (req = request, res = response) => {
+    try {
+        const groups = await TiposTramites.distinct('segmento', { tipo: 'EXTERNO', activo: true })
+        SuccessResponse(res, groups)
+    } catch (error) {
+        ErrorResponse(res, error)
     }
 }
 
@@ -452,9 +449,102 @@ const stopTramite = async (req = request, res = response) => {
     //     })
     // }
 }
+const filter = async (req = request, res = response) => {
+    // const text = req.params.termino
+    // const option = req.query.option
+    // const regex = new RegExp(text, 'i')
+    // try {
+    //     let tramites
+    //     switch (option) {
+    //         case 'ALTERNO':
+    //             tramites = await TramiteExterno.find({ alterno: regex, cuenta: req.id_cuenta }).limit(10).populate('tipo_tramite', 'nombre -_id')
+    //                 .populate('solicitante')
+    //                 .populate('representante')
+    //                 .populate({
+    //                     path: 'ubicacion',
+    //                     select: '_id',
+    //                     populate: [
+    //                         {
+    //                             path: 'dependencia',
+    //                             select: 'nombre sigla -_id',
+    //                             populate: {
+    //                                 path: 'institucion',
+    //                                 select: 'sigla -_id'
+    //                             }
+    //                         },
+    //                         {
+    //                             path: 'funcionario',
+    //                             select: 'nombre paterno materno cargo -_id'
+    //                         }
+    //                     ]
+    //                 })
+    //             break;
+    //         case 'SOLICITANTE':
+    //             tramites = await TramiteExterno.aggregate([
+    //                 {
+    //                     $lookup: {
+    //                         from: "solicitantes",
+    //                         localField: "solicitante",
+    //                         foreignField: "_id",
+    //                         as: "solicitantes"
+    //                     }
+    //                 },
+    //                 {
+    //                     $unwind: {
+    //                         path: "$solicitantes"
+    //                     }
+    //                 },
+    //                 {
+    //                     $match: {
+    //                         $match: {
+    //                             "solicitantes.dni": regex
+    //                         }
+    //                         // $or: [{ "solicitantes.dni": text }, { "solicitantes.nombre": regex }, { "solicitantes.paterno": text }]
+    //                     }
+    //                 },
+    //                 { $project: { _id: 0, detalle: 1, alterno: 1, estado: 1, cuenta: 1, fecha_registro: 1, ubicacion:1,"solicitantes.nombre": 1, "solicitantes.telefono": 1, "solicitantes.dni": 1, "solicitantes.expedido": 1 } }
+    //             ])
+    //             console.log(tramites)
+    //             if (tramites.length === 0) {
+    //                 return res.status(404).json({
+    //                     ok: true,
+    //                     message: `Sin resultados`
+    //                 })
+    //             }
+    //             await TramiteExterno.populate(tramites, {
+    //                 path: 'ubicacion',
+    //                 select: '_id',
+    //                 populate: [
+    //                     {
+    //                         path: 'dependencia',
+    //                         select: 'nombre sigla -_id',
+    //                         populate: {
+    //                             path: 'institucion',
+    //                             select: 'sigla'
+    //                         }
+    //                     },
+    //                     {
+    //                         path: 'funcionario',
+    //                         select: 'nombre cargo'
+    //                     }
+    //                 ]
+    //             })
+    //             break;
+
+    //     }
+    //     SuccessResponse(res, tramites)
+    // } catch (error) {
+    //     console.log('[SERVER]:Error (finalizar tramite) => ', error)
+    //     return res.status(500).json({
+    //         ok: false,
+    //         message: 'Error al finalizar el tramite'
+    //     })
+    // }
+}
 
 module.exports = {
-    getTiposTramite,
+    getTypes,
+    getGroupsTypes,
 
 
     addExterno,
@@ -467,6 +557,7 @@ module.exports = {
 
     concludedTramite,
 
-    generateRuta
+    generateRuta,
+    filter
 
 }
