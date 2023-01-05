@@ -58,12 +58,7 @@ const addExterno = async (req = request, res = response) => {
             tramite: tramiteDB
         })
     } catch (error) {
-        console.log('[SERVER]: Error (registrar tramite externo) =>', error);
-        res.status(500).json({
-            ok: true,
-            message: 'Error al registrar tramite externo'
-        })
-
+        ErrorResponse(res, error)
     }
 }
 

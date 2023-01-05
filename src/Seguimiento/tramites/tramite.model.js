@@ -15,21 +15,17 @@ const SolicitanteScheme = Schema({
         uppercase: true
     },
     telefono: {
-        type: String,
-        required: true
-    },
-    tipo: {
-        type: String,
-        required: true
-    },
-    dni: {
-        type: String
-    },
-    expedido: {
         type: String
     },
     documento: {
         type: String
+    },
+    dni: {
+        type: String
+    },
+    tipo: {
+        type: String,
+        required: true
     }
 })
 const RepresentanteScheme = Schema({
@@ -48,14 +44,9 @@ const RepresentanteScheme = Schema({
         uppercase: true
     },
     telefono: {
-        type: String,
-        required: true
+        type: String
     },
     dni: {
-        type: String,
-        required: true
-    },
-    expedido: {
         type: String,
         required: true
     },
