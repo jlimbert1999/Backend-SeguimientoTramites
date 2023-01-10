@@ -21,6 +21,10 @@ const CuentasScheme = Schema({
     funcionario: {
         type: Schema.Types.ObjectId,
         ref: 'funcionarios'
+    },
+    activo: {
+        type: Boolean,
+        default: true
     }
 })
 

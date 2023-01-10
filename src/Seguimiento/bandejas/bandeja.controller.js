@@ -169,7 +169,7 @@ const obtener_bandeja_salida = async (req = request, res = response) => {
 const obtener_usuarios_envio = async (req = request, res = response) => {
     const id_dependencia = req.params.id_dependencia
     try {
-        const funcionarios = await Cuenta.find({ dependencia: id_dependencia })
+        const funcionarios = await Cuenta.find({ dependencia: id_dependencia})
             .select('_id')
             .populate('funcionario', 'nombre paterno materno cargo -_id')
         res.json({
