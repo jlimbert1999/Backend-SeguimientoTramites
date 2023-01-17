@@ -96,25 +96,22 @@ const getExternos = async (req = request, res = response) => {
                 }),
             await TramiteExterno.count({ cuenta: req.id_cuenta })
         ]);
-
-        res.json({
-            ok: true,
-            tramites,
-            total
-        })
+        SuccessResponse(res, { tramites, total })
     } catch (error) {
-        console.log('[SERVER]: error (obtener tramites)', error);
-        res.status(500).json({
-            ok: true,
-            message: 'Error al obtener mis tramites'
-        })
-
+        ErrorResponse(res, error)
     }
 }
 const editExterno = async (req = request, res = response) => {
     const id_tramite = req.params.id
     let { tramite, solicitante, representante } = req.body
     try {
+        let sentTramite = await BandejaSalida.findOne({ tramite: id_tramite, recibido: true, tipo: 'tramites_externos' })
+        if (sentTramite) {
+            return res.status(405).json({
+                ok: false,
+                message: 'El tramite ya ha sido aceptado, por lo que no se puede editar'
+            })
+        }
         const tramitedb = await TramiteExterno.findById(id_tramite)
         if (!tramitedb) {
             return res.status(400).json({
@@ -271,7 +268,7 @@ const getTypes = async (req = request, res = response) => {
         })
     }
     try {
-        let tipos = await TiposTramites.find({ segmento, activo: true }).select('nombre requerimientos')
+        let tipos = await TiposTramites.find({ segmento, activo: true, tipo: 'EXTERNO' }).select('nombre requerimientos')
         tipos.forEach((element, i) => {
             tipos[i].requerimientos = element.requerimientos.filter(requerimiento => requerimiento.activo === true)
         })
@@ -445,96 +442,50 @@ const stopTramite = async (req = request, res = response) => {
     // }
 }
 const filter = async (req = request, res = response) => {
-    // const text = req.params.termino
-    // const option = req.query.option
-    // const regex = new RegExp(text, 'i')
-    // try {
-    //     let tramites
-    //     switch (option) {
-    //         case 'ALTERNO':
-    //             tramites = await TramiteExterno.find({ alterno: regex, cuenta: req.id_cuenta }).limit(10).populate('tipo_tramite', 'nombre -_id')
-    //                 .populate('solicitante')
-    //                 .populate('representante')
-    //                 .populate({
-    //                     path: 'ubicacion',
-    //                     select: '_id',
-    //                     populate: [
-    //                         {
-    //                             path: 'dependencia',
-    //                             select: 'nombre sigla -_id',
-    //                             populate: {
-    //                                 path: 'institucion',
-    //                                 select: 'sigla -_id'
-    //                             }
-    //                         },
-    //                         {
-    //                             path: 'funcionario',
-    //                             select: 'nombre paterno materno cargo -_id'
-    //                         }
-    //                     ]
-    //                 })
-    //             break;
-    //         case 'SOLICITANTE':
-    //             tramites = await TramiteExterno.aggregate([
-    //                 {
-    //                     $lookup: {
-    //                         from: "solicitantes",
-    //                         localField: "solicitante",
-    //                         foreignField: "_id",
-    //                         as: "solicitantes"
-    //                     }
-    //                 },
-    //                 {
-    //                     $unwind: {
-    //                         path: "$solicitantes"
-    //                     }
-    //                 },
-    //                 {
-    //                     $match: {
-    //                         $match: {
-    //                             "solicitantes.dni": regex
-    //                         }
-    //                         // $or: [{ "solicitantes.dni": text }, { "solicitantes.nombre": regex }, { "solicitantes.paterno": text }]
-    //                     }
-    //                 },
-    //                 { $project: { _id: 0, detalle: 1, alterno: 1, estado: 1, cuenta: 1, fecha_registro: 1, ubicacion:1,"solicitantes.nombre": 1, "solicitantes.telefono": 1, "solicitantes.dni": 1, "solicitantes.expedido": 1 } }
-    //             ])
-    //             console.log(tramites)
-    //             if (tramites.length === 0) {
-    //                 return res.status(404).json({
-    //                     ok: true,
-    //                     message: `Sin resultados`
-    //                 })
-    //             }
-    //             await TramiteExterno.populate(tramites, {
-    //                 path: 'ubicacion',
-    //                 select: '_id',
-    //                 populate: [
-    //                     {
-    //                         path: 'dependencia',
-    //                         select: 'nombre sigla -_id',
-    //                         populate: {
-    //                             path: 'institucion',
-    //                             select: 'sigla'
-    //                         }
-    //                     },
-    //                     {
-    //                         path: 'funcionario',
-    //                         select: 'nombre cargo'
-    //                     }
-    //                 ]
-    //             })
-    //             break;
+    const text = req.params.text
+    let { option, limit, offset } = req.query
+    const regex = new RegExp(text, 'i')
+    offset = offset * limit
+    try {
+        let tramites, total
+        switch (option) {
+            case 'ALTERNO':
+                tramites = await TramiteExterno.find({ alterno: regex, cuenta: req.id_cuenta }).skip(offset).limit(limit)
+                total = await TramiteExterno.count({ alterno: regex, cuenta: req.id_cuenta })
+                break;
+            case 'SOLICITANTE':
+                const ids_solicitantes = await Solicitante.find({ $or: [{ nombre: regex }, { paterno: regex }, { materno: regex }, { dni: regex }] }).skip(offset).limit(limit)
+                tramites = await TramiteExterno.find({ solicitante: { $in: ids_solicitantes } }).skip(offset).limit(limit)
+                total = await TramiteExterno.count({ solicitante: { $in: ids_solicitantes } })
 
-    //     }
-    //     SuccessResponse(res, tramites)
-    // } catch (error) {
-    //     console.log('[SERVER]:Error (finalizar tramite) => ', error)
-    //     return res.status(500).json({
-    //         ok: false,
-    //         message: 'Error al finalizar el tramite'
-    //     })
-    // }
+        }
+        await TramiteExterno.populate(tramites, { path: 'tipo_tramite', select: 'nombre -_id' })
+        await TramiteExterno.populate(tramites, { path: 'solicitante' })
+        await TramiteExterno.populate(tramites, { path: 'representante' })
+        await TramiteExterno.populate(tramites,
+            {
+                path: 'ubicacion',
+                select: '_id',
+                populate: [
+                    {
+                        path: 'dependencia',
+                        select: 'nombre sigla -_id',
+                        populate: {
+                            path: 'institucion',
+                            select: 'sigla -_id'
+                        }
+                    },
+                    {
+                        path: 'funcionario',
+                        select: 'nombre paterno materno cargo -_id'
+                    }
+                ]
+            }
+        )
+        SuccessResponse(res, { tramites, total })
+    } catch (error) {
+        ErrorResponse(res, error)
+    }
 }
 
 module.exports = {

@@ -4,6 +4,8 @@ const { request, response } = require('express')
 const Usuarios = require('../../Configuraciones/usuarios/usuarios.model')
 const TiposTramites = require('../../Configuraciones/tipos-tramites/tipoTramite.model')
 const BandejaSalida = require('../bandejas/bandeja-salida.model')
+const BandejaEntrada = require('../bandejas/bandeja-entrada.model')
+const { SuccessResponse, ErrorResponse } = require('../../../helpers/responses')
 
 
 const addInterno = async (req = request, res = response) => {
@@ -24,35 +26,28 @@ const addInterno = async (req = request, res = response) => {
         await Internos.populate(tramiteDB, { path: 'tipo_tramite', select: '-_id nombre' })
         await Internos.populate(tramiteDB, {
             path: 'ubicacion',
-            select: '_id',
-            populate: {
-                path: 'funcionario',
-                select: 'nombre cargo -_id'
-            }
+            select: '_id'
         })
-        res.json({
-            ok: true,
-            tramite: tramiteDB
-        })
+        SuccessResponse(res, tramiteDB)
     } catch (error) {
-        console.log('[SERVER]: Error (registrar tramite interno) =>', error);
-        res.status(500).json({
-            ok: true,
-            message: 'Error al registrar tramite interno'
-        })
+        ErrorResponse(res, error)
     }
 }
 const PutInterno = async (req = request, res = response) => {
     try {
+        let sentTramite = await BandejaSalida.findOne({ tramite: req.params.id, recibido: true, tipo: 'tramites_internos' })
+        if (sentTramite) {
+            return res.status(405).json({
+                ok: false,
+                message: 'El tramite ya ha sido aceptado, por lo que no se puede editar'
+            })
+        }
+
         const tramite = await Internos.findByIdAndUpdate(req.params.id, req.body, { new: true })
             .populate('tipo_tramite', '-_id nombre')
             .populate({
                 path: 'ubicacion',
-                select: '_id',
-                populate: {
-                    path: 'funcionario',
-                    select: 'nombre cargo -_id'
-                }
+                select: '_id'
             })
         res.json({
             ok: true,
@@ -72,26 +67,20 @@ async function GetInternos(req = request, res = response) {
     limit = limit ? limit : 10
     offset = offset * limit
     try {
-        const tramites = await Internos.find({ cuenta: req.id_cuenta }).sort({ _id: -1 })
-            .populate('tipo_tramite', '-_id nombre')
-            .populate({
-                path: 'ubicacion',
-                select: '_id',
-                populate: {
-                    path: 'funcionario',
-                    select: 'nombre cargo -_id'
-                }
-            })
-        return res.json({
-            ok: true,
-            tramites
-        })
+        const [tramites, total] = await Promise.all([
+            Internos.find({ cuenta: req.id_cuenta }).sort({ _id: -1 })
+                .skip(offset)
+                .limit(limit)
+                .populate('tipo_tramite', '-_id nombre')
+                .populate({
+                    path: 'ubicacion',
+                    select:'_id'
+                }),
+            Internos.count({ cuenta: req.id_cuenta })
+        ])
+        SuccessResponse(res, { tramites, total })
     } catch (error) {
-        console.log('[SERVER]: error GetInternos => ', error)
-        return res.status(500).json({
-            ok: false,
-            message: 'No se puede obtener los tramite internos'
-        })
+        ErrorResponse(res, error)
     }
 }
 
@@ -102,6 +91,7 @@ async function GetInterno(req = request, res = response) {
                 .populate('tipo_tramite', '-_id nombre')
                 .populate({
                     path: 'ubicacion',
+                    select:'_id',
                     populate: [
                         {
                             path: 'funcionario',
@@ -157,6 +147,23 @@ async function GetInterno(req = request, res = response) {
     }
 }
 
+const concludedTramite = async (req = request, res = response) => {
+    const id_tramite = req.params.id
+    try {
+        await Internos.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
+        await BandejaEntrada.findOneAndDelete({ tramite: id_tramite })
+        res.json({
+            ok: true,
+            message: 'Tramite finalizado'
+        })
+    } catch (error) {
+        console.log('[SERVER]:Error (finalizar tramite interno) => ', error)
+        return res.status(500).json({
+            ok: false,
+            message: 'Error al finalizar el tramite'
+        })
+    }
+}
 
 const addObservacion = async (req = request, res = response) => {
     const id_tramite = req.params.id
@@ -249,7 +256,7 @@ async function getUsers(req = request, res = response) {
             ok: true,
             usuarios
         })
-       
+
     } catch (error) {
         console.log('[SERVER]: error al obtener usuarios para registrar interno => ', error)
         return res.status(500).json({
@@ -278,6 +285,8 @@ module.exports = {
     GetInternos,
     PutInterno,
     GetInterno,
+
+    concludedTramite,
 
     addObservacion,
     putObservacion,

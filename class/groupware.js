@@ -1,32 +1,36 @@
 class Groupware {
     constructor() {
-        this.funcionarios = []
+        this.users = []
     }
-    add_funcionario(id, id_cuenta, funcionario, cargo) {
-        const found = this.funcionarios.some(user => user.id_cuenta === id_cuenta);
-        if (!found) {
-            let persona = {
-                id,
-                id_cuenta,
-                funcionario,
-                cargo
+    addUser(id, account) {
+        let indexFound = this.users.findIndex(user => user.id_cuenta === account.id_cuenta);
+        if (indexFound === -1) {
+            let user = {
+                ...account,
+                socketIds: [id]
             }
-            this.funcionarios.push(persona);
+            this.users.push(user);
+        }
+        else {
+            this.users[indexFound].socketIds.push(id)
         }
     }
-    get_funcionarios() {
-        return this.funcionarios;
+    getUsers() {
+        return this.users;
     }
-    get_funcionario(id) {
-        let persona = this.funcionarios.filter(perso => {
-            return perso.id === id
-        })[0]
-        return persona
+    getUser(id_cuenta) {
+        let user = this.users.find(user => user.id_cuenta === id_cuenta);
+        if (!user) {
+            user.socketIds = []
+        }
+        return user.socketIds
     }
-    delete_funcionario(id) {
-        let personaBorrada = this.get_funcionario(id);
-        this.funcionarios = this.funcionarios.filter(perso => perso.id != id);
-        return personaBorrada
+    deleteUser(id, account) {
+        let indexFound = this.users.findIndex(user => user.id_cuenta === account.id_cuenta);
+        this.users[indexFound].socketIds = this.users[indexFound].socketIds.filter(idSocket => idSocket !== id)
+        if (this.users[indexFound].socketIds.length === 0) {
+            this.users = this.users.filter(user => user.id_cuenta !== account.id_cuenta)
+        }
     }
 
 }

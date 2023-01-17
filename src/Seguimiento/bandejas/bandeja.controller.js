@@ -3,6 +3,7 @@ const BandejaSalida = require('./bandeja-salida.model')
 const Cuenta = require('../../../src/Configuraciones/cuentas/cuenta.model')
 const { TramiteExterno } = require('../tramites/tramite.model')
 const TramiteInterno = require('../../Seguimiento/internos/interno.model')
+const { ErrorResponse, SuccessResponse } = require('../../../helpers/responses')
 
 const { request, response } = require('express')
 
@@ -31,42 +32,53 @@ const agregar_mail = async (req = request, res = response) => {
         numero_interno
     }
     try {
+        // verificar si se acepto el mail para enviar
+        const mailOld = await BandejaEntrada.findOne({ receptor: req.id_cuenta, tramite: id_tramite })
+        if (mailOld) {
+            if (!mailOld.recibido) {
+                return res.status(405).json({
+                    ok: false,
+                    message: 'El tramite aun no ha sido aceptado para su reeenvio.'
+                })
+            }
+        }
         await BandejaSalida.create(mail_salida)
         const mail = await BandejaEntrada.findOneAndUpdate({ tramite: id_tramite }, mail_entrada, { upsert: true, new: true })
-            .populate({
+        switch (tipo) {
+            case 'tramites_internos':
+                await TramiteInterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta })
+                break;
+            case 'tramites_externos':
+                await TramiteExterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta })
+                break;
+        }
+        await BandejaEntrada.populate(mail,
+            {
                 path: 'tramite',
-                select: 'alterno estado',
+                select: 'alterno estado detalle',
                 populate: {
                     path: 'tipo_tramite',
                     select: 'nombre -_id'
                 }
             })
-            .populate({
-                path: 'emisor',
-                select: '_id',
-                populate: [
-                    {
-                        path: 'dependencia',
-                        select: 'nombre -_id',
-                        populate: {
-                            path: 'institucion',
-                            select: 'sigla -_id'
-                        }
-                    },
-                    {
-                        path: 'funcionario',
-                        select: 'nombre cargo',
+        await BandejaEntrada.populate(mail, {
+            path: 'emisor',
+            select: '_id',
+            populate: [
+                {
+                    path: 'dependencia',
+                    select: 'nombre -_id',
+                    populate: {
+                        path: 'institucion',
+                        select: 'sigla -_id'
                     }
-                ]
-            })
-        switch (tipo) {
-            case 'tramites_internos':
-                await TramiteInterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta, estado: 'EN REVISION' })
-                break;
-            case 'tramites_externos':
-                await TramiteExterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta, estado: 'EN REVISION' })
-                break;
-        }
+                },
+                {
+                    path: 'funcionario',
+                    select: 'nombre cargo',
+                }
+            ]
+        })
         res.json({
             ok: true,
             tramite: mail
@@ -80,47 +92,49 @@ const agregar_mail = async (req = request, res = response) => {
     }
 }
 
-const obtener_bandeja_entrada = async (req = request, res = response) => {
+const getMailsIn = async (req = request, res = response) => {
     const id_cuenta = req.id_cuenta
+    let { offset, limit } = req.query
+    offset = offset ? offset : 0
+    limit = limit ? limit : 10
+    offset = offset * limit
     try {
-        const tramites = await BandejaEntrada.find({ receptor: id_cuenta })
-            .sort({ _id: -1 })
-            .populate({
-                path: 'tramite',
-                select: 'alterno estado',
-                populate: {
-                    path: 'tipo_tramite',
-                    select: 'nombre -_id'
-                }
-            })
-            .populate({
-                path: 'emisor',
-                select: '_id',
-                populate: [
-                    {
-                        path: 'dependencia',
-                        select: 'nombre -_id',
-                        populate: {
-                            path: 'institucion',
-                            select: 'sigla -_id'
-                        }
-                    },
-                    {
-                        path: 'funcionario',
-                        select: 'nombre paterno materno cargo',
+        const [tramites, total] = await Promise.all([
+            BandejaEntrada.find({ receptor: id_cuenta })
+                .sort({ _id: -1 })
+                .skip(offset)
+                .limit(limit)
+                .populate({
+                    path: 'tramite',
+                    select: 'alterno estado detalle',
+                    populate: {
+                        path: 'tipo_tramite',
+                        select: 'nombre -_id'
                     }
-                ]
-            })
-        res.json({
-            ok: true,
-            tramites
-        })
+                })
+                .populate({
+                    path: 'emisor',
+                    select: '_id',
+                    populate: [
+                        {
+                            path: 'dependencia',
+                            select: 'nombre -_id',
+                            populate: {
+                                path: 'institucion',
+                                select: 'sigla -_id'
+                            }
+                        },
+                        {
+                            path: 'funcionario',
+                            select: 'nombre paterno materno cargo',
+                        }
+                    ]
+                }),
+            BandejaEntrada.count({ receptor: id_cuenta })
+        ])
+        SuccessResponse(res, { tramites, total })
     } catch (error) {
-        console.log('[SERVER]: error (obtener bandeja entrada)', error);
-        res.status(500).json({
-            ok: true,
-            message: 'error al obtener bandeja entrada'
-        })
+        ErrorResponse(res, error)
     }
 }
 
@@ -166,22 +180,15 @@ const obtener_bandeja_salida = async (req = request, res = response) => {
 
 
 
-const obtener_usuarios_envio = async (req = request, res = response) => {
+const getUsers = async (req = request, res = response) => {
     const id_dependencia = req.params.id_dependencia
     try {
-        const funcionarios = await Cuenta.find({ dependencia: id_dependencia})
+        const funcionarios = await Cuenta.find({ dependencia: id_dependencia })
             .select('_id')
-            .populate('funcionario', 'nombre paterno materno cargo -_id')
-        res.json({
-            ok: true,
-            funcionarios
-        })
+            .populate('funcionario', 'nombre paterno materno cargo _id')
+        SuccessResponse(res, funcionarios)
     } catch (error) {
-        console.log('[SERVER]: error (obtener funcionarios para envio)', error);
-        res.status(500).json({
-            ok: true,
-            message: 'error obtener funcionarios para envio'
-        })
+        ErrorResponse(res, error)
     }
 }
 
@@ -191,6 +198,14 @@ const aceptar_tramite = async (req = request, res = response) => {
     try {
         const mail = await BandejaEntrada.findByIdAndUpdate(id_bandeja, { recibido: true })
         await BandejaSalida.findOneAndUpdate({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor, 'receptor.cuenta': mail.receptor, recibido: null }, { recibido: true, fecha_recibido: new Date() })
+        switch (mail.tipo) {
+            case 'tramites_internos':
+                await TramiteInterno.findByIdAndUpdate(mail.tramite, { estado: 'EN REVISION' })
+                break;
+            case 'tramites_externos':
+                await TramiteExterno.findByIdAndUpdate(mail.tramite, { estado: 'EN REVISION' })
+                break;
+        }
         res.json({
             ok: true,
             message: 'Tramite aceptado'
@@ -220,7 +235,14 @@ const rechazar_tramite = async (req = request, res = response) => {
             await BandejaEntrada.findByIdAndDelete(id_bandeja)
         }
         await BandejaSalida.findOneAndUpdate({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor, 'receptor.cuenta': mail.receptor, recibido: null }, { fecha_recibido: new Date(), motivo_rechazo, recibido: false })
-        await TramiteExterno.findByIdAndUpdate(mail.tramite, { ubicacion: mail.emisor })
+        switch (mail.tipo) {
+            case 'tramites_externos':
+                await TramiteExterno.findByIdAndUpdate(mail.tramite, { ubicacion: mail.emisor })
+                break;
+            case 'tramites_internos':
+                await TramiteInterno.findByIdAndUpdate(mail.tramite, { ubicacion: mail.emisor })
+                break;
+        }
         res.json({
             ok: true,
             message: 'Tramite rechazado'
@@ -277,12 +299,12 @@ const getDetailsMail = async (req = request, res = response) => {
 
 module.exports = {
     agregar_mail,
-    obtener_bandeja_entrada,
+    getMailsIn,
     obtener_bandeja_salida,
     aceptar_tramite,
     rechazar_tramite,
 
     getDetailsMail,
 
-    obtener_usuarios_envio
+    getUsers
 }

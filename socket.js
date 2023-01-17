@@ -1,6 +1,6 @@
 const { Server } = require("socket.io");
 const { Groupware } = require('./class/groupware')
-const Grupo = new Groupware
+const Group = new Groupware()
 
 function startSocketServer(server) {
     const io = new Server(server, {
@@ -8,21 +8,48 @@ function startSocketServer(server) {
             origin: '*'
         }
     });
+    io.use((socket, next) => {
+        if (socket.handshake.auth.token) {
+            Group.addUser(socket.id, socket.handshake.auth.token)
+        }
+        next();
+    });
+
     io.on('connection', (client) => {
-        client.on('unirse', (user, callback) => {
-            Grupo.add_funcionario(client.id, user.id_cuenta, user.funcionario, user.cargo)
-            callback(Grupo.get_funcionarios())
-            client.broadcast.emit('listar', Grupo.get_funcionarios())
+        io.emit("listar", Group.getUsers())
+        client.on('notification', data => {
+            let { id_cuenta, message } = data
+            const socketIds = Group.getUser(id_cuenta)
+            socketIds.forEach(id => {
+                client.to(id.toString()).emit('notify', message)
+            });
         })
-        client.on('enviar-tramite', data => {
-            let { id, tramite } = data
-            client.broadcast.to(id).emit('recibir_tramite', tramite)
+        client.on('mail', data => {
+            let { id_cuenta, tramite } = data
+            const socketIds = Group.getUser(id_cuenta)
+            socketIds.forEach(id => {
+                client.to(id.toString()).emit('newmail', tramite)
+            });
         })
+        client.on('expel', id_cuenta => {
+            const socketIds = Group.getUser(id_cuenta)
+            socketIds.forEach(id => {
+                client.to(id.toString()).emit('kick', "eliminado")
+            });
+        })
+
+        // client.on('unirse', (user, callback) => {
+        //     Grupo.add_funcionario(client.id, user.id_cuenta, user.funcionario, user.cargo)
+        //     callback(Grupo.get_funcionarios())
+        //     client.broadcast.emit('listar', Grupo.get_funcionarios())
+        // })
+
         client.on('disconnect', () => {
-            Grupo.delete_funcionario(client.id)
-            client.broadcast.emit('listar', Grupo.get_funcionarios())
+            Group.deleteUser(client.id, client.handshake.auth.token)
+            client.broadcast.emit('listar', Group.getUsers())
         })
     });
+
 
 }
 

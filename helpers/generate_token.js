@@ -1,14 +1,14 @@
 const jwt = require('jsonwebtoken')
-const generarToken = (id_cuenta, id_funcionario, funcionario, cargo, rol, dependencia, institucion, codigo) => {
+const generarToken = (id_cuenta, id_funcionario, nombre_completo, cargo, rol, codigo) => {
     return new Promise((resolve, reject) => {
         const payload = {
             id_cuenta,
-            id_funcionario,
-            funcionario,
-            cargo,
+            funcionario: {
+                id_funcionario,
+                nombre_completo,
+                cargo
+            },
             rol,
-            dependencia,
-            institucion,
             codigo
         }
         jwt.sign(payload, process.env.JWT_SECRET, {

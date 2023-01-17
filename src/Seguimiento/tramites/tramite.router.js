@@ -31,6 +31,6 @@ router.delete('/:id', controller.concludedTramite)
 // generacion de pdf
 router.get('/ruta/:id', controller.generateRuta)
 
-router.get('/filtrar/:termino', controller.filter)
+router.get('/filter/:text', controller.filter)
 
 module.exports = router

@@ -9,6 +9,8 @@ router.get('/', controller.GetInternos)
 router.put('/:id', controller.PutInterno)
 router.get('/:id', controller.GetInterno)
 
+router.delete('/:id', controller.concludedTramite)
+
 // AGREGAR OBSERVACIONES
 router.put('/observacion/:id', controller.addObservacion)
 router.put('/observacion/corregir/:id', controller.putObservacion)
