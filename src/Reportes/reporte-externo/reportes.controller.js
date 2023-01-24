@@ -195,7 +195,7 @@ const GertReporteEstado = async (req = request, resp = response) => {
                 select: 'login -_id',
                 populate: {
                     path: 'funcionario',
-                    select: 'nombre cargo'
+                    select: 'nombre paterno materno cargo'
                 }
             })
             .populate('solicitante', 'nombre -_id')

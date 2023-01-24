@@ -20,10 +20,10 @@ function startSocketServer(server) {
         io.emit("listar", Group.getUsers())
 
         client.on('notification', data => {
-            let { id_cuenta, message } = data
+            let { id_cuenta, ...info } = data
             const socketIds = Group.getUser(id_cuenta)
             socketIds.forEach(id => {
-                client.to(id.toString()).emit('notify', message)
+                client.to(id.toString()).emit('notify', info)
             });
         })
         client.on('mail', data => {

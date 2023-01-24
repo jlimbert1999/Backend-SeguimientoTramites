@@ -44,23 +44,6 @@ const getMenuFrontend = (rol) => {
           },
         ]
       },
-      // {
-      //   modulo: "Configuraciones",
-      //   submodulos: [
-      //     { nombre: 'Instituciones', ruta: 'instituciones', icon: 'apartment' },
-      //     { nombre: 'Dependencias', ruta: 'dependencias', icon: 'holiday_village' },
-      //     { nombre: 'Tipos de tramite', ruta: 'tipos', icon: 'note' },
-      //   ]
-
-      // },
-      // {
-      //   modulo: "Usuarios",
-      //   submodulos: [
-      //     { nombre: 'Cuentas', ruta: 'cuentas', icon: 'account_circle' },
-      //     { nombre: 'Funcionarios', ruta: 'funcionarios', icon: 'person' },
-      //     { nombre: 'Grupo de trabajo', ruta: 'groupware', icon: 'groups' }
-      //   ]
-      // }
     ]
   }
   else if (rol == 'EVALUACION') {
