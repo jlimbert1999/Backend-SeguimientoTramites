@@ -2,12 +2,12 @@ const router = require('express').Router()
 const controller = require('./interno.controller')
 
 
-router.get('/tipos', controller.GetTiposTramites)
+router.get('/tipos', controller.getTypes)
 
-router.post('/', controller.addInterno)
-router.get('/', controller.GetInternos)
-router.put('/:id', controller.PutInterno)
-router.get('/:id', controller.GetInterno)
+router.post('/', controller.add)
+router.get('/', controller.get)
+router.put('/:id', controller.edit)
+router.get('/:id', controller.getOne)
 
 router.delete('/:id', controller.concludedTramite)
 
@@ -17,6 +17,6 @@ router.put('/observacion/corregir/:id', controller.putObservacion)
 
 router.get('/usuarios/:termino', controller.getUsers)
 
-
+router.get('/search/:text', controller.search)
 
 module.exports = router

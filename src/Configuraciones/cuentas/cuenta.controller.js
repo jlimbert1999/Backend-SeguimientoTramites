@@ -319,7 +319,7 @@ const obtener_instituciones = async (req = request, res = response) => {
     }
 
 }
-const obtener_dependencias = async (req = request, res = response) => {
+const getDependencias = async (req = request, res = response) => {
     const id = req.params.id_institucion
     try {
         const dependencias = await Dependencia.find({ activo: true, institucion: id }, 'nombre')
@@ -395,6 +395,6 @@ module.exports = {
     crear_cuenta_asignando,
 
     obtener_instituciones,
-    obtener_dependencias,
+    getDependencias,
     obtener_funcionarios_asignacion
 }

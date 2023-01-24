@@ -15,9 +15,9 @@ router.get("/busqueda/:termino", controller.buscar_cuenta)
 router.put("/asignar/:id", controller.asignar_cuenta)
 router.post("/asignar", controller.crear_cuenta_asignando)
 
-router.get("/instituciones", controllerDependencias.obtener_instituciones)
+router.get("/instituciones", controllerDependencias.getInstituciones)
 
-router.get("/dependencias/:id_institucion", controller.obtener_dependencias)
+router.get("/dependencias/:id_institucion", controller.getDependencias)
 
 router.get("/usuarios", controller.obtener_funcionarios_asignacion)
 

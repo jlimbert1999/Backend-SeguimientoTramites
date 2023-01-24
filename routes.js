@@ -10,7 +10,7 @@ const routerAuth = require('./src/auth/auth.router')
 const tiposTramitesRouter = require('./src/Configuraciones/tipos-tramites/tipoTramite.router')
 const RequerimientosRouter = require('./src/Configuraciones/tipos-tramites/tipoTramite.router')
 
-const TramitesRouter = require('./src/Seguimiento/tramites/tramite.router')
+const ExternoRouter = require('./src/Seguimiento/externos/externo.router')
 const BandejaRouter = require('./src/Seguimiento/bandejas/bandeja.router')
 
 const ReportesExternosRouter = require('./src/Reportes/reporte-externo/reportes.router')
@@ -33,11 +33,11 @@ router.use('/requerimientos', [verificarToken, verificarAdminRol], Requerimiento
 
 
 // FUNCIONARIOS
-router.use('/tramites-externos', [verificarToken], TramitesRouter)
+router.use('/externos', [verificarToken], ExternoRouter)
 router.use('/bandejas', [verificarToken], BandejaRouter)
 
 
-router.use('/tramites-internos', [verificarToken], InternoRouter)
+router.use('/internos', [verificarToken], InternoRouter)
 
 router.use('/reportes-externos', ReportesExternosRouter)
 router.use('/reportes-internos', ReportesInternosRouter)

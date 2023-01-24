@@ -2,7 +2,7 @@ const { request, response } = require("express");
 const Dependendencia = require("./dependencias.model");
 const Institucion = require("../instituciones/instituciones.model");
 
-const obtener_instituciones = async (req = request, res = response) => {
+const getInstituciones = async (req = request, res = response) => {
   try {
     const instituciones = await Institucion.find({ activo: true }, "nombre sigla");
     res.json({
@@ -178,5 +178,5 @@ module.exports = {
   cambiar_situacion_dependencia,
   buscar_dependencia,
 
-  obtener_instituciones,
+  getInstituciones,
 };

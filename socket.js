@@ -16,7 +16,9 @@ function startSocketServer(server) {
     });
 
     io.on('connection', (client) => {
+        // Send list of users online when new user conected
         io.emit("listar", Group.getUsers())
+
         client.on('notification', data => {
             let { id_cuenta, message } = data
             const socketIds = Group.getUser(id_cuenta)

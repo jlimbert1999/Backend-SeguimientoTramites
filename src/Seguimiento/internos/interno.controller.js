@@ -8,7 +8,7 @@ const BandejaEntrada = require('../bandejas/bandeja-entrada.model')
 const { SuccessResponse, ErrorResponse } = require('../../../helpers/responses')
 
 
-const addInterno = async (req = request, res = response) => {
+const add = async (req = request, res = response) => {
     let tramite = req.body
     tramite.cuenta = req.id_cuenta
     tramite.ubicacion = req.id_cuenta
@@ -24,16 +24,15 @@ const addInterno = async (req = request, res = response) => {
         const newTramite = new Internos(tramite)
         const tramiteDB = await newTramite.save()
         await Internos.populate(tramiteDB, { path: 'tipo_tramite', select: '-_id nombre' })
-        await Internos.populate(tramiteDB, {
-            path: 'ubicacion',
-            select: '_id'
+        return res.json({
+            ok: true,
+            tramite: tramiteDB
         })
-        SuccessResponse(res, tramiteDB)
     } catch (error) {
         ErrorResponse(res, error)
     }
 }
-const PutInterno = async (req = request, res = response) => {
+const edit = async (req = request, res = response) => {
     try {
         let sentTramite = await BandejaSalida.findOne({ tramite: req.params.id, recibido: true, tipo: 'tramites_internos' })
         if (sentTramite) {
@@ -45,23 +44,15 @@ const PutInterno = async (req = request, res = response) => {
 
         const tramite = await Internos.findByIdAndUpdate(req.params.id, req.body, { new: true })
             .populate('tipo_tramite', '-_id nombre')
-            .populate({
-                path: 'ubicacion',
-                select: '_id'
-            })
         res.json({
             ok: true,
             tramite
         })
     } catch (error) {
-        console.log('[SERVER]: Error (editar tramite interno) =>', error);
-        res.status(500).json({
-            ok: true,
-            message: 'Error al editar tramite interno'
-        })
+        ErrorResponse(res, error)
     }
 }
-async function GetInternos(req = request, res = response) {
+async function get(req = request, res = response) {
     let { offset, limit } = req.query
     offset = offset ? offset : 0
     limit = limit ? limit : 10
@@ -71,27 +62,27 @@ async function GetInternos(req = request, res = response) {
             Internos.find({ cuenta: req.id_cuenta }).sort({ _id: -1 })
                 .skip(offset)
                 .limit(limit)
-                .populate('tipo_tramite', '-_id nombre')
-                .populate({
-                    path: 'ubicacion',
-                    select:'_id'
-                }),
+                .populate('tipo_tramite', '-_id nombre'),
             Internos.count({ cuenta: req.id_cuenta })
         ])
-        SuccessResponse(res, { tramites, total })
+        return res.json({
+            ok: true,
+            tramites,
+            total
+        })
     } catch (error) {
-        ErrorResponse(res, error)
+        return ErrorResponse(res, error)
     }
 }
 
-async function GetInterno(req = request, res = response) {
+async function getOne(req = request, res = response) {
     try {
         const [tramite, workflow] = await Promise.all([
             await Internos.findOne({ _id: req.params.id })
                 .populate('tipo_tramite', '-_id nombre')
                 .populate({
                     path: 'ubicacion',
-                    select:'_id',
+                    select: '_id',
                     populate: [
                         {
                             path: 'funcionario',
@@ -139,11 +130,7 @@ async function GetInterno(req = request, res = response) {
             workflow
         })
     } catch (error) {
-        console.log('[SERVER]: error GetInterno => ', error)
-        return res.status(500).json({
-            ok: false,
-            message: 'No se pudo obtener la informacion del tramite'
-        })
+       return ErrorResponse(res, error)
     }
 }
 
@@ -258,33 +245,65 @@ async function getUsers(req = request, res = response) {
         })
 
     } catch (error) {
-        console.log('[SERVER]: error al obtener usuarios para registrar interno => ', error)
-        return res.status(500).json({
-            ok: false,
-            message: 'Error al registrar tramite interno'
-        })
+       return ErrorResponse(res, error)
     }
 }
-async function GetTiposTramites(req = request, res = response) {
+async function getTypes(req = request, res = response) {
     try {
-        const tipos_tramites = await TiposTramites.find({ tipo: 'INTERNO', activo: true }).select('nombre segmento')
+        const tipos = await TiposTramites.find({ tipo: 'INTERNO', activo: true }).select('nombre segmento')
         return res.json({
             ok: true,
-            tipos_tramites
+            tipos
         })
     } catch (error) {
-        console.log('[SERVER]: error al obtener tipos de tramites internos => ', error)
-        return res.status(500).json({
-            ok: false,
-            message: 'Error al registrar tramite interno'
-        })
+        return ErrorResponse(res, error)
     }
 }
+
+const search = async (req = request, res = response) => {
+    const text = req.params.text
+    let { type, limit, offset } = req.query
+    offset = offset ? offset : 0
+    limit = limit ? limit : 10
+    offset = offset * limit
+    const regex = new RegExp(text, 'i')
+    try {
+        let tramites, total
+        switch (type) {
+            case 'alterno':
+                tramites = await Internos.find({ alterno: regex, cuenta: req.id_cuenta }).skip(offset).limit(limit)
+                total = await Internos.count({ alterno: regex, cuenta: req.id_cuenta })
+                break;
+            case 'remitente':
+                tramites = await Internos.find({ cuenta: req.id_cuenta, $or: [{ 'remitente.nombre': regex }, { 'remitente.cargo': regex }] }).skip(offset).limit(limit)
+                total = await Internos.count({ cuenta: req.id_cuenta, $or: [{ 'remitente.nombre': regex }, { 'remitente.cargo': regex }] })
+                break;
+            case 'destinatario':
+                tramites = await Internos.find({ cuenta: req.id_cuenta, $or: [{ 'destinatario.nombre': regex }, { 'destinatario.cargo': regex }] }).skip(offset).limit(limit)
+                total = await Internos.count({ cuenta: req.id_cuenta, $or: [{ 'destinatario.nombre': regex }, { 'destinatario.cargo': regex }] })
+                break;
+            case 'cite':
+                tramites = await Internos.find({ cite: regex, cuenta: req.id_cuenta }).skip(offset).limit(limit)
+                total = await Internos.count({ cite: regex, cuenta: req.id_cuenta })
+                break;
+        }
+        await Internos.populate(tramites, { path: 'tipo_tramite', select: '-_id nombre' })
+        return res.json({
+            ok: true,
+            tramites,
+            total
+        })
+    } catch (error) {
+        ErrorResponse(res, error)
+    }
+}
+
+
 module.exports = {
-    addInterno,
-    GetInternos,
-    PutInterno,
-    GetInterno,
+    add,
+    get,
+    edit,
+    getOne,
 
     concludedTramite,
 
@@ -292,5 +311,7 @@ module.exports = {
     putObservacion,
 
     getUsers,
-    GetTiposTramites
+    getTypes,
+
+    search
 }

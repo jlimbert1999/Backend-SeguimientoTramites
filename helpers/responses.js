@@ -7,6 +7,7 @@ function ErrorResponse(resp = response, consoleMessage) {
         message: 'Ha ocurrio un error en el servidor'
     })
 }
+
 function SuccessResponse(res = response, data, message) {
     switch (message) {
         case null:

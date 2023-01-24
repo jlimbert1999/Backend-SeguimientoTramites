@@ -6,17 +6,17 @@ const controllerCuentas = require('../../Configuraciones/cuentas/cuenta.controll
 
 router.get('/entrada', controller.getMailsIn)
 router.get('/salida', controller.obtener_bandeja_salida)
-router.post('/', controller.agregar_mail)
+router.post('/', controller.addMail)
 router.put('/aceptar/:id', controller.aceptar_tramite)
 router.put('/rechazar/:id', controller.rechazar_tramite)
 
 router.get('/detalle/:id', controller.getDetailsMail)
 
 router.get('/users/:id_dependencia', controller.getUsers)
-router.get('/instituciones', controllerDependencias.obtener_instituciones)
-router.get('/dependencias/:id_institucion', controllerCuentas.obtener_dependencias)
+router.get('/instituciones', controllerDependencias.getInstituciones)
+router.get('/dependencias/:id_institucion', controllerCuentas.getDependencias)
 
-
-
+router.get('/search-interno/:text', controller.searchInMails)
+router.get('/search-externo/:text', controller.searchInMailsExterno)
 
 module.exports = router

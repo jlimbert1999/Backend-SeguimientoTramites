@@ -1,13 +1,13 @@
 const BandejaEntrada = require('./bandeja-entrada.model')
 const BandejaSalida = require('./bandeja-salida.model')
 const Cuenta = require('../../../src/Configuraciones/cuentas/cuenta.model')
-const { TramiteExterno } = require('../tramites/tramite.model')
+const { TramiteExterno } = require('../externos/externo.model')
 const TramiteInterno = require('../../Seguimiento/internos/interno.model')
 const { ErrorResponse, SuccessResponse } = require('../../../helpers/responses')
 
 const { request, response } = require('express')
 
-const agregar_mail = async (req = request, res = response) => {
+const addMail = async (req = request, res = response) => {
     let { id_tramite, emisor, receptor, motivo, tipo, cantidad, numero_interno } = req.body
     emisor.cuenta = req.id_cuenta
     const fecha = new Date()
@@ -32,7 +32,7 @@ const agregar_mail = async (req = request, res = response) => {
         numero_interno
     }
     try {
-        // verificar si se acepto el mail para enviar
+        // Verify if mail is acepted before send
         const mailOld = await BandejaEntrada.findOne({ receptor: req.id_cuenta, tramite: id_tramite })
         if (mailOld) {
             if (!mailOld.recibido) {
@@ -52,15 +52,14 @@ const agregar_mail = async (req = request, res = response) => {
                 await TramiteExterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta })
                 break;
         }
-        await BandejaEntrada.populate(mail,
-            {
-                path: 'tramite',
-                select: 'alterno estado detalle',
-                populate: {
-                    path: 'tipo_tramite',
-                    select: 'nombre -_id'
-                }
-            })
+        await BandejaEntrada.populate(mail, {
+            path: 'tramite',
+            select: 'alterno estado detalle',
+            populate: {
+                path: 'tipo_tramite',
+                select: 'nombre -_id'
+            }
+        })
         await BandejaEntrada.populate(mail, {
             path: 'emisor',
             select: '_id',
@@ -75,20 +74,16 @@ const agregar_mail = async (req = request, res = response) => {
                 },
                 {
                     path: 'funcionario',
-                    select: 'nombre cargo',
+                    select: 'nombre paterno materno cargo',
                 }
             ]
         })
         res.json({
             ok: true,
-            tramite: mail
+            mail
         })
     } catch (error) {
-        console.log('[SERVER]: Error (enviar tramite)', error);
-        res.status(500).json({
-            ok: true,
-            message: 'No se pudo enviar el tramite'
-        })
+        return ErrorResponse(res, error)
     }
 }
 
@@ -96,12 +91,12 @@ const getMailsIn = async (req = request, res = response) => {
     const id_cuenta = req.id_cuenta
     let { offset, limit } = req.query
     offset = offset ? offset : 0
-    limit = limit ? limit : 10
+    limit = limit ? limit : 50
     offset = offset * limit
     try {
         const [tramites, total] = await Promise.all([
             BandejaEntrada.find({ receptor: id_cuenta })
-                .sort({ _id: -1 })
+                .sort({ fecha_envio: -1 })
                 .skip(offset)
                 .limit(limit)
                 .populate({
@@ -293,12 +288,115 @@ const getDetailsMail = async (req = request, res = response) => {
 }
 
 
+const searchInMails = async (req = request, res = response) => {
+    const text = req.params.text
+    let { type, limit, offset } = req.query
+    const regex = new RegExp(text, 'i')
+    offset = offset * limit
+    try {
+        let mails, total
+        if (type === 'externo') {
+            const ids_tramites = await TramiteExterno.find({ alterno: regex, ubicacion: req.id_cuenta }).skip(offset).limit(limit).select('_id')
+            mails = await BandejaEntrada.find({ receptor: req.id_cuenta, "tramite": { "$in": ids_tramites } })
+            total = await BandejaEntrada.count({ receptor: req.id_cuenta, "tramite": { "$in": ids_tramites } })
+        }
+        else {
+            const ids_tramites = await TramiteInterno.find({ alterno: regex, ubicacion: req.id_cuenta }).skip(offset).limit(limit).select('_id')
+            mails = await BandejaEntrada.find({ receptor: req.id_cuenta, "tramite": { "$in": ids_tramites } })
+            total = await BandejaEntrada.count({ receptor: req.id_cuenta, "tramite": { "$in": ids_tramites } })
+        }
+        await BandejaEntrada.populate(mails, {
+            path: 'tramite',
+            select: 'alterno estado detalle',
+            populate: {
+                path: 'tipo_tramite',
+                select: 'nombre -_id'
+            }
+        })
+        await BandejaEntrada.populate(mails, {
+            path: 'emisor',
+            select: '_id',
+            populate: [
+                {
+                    path: 'dependencia',
+                    select: 'nombre -_id',
+                    populate: {
+                        path: 'institucion',
+                        select: 'sigla -_id'
+                    }
+                },
+                {
+                    path: 'funcionario',
+                    select: 'nombre paterno materno cargo',
+                }
+            ]
+        })
+        return res.json({
+            ok: true,
+            mails,
+            total
+        })
+    } catch (error) {
+        ErrorResponse(res, error)
+    }
+}
+
+const searchInMailsExterno = async (req = request, res = response) => {
+    const text = req.params.text
+    let { type, limit, offset } = req.query
+    const regex = new RegExp(text, 'i')
+    offset = offset * limit
+    try {
+        let tramites, total
+        if (type === 'alterno') {
+            const ids_tramites = TramiteExterno.find({ alterno: regex, cuenta: req.id_cuenta }).skip(offset).limit(limit)
+            tramites = await BandejaEntrada.find({ "tramite": { "$in": ids_tramites } }).skip(offset).limit(limit)
+
+            total = await BandejaEntrada.count({ alterno: regex, cuenta: req.id_cuenta })
+        }
+        await BandejaEntrada.populate(tramites, {
+            path: 'tramite',
+            select: 'alterno estado detalle',
+            populate: {
+                path: 'tipo_tramite',
+                select: 'nombre -_id'
+            }
+        })
+        await BandejaEntrada.populate(tramites, {
+            path: 'emisor',
+            select: '_id',
+            populate: [
+                {
+                    path: 'dependencia',
+                    select: 'nombre -_id',
+                    populate: {
+                        path: 'institucion',
+                        select: 'sigla -_id'
+                    }
+                },
+                {
+                    path: 'funcionario',
+                    select: 'nombre paterno materno cargo',
+                }
+            ]
+        })
+        return res.json({
+            ok: true,
+            mails,
+            total
+        })
+    } catch (error) {
+        ErrorResponse(res, error)
+    }
+}
+
+
 
 
 
 
 module.exports = {
-    agregar_mail,
+    addMail,
     getMailsIn,
     obtener_bandeja_salida,
     aceptar_tramite,
@@ -306,5 +404,8 @@ module.exports = {
 
     getDetailsMail,
 
-    getUsers
+    getUsers,
+
+    searchInMails,
+    searchInMailsExterno
 }

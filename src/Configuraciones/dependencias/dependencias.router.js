@@ -12,6 +12,6 @@ router.put('/situacion/:id', controller.cambiar_situacion_dependencia)
 router.get('/:termino', controller.buscar_dependencia)
 
 // obtener instituciones disponibles para registrar dependencia
-router.get('/instituciones/registro', controller.obtener_instituciones)
+router.get('/instituciones/registro', controller.getInstituciones)
 
 module.exports = router

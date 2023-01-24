@@ -1,5 +1,5 @@
 
-const { TramiteExterno } = require('../Seguimiento/tramites/tramite.model')
+const { TramiteExterno } = require('../Seguimiento/externos/externo.model')
 const BandejaSalida = require('../Seguimiento/bandejas/bandeja-salida.model')
 const { request, response } = require('express')
 const consultar = async (req = request, resp = response) => {

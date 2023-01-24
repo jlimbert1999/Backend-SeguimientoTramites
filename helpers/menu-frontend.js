@@ -3,47 +3,119 @@ const getMenuFrontend = (rol) => {
   if (rol == 'admin') {
     Menu = [
       {
-        modulo: "Configuraciones",
-        submodulos: [
-          { nombre: 'Instituciones', ruta: 'instituciones', icon: 'apartment' },
-          { nombre: 'Dependencias', ruta: 'dependencias', icon: 'holiday_village' },
-          { nombre: 'Tipos de tramite', ruta: 'tipos', icon: 'note' },
+        text: "Configuraciones",
+        icon: "settings",
+        children: [
+          {
+            text: "Instituciones",
+            icon: "apartment",
+            routerLink: "instituciones",
+          },
+          {
+            text: "Dependencias",
+            icon: "holiday_village",
+            routerLink: "dependencias",
+          },
+          {
+            text: "Tipos de tramite",
+            icon: "note",
+            routerLink: "tipos",
+          },
         ]
-
       },
       {
-        modulo: "Usuarios",
-        submodulos: [
-          { nombre: 'Cuentas', ruta: 'cuentas', icon: 'account_circle' },
-          { nombre: 'Funcionarios', ruta: 'funcionarios', icon: 'person' },
-          { nombre: 'Grupo de trabajo', ruta: 'groupware', icon: 'groups' }
+        text: "Usuarios",
+        icon: "workspaces",
+        children: [
+          {
+            text: "Cuentas",
+            icon: "account_circle",
+            routerLink: "cuentas",
+          },
+          {
+            text: "Funcionarios",
+            icon: "person",
+            routerLink: "funcionarios",
+          },
+          {
+            text: "Grupo de trabajo",
+            icon: "groups",
+            routerLink: "groupware",
+          },
         ]
-      }
+      },
+      // {
+      //   modulo: "Configuraciones",
+      //   submodulos: [
+      //     { nombre: 'Instituciones', ruta: 'instituciones', icon: 'apartment' },
+      //     { nombre: 'Dependencias', ruta: 'dependencias', icon: 'holiday_village' },
+      //     { nombre: 'Tipos de tramite', ruta: 'tipos', icon: 'note' },
+      //   ]
+
+      // },
+      // {
+      //   modulo: "Usuarios",
+      //   submodulos: [
+      //     { nombre: 'Cuentas', ruta: 'cuentas', icon: 'account_circle' },
+      //     { nombre: 'Funcionarios', ruta: 'funcionarios', icon: 'person' },
+      //     { nombre: 'Grupo de trabajo', ruta: 'groupware', icon: 'groups' }
+      //   ]
+      // }
     ]
   }
   else if (rol == 'EVALUACION') {
     Menu = [
       {
-        modulo: "Tramites",
-        submodulos: [
-          { nombre: 'Internos', ruta: 'tramites-internos', icon: 'description' },
+        text: "Internos",
+        icon: "description",
+        children: [
+          {
+            text: "Registros",
+            icon: "description",
+            routerLink: "tramites-internos",
+          },
         ]
       },
       {
-        modulo: "Bandejas",
-        submodulos: [
-          { nombre: 'Bandeja entrada', ruta: 'bandeja-entrada', icon: 'mail' },
-          { nombre: 'Bandeja salida', ruta: 'bandeja-salida', icon: 'drafts' },
-        ]
+        text: "Bandeja entrada",
+        icon: "drafts",
+        routerLink: "bandeja-entrada",
       },
       {
-        modulo: "Reportes",
-        submodulos: [
-          { nombre: 'Reporte ficha', ruta: 'reporte-ficha', icon: 'content_paste' },
-          { nombre: 'Reporte estado', ruta: 'reporte-estado', icon: 'content_paste' },
-          { nombre: 'Reporte tipo', ruta: 'reporte-tipo', icon: 'content_paste' },
-          { nombre: 'Reporte solicitante', ruta: 'reporte-contribuyente', icon: 'content_paste' },
-          { nombre: 'Busqueda solicitante', ruta: 'reporte-solicitante', icon: 'manage_search' },
+
+        text: "Bandeja salida",
+        icon: "mail",
+        routerLink: "bandeja-salida",
+      },
+      {
+        text: "Reportes",
+        icon: "analytics",
+        children: [
+          {
+            text: "Ficha de tramite",
+            icon: "description",
+            routerLink: "reporte-ficha",
+          },
+          {
+            text: "Estado",
+            icon: "document_scanner",
+            routerLink: "reporte-estado",
+          },
+          {
+            text: "Tipo",
+            icon: "folder_open",
+            routerLink: "reporte-tipo",
+          },
+          {
+            text: "Solicitante",
+            icon: "contact_page",
+            routerLink: "reporte-contribuyente",
+          },
+          {
+            text: "Busqueda",
+            icon: "person_search",
+            routerLink: "reporte-solicitante",
+          },
         ]
       }
     ]
@@ -51,29 +123,71 @@ const getMenuFrontend = (rol) => {
   else {
     Menu = [
       {
-        modulo: "Tramites",
-        submodulos: [
-          { nombre: 'Externos', ruta: 'tramites-externos', icon: 'description' },
-          { nombre: 'Internos', ruta: 'tramites-internos', icon: 'description' },
+        text: "Externos",
+        icon: "folder",
+        children: [
+          {
+            text: "Administracion",
+            icon: "widgets",
+            routerLink: "tramites-externos",
+          }
         ]
       },
       {
-        modulo: "Bandejas",
-        submodulos: [
-          { nombre: 'Bandeja entrada', ruta: 'bandeja-entrada', icon: 'mail' },
-          { nombre: 'Bandeja salida', ruta: 'bandeja-salida', icon: 'drafts' },
+        text: "Internos",
+        icon: "snippet_folder",
+        children: [
+          {
+            text: "Administracion",
+            icon: "widgets",
+            routerLink: "tramites-internos",
+          }
         ]
       },
       {
-        modulo: "Reportes",
-        submodulos: [
-          { nombre: 'Reporte ficha', ruta: 'reporte-ficha', icon: 'content_paste' },
-          { nombre: 'Reporte estado', ruta: 'reporte-estado', icon: 'content_paste' },
-          { nombre: 'Reporte tipo', ruta: 'reporte-tipo', icon: 'content_paste' },
-          { nombre: 'Reporte solicitante', ruta: 'reporte-contribuyente', icon: 'content_paste' },
-          { nombre: 'Busqueda solicitante', ruta: 'reporte-solicitante', icon: 'manage_search' },
+
+        text: "Bandeja entrada",
+        icon: "drafts",
+        routerLink: "bandeja-entrada",
+      },
+      {
+
+        text: "Bandeja salida",
+        icon: "mail",
+        routerLink: "bandeja-salida",
+      },
+      {
+        text: "Reportes",
+        icon: "analytics",
+        children: [
+          {
+            text: "Ficha de tramite",
+            icon: "description",
+            routerLink: "reporte-ficha",
+          },
+          {
+            text: "Estado",
+            icon: "document_scanner",
+            routerLink: "reporte-estado",
+          },
+          {
+            text: "Tipo",
+            icon: "folder_open",
+            routerLink: "reporte-tipo",
+          },
+          {
+            text: "Solicitante",
+            icon: "contact_page",
+            routerLink: "reporte-contribuyente",
+          },
+          {
+            text: "Busqueda",
+            icon: "person_search",
+            routerLink: "reporte-solicitante",
+          },
         ]
-      }
+      },
+
     ]
   }
 

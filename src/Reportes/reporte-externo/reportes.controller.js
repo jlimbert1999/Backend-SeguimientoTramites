@@ -1,5 +1,5 @@
 const { request, response } = require('express')
-const { TramiteExterno, Solicitante } = require('../../../src/Seguimiento/tramites/tramite.model')
+const { TramiteExterno, Solicitante } = require('../../Seguimiento/externos/externo.model')
 const BandejaSalida = require('../../Seguimiento/bandejas/bandeja-salida.model')
 const Cuentas = require('../../Configuraciones/cuentas/cuenta.model')
 const ObjectId = require('mongoose').Types.ObjectId
