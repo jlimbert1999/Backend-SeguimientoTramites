@@ -53,8 +53,8 @@ const getMenuFrontend = (rol) => {
         icon: "description",
         children: [
           {
-            text: "Registros",
-            icon: "description",
+            text: "Administracion",
+            icon: "widgets",
             routerLink: "tramites-internos",
           },
         ]

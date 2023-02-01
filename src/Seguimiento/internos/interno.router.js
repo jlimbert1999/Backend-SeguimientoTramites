@@ -9,7 +9,7 @@ router.get('/', controller.get)
 router.put('/:id', controller.edit)
 router.get('/:id', controller.getOne)
 
-router.delete('/:id', controller.concludedTramite)
+router.put('/concluir/:id', controller.concludedTramite)
 
 // AGREGAR OBSERVACIONES
 router.put('/observacion/:id', controller.addObservacion)

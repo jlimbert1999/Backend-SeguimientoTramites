@@ -63,6 +63,9 @@ const TramiteInternoScheme = Schema({
         corregido: Boolean,
         fecha: Date
     }],
+    detalle_conclusion: {
+        type: String
+    }
 
 })
 TramiteInternoScheme.method('toJSON', function () {

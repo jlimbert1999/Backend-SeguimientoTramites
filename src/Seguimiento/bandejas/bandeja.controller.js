@@ -178,7 +178,7 @@ const obtener_bandeja_salida = async (req = request, res = response) => {
 const getUsers = async (req = request, res = response) => {
     const id_dependencia = req.params.id_dependencia
     try {
-        const funcionarios = await Cuenta.find({ dependencia: id_dependencia })
+        const funcionarios = await Cuenta.find({ dependencia: id_dependencia, activo: true, funcionario: { $ne: null } })
             .select('_id')
             .populate('funcionario', 'nombre paterno materno cargo _id')
         SuccessResponse(res, funcionarios)

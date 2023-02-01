@@ -5,8 +5,9 @@ const Usuario = require('../usuarios/usuarios.model')
 const Dependencia = require('../dependencias/dependencias.model')
 const Institucion = require('../instituciones/instituciones.model')
 const bcrypt = require('bcrypt');
+const { ErrorResponse } = require('../../../helpers/responses')
 
-const agregar_cuenta = async (req = request, res = response) => {
+const add = async (req = request, res = response) => {
     const { cuenta, funcionario } = req.body
     try {
         const existeDni = await Usuario.findOne({ dni: funcionario.dni })
@@ -20,7 +21,7 @@ const agregar_cuenta = async (req = request, res = response) => {
         if (existeLogin) {
             return res.status(400).json({
                 ok: false,
-                message: 'login introducido ya existe'
+                message: 'El login introducido ya existe'
             })
         }
         // marcar como con cuenta
@@ -42,40 +43,29 @@ const agregar_cuenta = async (req = request, res = response) => {
             }
         })
         await Cuenta.populate(accountdb, { path: 'funcionario' })
-        const newDetalle = new Cuenta_Detalles(
-            {
-                id_funcionario: userdb._id,
-                descripcion: `${userdb.nombre} ${userdb.paterno} ${userdb.materno} (${userdb.cargo}) ingreso a la dependencia ${accountdb.dependencia.nombre}`,
-                fecha: new Date()
-            }
-        )
         accountdb = accountdb.toObject()
         delete accountdb.password
         delete accountdb.__v
-        await newDetalle.save()
-        res.json({
+
+        return res.json({
             ok: true,
             cuenta: accountdb
         })
     } catch (error) {
-        console.log(`[SERVER]: error al registrar cuenta: `, error);
-        res.status(500).json({
-            ok: false,
-            message: 'Error al registrar cuenta'
-        })
+        return ErrorResponse(res, error)
 
     }
 };
 
-const obtener_cuentas = async (req = request, res = response) => {
-    let { page, rows } = req.query;
-    page = parseInt(page) || 0;
-    rows = parseInt(rows) || 10;
-    page = page * rows
+const get = async (req = request, res = response) => {
+    let { limit, offset } = req.query;
+    offset = parseInt(offset) || 0;
+    limit = parseInt(limit) || 10;
+    offset = limit * offset
     try {
         const [cuentas, total] = await Promise.all(
             [
-                Cuenta.find({ funcionario: { $exists: true } }).select('login rol').sort({ _id: -1 }).skip(page).limit(rows).populate({
+                Cuenta.find({ rol: { $ne: 'admin' } }).select('login rol activo').sort({ _id: -1 }).skip(offset).limit(limit).populate({
                     path: 'dependencia',
                     select: 'nombre -_id',
                     populate: {
@@ -83,20 +73,16 @@ const obtener_cuentas = async (req = request, res = response) => {
                         select: 'sigla -_id'
                     }
                 }).populate('funcionario'),
-                Cuenta.count({ funcionario: { $exists: true } })
+                Cuenta.count({ rol: { $ne: 'admin' } })
             ]
         )
-        res.json({
+        return res.json({
             ok: true,
             cuentas,
             total
         });
     } catch (error) {
-        console.log("[SERVER]: error (obtener obtener cuentas)", error);
-        res.json({
-            ok: false,
-            message: "Error al obtener cuentas",
-        });
+        return ErrorResponse(res, error)
     }
 };
 
@@ -108,7 +94,7 @@ const editar_cuenta = async (req = request, res = response) => {
         if (!cuentaDB) {
             return res.status(400).json({
                 ok: false,
-                message: 'la cuenta no existe'
+                message: 'La cuenta no existe'
             })
         }
         if (cuentaDB.login !== login) {
@@ -116,7 +102,7 @@ const editar_cuenta = async (req = request, res = response) => {
             if (existeLogin) {
                 return res.status(400).json({
                     ok: false,
-                    message: 'login introducido ya existe'
+                    message: 'El login introducido ya existe'
                 })
             }
         }
@@ -143,163 +129,200 @@ const editar_cuenta = async (req = request, res = response) => {
             cuenta
         })
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            message: 'Error al editar cuenta'
-        })
-
+        return ErrorResponse(res, error)
     }
 }
 
-const buscar_cuenta = async (req = request, res = response) => {
-    const termino = req.params.termino
-    let { page, rows } = req.query;
-    page = parseInt(page) || 0;
-    rows = parseInt(rows) || 10;
-    page = page * rows
+const search = async (req = request, res = response) => {
+    const text = req.params.text
+    let { limit, offset, type } = req.query;
+    offset = parseInt(offset) || 0;
+    limit = parseInt(limit) || 10;
+    offset = offset * limit
     try {
-        const regex = new RegExp(termino, 'i')
-        const [cuentas, total] = await Promise.all(
-            [
-                Usuario.find(
+        if (!text) {
+            return res.status(400).json({
+                ok: false,
+                message: 'Parametros invalidos para busqueda de usuarios'
+            })
+        }
+        let cuentas, total
+        const regex = new RegExp(text, 'i')
+        switch (type) {
+            case 'funcionario':
+                cuentas = await Cuenta.aggregate([
                     {
-                        $or: [{ nombre: regex }, { dni: regex }, { cargo: regex }]
-                    }
-                ).skip(page).limit(rows)
-                    .populate({
-                        path: 'cuenta',
-                        select: '_id login rol',
-                        populate: {
-                            path: 'dependencia',
-                            select: 'nombre -_id',
-                            populate: {
-                                path: 'institucion',
-                                select: 'sigla -_id'
-                            }
+                        $lookup: {
+                            from: "funcionarios",
+                            localField: "funcionario",
+                            foreignField: "_id",
+                            as: "funcionario"
                         }
-                    }),
-                Usuario.find(
+                    },
                     {
-                        $or: [{ nombre: regex }, { dni: regex }, { cargo: regex }]
-                    }
-                ).count()
-            ]
-        )
-        res.json({
-            ok: true,
-            cuentas,
-            total
-        });
-    } catch (error) {
-        console.log(
-            "[SERVER]: error (obtener obtener cuentas)",
-            error
-        );
-        res.json({
-            ok: false,
-            message: "Error al obtener cuentas",
-        });
-    }
-};
+                        $unwind: {
+                            path: "$funcionario"
+                        }
+                    },
+                    {
+                        $project: {
+                            "funcionario.__v": 0,
+                            __v: 0,
+                            password: 0
+                        }
+                    },
+                    {
+                        $addFields: {
+                            "funcionario.fullname": {
+                                $concat: ["$funcionario.nombre", " ", { $ifNull: ["$funcionario.paterno", ""] }, " ", { $ifNull: ["$funcionario.materno", ""] }]
+                            }
+                        },
+                    },
+                    {
+                        $match: {
+                            $or: [
+                                { "funcionario.fullname": regex },
+                                { "funcionario.cargo": regex },
+                                { "funcionario.dni": regex }
+                            ]
+                        }
+                    },
+                    {
+                        $project: {
+                            "funcionario.fullname": 0
+                        }
+                    },
+                    { $skip: offset },
+                    { $limit: limit }
+                ])
 
-const asignar_cuenta = async (req = request, res = response) => {
-    const id_cuenta = req.params.id
-    const { id_funcionarioActual, id_funcionarioNuevo, newCuenta } = req.body
-    let { password } = newCuenta
-    try {
-        // marcar al funcionario actual como sin cuenta
-        const funcionarioAnterior = await Usuario.findByIdAndUpdate(id_funcionarioActual, { cuenta: false })
-
-        //marcar al nueov funcionario con cuenta
-        const funcionarioNuevo = await Usuario.findByIdAndUpdate(id_funcionarioNuevo, { cuenta: true })
-
-        //actualizar id funcionario, login y password de la nueva cuenta
-        const salt = bcrypt.genSaltSync();
-        password = password.toString()
-        newCuenta.password = bcrypt.hashSync(password, salt)
-        newCuenta.funcionario = id_funcionarioNuevo
-        const cuenta = await Cuenta.findByIdAndUpdate(id_cuenta, newCuenta)
-
-        // recuperar informacion completa
-        let detalles_cuenta = await Cuenta.findById(cuenta._id).populate({
+                total = await Cuenta.aggregate([
+                    {
+                        $lookup: {
+                            from: "funcionarios",
+                            localField: "funcionario",
+                            foreignField: "_id",
+                            as: "funcionario"
+                        }
+                    },
+                    {
+                        $unwind: {
+                            path: "$funcionario"
+                        }
+                    },
+                    {
+                        $project: {
+                            "funcionario.nombre": 1,
+                            "funcionario.paterno": 1,
+                            "funcionario.materno": 1
+                        }
+                    },
+                    {
+                        $addFields: {
+                            "funcionario.fullname": {
+                                $concat: ["$funcionario.nombre", " ", { $ifNull: ["$funcionario.paterno", ""] }, " ", { $ifNull: ["$funcionario.materno", ""] }]
+                            }
+                        },
+                    },
+                    {
+                        $match: {
+                            $or: [
+                                { "funcionario.fullname": regex },
+                                { "funcionario.cargo": regex },
+                                { "funcionario.dni": regex }
+                            ]
+                        }
+                    },
+                    { $count: 'cuentas' }
+                ])
+                total = total[0] ? total[0].cuentas : 0
+                break;
+            case 'dependencia':
+                cuentas = await Cuenta.find({ dependencia: text }).skip(offset).limit(limit)
+                total = await Cuenta.count({ dependencia: text })
+                await Cuenta.populate(cuentas, { path: 'funcionario' })
+                break;
+            default:
+                cuentas = []
+                total = 0
+                break;
+        }
+        await Cuenta.populate(cuentas, {
             path: 'dependencia',
             select: 'nombre -_id',
             populate: {
                 path: 'institucion',
                 select: 'sigla -_id'
             }
-        }).populate('funcionario')
+        })
 
-        //guardar detalles de la accion
-        await Cuenta_Detalles.insertMany([
-            {
-                id_funcionario: funcionarioAnterior._id,
-                descripcion: `${funcionarioAnterior.nombre} ${funcionarioAnterior.paterno} ${funcionarioAnterior.materno} (${funcionarioAnterior.cargo}) dejo la dependencia ${detalles_cuenta.dependencia.nombre}`,
-                fecha: new Date()
-            },
-            {
-                id_funcionario: funcionarioNuevo._id,
-                descripcion: `${funcionarioNuevo.nombre} ${funcionarioNuevo.paterno} ${funcionarioNuevo.materno} (${funcionarioNuevo.cargo}) ingreso a la dependencia ${detalles_cuenta.dependencia.nombre}`,
-                fecha: new Date()
-            }
+        return res.json({
+            ok: true,
+            cuentas,
+            total
+        });
+    } catch (error) {
+        return ErrorResponse(res, error)
+    }
+};
+
+const assingAccount = async (req = request, res = response) => {
+    const id_cuenta = req.params.id
+    const { id_oldUser, id_newUser } = req.body
+    try {
+        await Promise.all([
+            Cuenta.findByIdAndUpdate(id_cuenta, { funcionario: id_newUser, activo: true }),
+            Usuario.findByIdAndUpdate(id_newUser, { cuenta: true })
         ])
+        if (id_oldUser) {
+            await Usuario.findByIdAndUpdate(id_oldUser, { cuenta: false })
+        }
         res.json({
             ok: true,
-            cuenta: detalles_cuenta
+            message: 'Cuenta asignada correctamente'
         })
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            message: 'Error al asignar cuenta'
-        })
-
+        return ErrorResponse(res, error)
     }
 }
 
-const crear_cuenta_asignando = async (req = request, res = response) => {
+const addAccountLink = async (req = request, res = response) => {
     let cuenta = req.body
     try {
         const existeLogin = await Cuenta.findOne({ login: cuenta.login })
         if (existeLogin) {
             return res.status(400).json({
                 ok: false,
-                message: 'login introducido ya existe'
+                message: 'El login introducido ya existe'
             })
         }
-        const funcionarioNuevo = await Usuario.findByIdAndUpdate(cuenta.funcionario, { cuenta: true })
+        await Usuario.findByIdAndUpdate(cuenta.funcionario, { cuenta: true })
         const salt = bcrypt.genSaltSync();
         cuenta.password = bcrypt.hashSync(cuenta.password.toString(), salt)
         const newCuenta = new Cuenta(cuenta)
         let cuentaDB = await newCuenta.save()
-        let detalles_cuenta = await Cuenta.findById(cuentaDB._id).populate({
+
+        await Cuenta.populate(cuentaDB, {
             path: 'dependencia',
             select: 'nombre -_id',
             populate: {
                 path: 'institucion',
                 select: 'sigla -_id'
             }
-        }).populate('funcionario')
-        // //guardar evento
-        const newDetalle = new Cuenta_Detalles(
-            {
-                id_funcionario: funcionarioNuevo._id,
-                descripcion: `${funcionarioNuevo.nombre} ${funcionarioNuevo.paterno} ${funcionarioNuevo.materno} (${funcionarioNuevo.cargo}) ingreso a la dependencia ${detalles_cuenta.dependencia.nombre}`,
-                fecha: new Date()
-            }
-        )
-        await newDetalle.save()
-        res.json({
+        })
+        await Cuenta.populate(cuentaDB, {
+            path: 'funcionario'
+        })
+        cuentaDB = cuentaDB.toObject()
+        delete cuentaDB.password
+        delete cuentaDB.__v
+
+        return res.json({
             ok: true,
-            cuenta: detalles_cuenta
+            cuenta: cuentaDB
         })
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            message: 'error al crear cuenta y asignar'
-        })
+        return ErrorResponse(res, error)
     }
 
 }
@@ -352,49 +375,109 @@ const obtener_funcionarios_asignacion = async (req = request, res = response) =>
     }
 }
 
-const filtrar_cuentas = async (req = request, res = response) => {
-    const id_dependencia = req.params.id_dependencia
-    try {
-        const usuarios = await Usuario.find({ id_dependencia }, 'nombre cargo dni').populate({
-            path: 'cuenta',
-            select: '_id login rol',
-            populate: {
-                path: 'dependencia',
-                match: {
-                    nombre: regex
-                },
-                select: 'nombre -_id',
-                populate: {
-                    path: 'institucion',
-                    select: 'sigla -_id'
-                }
-            }
+const getUsersforAssign = async (req = request, res = response) => {
+    const text = req.params.text
+    if (!text || text === '') {
+        return res.status(400).json({
+            ok: false,
+            message: 'Parametros incorrectos en busqueda de funcionarios para asignar'
         })
-        res.send({
+    }
+    try {
+        const regex = new RegExp(text, 'i')
+        const users = await Usuario.aggregate([
+            {
+                $addFields: {
+                    fullname: {
+                        $concat: ["$nombre", " ", { $ifNull: ["$paterno", ""] }, " ", { $ifNull: ["$materno", ""] }]
+                    }
+                },
+            },
+            {
+                $match: {
+                    cuenta: false,
+                    $or: [
+                        { fullname: regex },
+                        { dni: regex },
+                        { cargo: regex }
+
+                    ]
+                }
+            },
+            { $project: { __v: 0 } },
+            { $limit: 5 }
+        ]);
+
+        return res.send({
             ok: true,
-            usuarios
+            users
         })
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            message: 'error al obtener funcionarios para asignar cuentas'
+        return ErrorResponse(res, error)
+    }
+}
+
+const unlinkUser = async (req = request, res = response) => {
+    const id_cuenta = req.params.id
+    try {
+        let cuenta = await Cuenta.findById(id_cuenta)
+        if (!cuenta.funcionario) {
+            res.status(400).send({
+                ok: false,
+                message: 'La cuenta ya fue desvinculada'
+            })
+        }
+        // unlink user and disable account
+        await Cuenta.findByIdAndUpdate({ _id: id_cuenta }, { activo: false, $unset: { funcionario: 1 } })
+
+        // mark user free
+        await Usuario.findByIdAndUpdate(cuenta.funcionario, { cuenta: false })
+        res.send({
+            ok: true,
+            message: 'La cuenta fue desvinculada'
         })
+    } catch (error) {
+        return ErrorResponse(res, error)
+    }
+}
+
+const disabled = async (req = request, res = response) => {
+    const id_cuenta = req.params.id
+    try {
+        let cuentaDB = await Cuenta.findById(id_cuenta)
+        if (!cuentaDB.funcionario) {
+            return res.status(400).json({
+                ok: false,
+                message: 'La cuenta esta desabilitada hasta una nueva asignacion'
+            })
+        }
+        await Cuenta.findByIdAndUpdate(id_cuenta, { activo: !cuentaDB.activo })
+        res.send({
+            ok: true,
+            activo: !cuentaDB.activo
+        })
+    } catch (error) {
+        return ErrorResponse(res, error)
     }
 }
 
 
 
-module.exports = {
-    agregar_cuenta,
-    obtener_cuentas,
-    editar_cuenta,
-    buscar_cuenta,
 
-    asignar_cuenta,
-    crear_cuenta_asignando,
+module.exports = {
+    add,
+    get,
+    editar_cuenta,
+    search,
+
+    assingAccount,
+    addAccountLink,
 
     obtener_instituciones,
     getDependencias,
-    obtener_funcionarios_asignacion
+    obtener_funcionarios_asignacion,
+
+    getUsersforAssign,
+    unlinkUser,
+    disabled
 }

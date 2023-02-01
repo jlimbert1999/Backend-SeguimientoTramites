@@ -25,12 +25,23 @@ const verificarAdminRol = (req, res, next) => {
     if (req.rol !== "admin") {
         return res.status(403).json({
             of: false,
-            message: "No tiene autoriacion"
+            message: "No tiene autorizacion para la ruta ingresada"
+        })
+    }
+    next()
+}
+
+const verificarRecepcionRol = (req, res, next) => {
+    if (req.rol !== "RECEPCION") {
+        return res.status(403).json({
+            of: false,
+            message: "No tiene autorizacion para la ruta ingresada"
         })
     }
     next()
 }
 module.exports = {
     verificarToken,
-    verificarAdminRol
+    verificarAdminRol,
+    verificarRecepcionRol
 }

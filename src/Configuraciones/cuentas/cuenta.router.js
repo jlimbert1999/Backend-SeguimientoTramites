@@ -8,12 +8,11 @@ router.post("/", [
     check('cuenta').isObject(),
     check('funcionario').isObject(),
     validarBody
-], controller.agregar_cuenta);
-router.get("/", controller.obtener_cuentas)
+], controller.add);
+router.get("/", controller.get)
 router.put("/:id", controller.editar_cuenta)
-router.get("/busqueda/:termino", controller.buscar_cuenta)
-router.put("/asignar/:id", controller.asignar_cuenta)
-router.post("/asignar", controller.crear_cuenta_asignando)
+
+
 
 router.get("/instituciones", controllerDependencias.getInstituciones)
 
@@ -21,6 +20,14 @@ router.get("/dependencias/:id_institucion", controller.getDependencias)
 
 router.get("/usuarios", controller.obtener_funcionarios_asignacion)
 
+router.get('/assign/:text', controller.getUsersforAssign)
+router.put("/assign/:id", controller.assingAccount)
+router.put('/unlink/:id', controller.unlinkUser)
 
+router.delete('/:id', controller.disabled)
+router.get("/search/:text", controller.search)
+
+// create account width select user
+router.post("/assign", controller.addAccountLink)
 
 module.exports = router;

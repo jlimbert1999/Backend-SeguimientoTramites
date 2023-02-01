@@ -3,13 +3,17 @@ const { Schema, model } = require('mongoose')
 const UserScheme = Schema({
     nombre: {
         type: String,
-        required: true
+        required: true,
+        uppercase: true
+
     },
     paterno: {
         type: String,
+        uppercase: true
     },
     materno: {
         type: String,
+        uppercase: true
     },
     dni: {
         type: String,
@@ -29,7 +33,8 @@ const UserScheme = Schema({
     },
     cargo: {
         type: String,
-        required: true
+        required: true,
+        uppercase: true
     },
     activo: {
         type: Boolean,

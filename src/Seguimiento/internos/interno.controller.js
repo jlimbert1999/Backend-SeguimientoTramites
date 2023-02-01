@@ -130,14 +130,15 @@ async function getOne(req = request, res = response) {
             workflow
         })
     } catch (error) {
-       return ErrorResponse(res, error)
+        return ErrorResponse(res, error)
     }
 }
 
 const concludedTramite = async (req = request, res = response) => {
     const id_tramite = req.params.id
+    const { referencia } = req.body
     try {
-        await Internos.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
+        await Internos.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date(), detalle_conclusion: referencia })
         await BandejaEntrada.findOneAndDelete({ tramite: id_tramite })
         res.json({
             ok: true,
@@ -245,7 +246,7 @@ async function getUsers(req = request, res = response) {
         })
 
     } catch (error) {
-       return ErrorResponse(res, error)
+        return ErrorResponse(res, error)
     }
 }
 async function getTypes(req = request, res = response) {

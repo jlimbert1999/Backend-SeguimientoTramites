@@ -1,5 +1,5 @@
 const router = require('express').Router()
-const { verificarToken, verificarAdminRol } = require('./middlewares/jwt')
+const { verificarToken, verificarAdminRol, verificarRecepcionRol } = require('./middlewares/jwt')
 
 const usuariosRouter = require('./src/Configuraciones/usuarios/usuarios.router')
 const institucionRouter = require('./src/Configuraciones/instituciones/instituciones.router')
@@ -33,7 +33,7 @@ router.use('/requerimientos', [verificarToken, verificarAdminRol], Requerimiento
 
 
 // FUNCIONARIOS
-router.use('/externos', [verificarToken], ExternoRouter)
+router.use('/externos', [verificarToken, verificarRecepcionRol], ExternoRouter)
 router.use('/bandejas', [verificarToken], BandejaRouter)
 
 

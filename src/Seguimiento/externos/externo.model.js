@@ -122,6 +122,10 @@ const TramiteExternoScheme = Schema({
         corregido: Boolean,
         fecha: Date
     }],
+    detalle_conclusion: {
+        type: String
+    }
+
 
 })
 

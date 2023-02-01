@@ -1,6 +1,11 @@
 const Cuenta = require('../cuentas/cuenta.model')
 const { request, response } = require('express')
 const bcrypt = require('bcrypt');
+const { TramiteExterno } = require('../../Seguimiento/externos/externo.model')
+const TramiteInterno = require('../../Seguimiento/internos/interno.model')
+const BandejaEntrada = require('../../Seguimiento/bandejas/bandeja-entrada.model')
+const BandejaSalida = require('../../Seguimiento/bandejas/bandeja-salida.model')
+const { ErrorResponse } = require('../../../helpers/responses')
 
 const getAccount = async (req = request, res = response) => {
     try {
@@ -54,7 +59,7 @@ const editAccount = async (req = request, res = response) => {
         await Cuenta.findByIdAndUpdate(req.id_cuenta, req.body)
         return res.json({
             ok: true,
-            message:'Se actualizo la cuenta correctamente'
+            message: 'Se actualizo la cuenta correctamente'
         });
     } catch (error) {
         console.log("[SERVER]: error (editar cuenta)", error);
@@ -64,9 +69,40 @@ const editAccount = async (req = request, res = response) => {
         });
     }
 };
-
+const getWorkDetails = async (req = request, res = response) => {
+    try {
+        const id = req.params.id
+        const { rol } = req.query
+        let [total_internos, total_entrada, total_salida] = await Promise.all(
+            [
+                TramiteInterno.count({ cuenta: id }),
+                BandejaEntrada.count({ emisor: id }),
+                BandejaSalida.count({ 'emisor.cuenta': id })
+            ]
+        )
+        if (rol === 'RECEPCION') {
+            let total_externos = await TramiteExterno.count({ cuenta: id })
+            return res.json({
+                ok: true,
+                total_externos,
+                total_internos,
+                total_entrada,
+                total_salida
+            })
+        }
+        return res.json({
+            ok: true,
+            total_internos,
+            total_entrada,
+            total_salida
+        })
+    } catch (error) {
+        return ErrorResponse(res, error)
+    }
+};
 
 module.exports = {
     getAccount,
-    editAccount
+    editAccount,
+    getWorkDetails
 }

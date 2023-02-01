@@ -37,7 +37,7 @@ const add = async (req = request, res = response) => {
         await TramiteExterno.populate(tramiteDB, { path: 'tipo_tramite', select: 'nombre -_id' })
         return res.json({
             ok: true,
-            tramite:tramiteDB
+            tramite: tramiteDB
         })
     } catch (error) {
         return ErrorResponse(res, error)
@@ -280,8 +280,9 @@ const putObservacion = async (req = request, res = response) => {
 
 const concludedTramite = async (req = request, res = response) => {
     const id_tramite = req.params.id
+    const { referencia } = req.body
     try {
-        await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
+        await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date(), detalle_conclusion: referencia })
         await BandejaEntrada.findOneAndDelete({ tramite: id_tramite })
         res.json({
             ok: true,

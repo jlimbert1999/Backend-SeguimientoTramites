@@ -16,7 +16,7 @@ router.put('/observacion/corregir/:id', controller.putObservacion)
 router.get('/', controller.get)
 router.post('/', controller.add)
 router.put('/:id', controller.edit)
-router.delete('/:id', controller.concludedTramite)
+router.put('/concluir/:id', controller.concludedTramite)
 
 // Buscar tramites
 router.get('/search/:text', controller.search)
