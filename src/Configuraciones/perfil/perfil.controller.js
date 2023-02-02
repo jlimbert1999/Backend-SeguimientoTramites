@@ -76,7 +76,7 @@ const getWorkDetails = async (req = request, res = response) => {
         let [total_internos, total_entrada, total_salida] = await Promise.all(
             [
                 TramiteInterno.count({ cuenta: id }),
-                BandejaEntrada.count({ emisor: id }),
+                BandejaEntrada.count({ receptor: id }),
                 BandejaSalida.count({ 'emisor.cuenta': id })
             ]
         )
