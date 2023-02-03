@@ -134,41 +134,47 @@ const getMailsIn = async (req = request, res = response) => {
 }
 
 const obtener_bandeja_salida = async (req = request, res = response) => {
+    let { offset, limit } = req.query
+    offset = offset ? offset : 0
+    limit = limit ? limit : 10
+    offset = offset * limit
     try {
-        const tramites = await BandejaSalida.find({ 'emisor.cuenta': req.id_cuenta })
-            .sort({ _id: -1 })
-            .populate({
-                path: 'tramite',
-                select: 'alterno estado',
-                populate: {
-                    path: 'tipo_tramite',
-                    select: 'nombre -_id'
-                }
-            })
-            .populate({
-                path: 'receptor.cuenta',
-                select: '_id',
-                populate: [
-                    {
-                        path: 'dependencia',
-                        select: 'nombre -_id',
-                        populate: {
-                            path: 'institucion',
-                            select: 'sigla -_id'
-                        }
+        const [tramites, total] = await Promise.all([
+            BandejaSalida.find({ 'emisor.cuenta': req.id_cuenta })
+                .sort({ _id: -1 })
+                .skip(offset)
+                .limit(limit)
+                .populate({
+                    path: 'tramite',
+                    select: 'alterno estado',
+                    populate: {
+                        path: 'tipo_tramite',
+                        select: 'nombre -_id'
                     }
-                ]
-            })
+                })
+                .populate({
+                    path: 'receptor.cuenta',
+                    select: '_id',
+                    populate: [
+                        {
+                            path: 'dependencia',
+                            select: 'nombre -_id',
+                            populate: {
+                                path: 'institucion',
+                                select: 'sigla -_id'
+                            }
+                        }
+                    ]
+                }),
+            BandejaSalida.count({ 'emisor.cuenta': req.id_cuenta })
+        ])
         res.json({
             ok: true,
-            tramites
+            tramites,
+            total
         })
     } catch (error) {
-        console.log('[SERVER]: error (obtener bandeja salida)', error);
-        res.status(500).json({
-            ok: true,
-            message: 'Error en el servidor'
-        })
+        return ErrorResponse(res, err)
     }
 }
 
