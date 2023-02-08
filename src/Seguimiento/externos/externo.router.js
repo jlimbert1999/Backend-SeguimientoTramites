@@ -17,6 +17,7 @@ router.get('/', controller.get)
 router.post('/', controller.add)
 router.put('/:id', controller.edit)
 router.put('/concluir/:id', controller.concludedTramite)
+router.put('/desarchivar/:id', controller.unarchived)
 
 // Buscar tramites
 router.get('/search/:text', controller.search)

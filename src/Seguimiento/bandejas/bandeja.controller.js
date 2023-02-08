@@ -6,31 +6,35 @@ const TramiteInterno = require('../../Seguimiento/internos/interno.model')
 const { ErrorResponse, SuccessResponse } = require('../../../helpers/responses')
 
 const { request, response } = require('express')
+const { default: mongoose } = require('mongoose')
 
 const addMail = async (req = request, res = response) => {
-    let { id_tramite, emisor, receptor, motivo, tipo, cantidad, numero_interno } = req.body
-    emisor.cuenta = req.id_cuenta
+    const data = req.body
+    let mailsIn = []
+    let mailsOut = []
     const fecha = new Date()
-    const mail_entrada = {
-        tramite: id_tramite,
-        emisor: emisor.cuenta,
-        receptor: receptor.cuenta,
-        recibido: false,
-        motivo,
-        cantidad,
-        fecha_envio: fecha,
-        tipo
-    }
-    const mail_salida = {
-        tramite: id_tramite,
-        emisor,
-        receptor,
-        motivo,
-        cantidad,
-        fecha_envio: fecha,
-        tipo,
-        numero_interno
-    }
+    data.forEach(mail => {
+        mailsIn.push({
+            tramite: mail.id_tramite,
+            emisor: mail.emisor.cuenta,
+            receptor: mail.receptor.cuenta,
+            recibido: false,
+            motivo: mail.motivo,
+            cantidad: mail.cantidad,
+            fecha_envio: fecha,
+            tipo: mail.tipo
+        })
+        mailsOut.push({
+            tramite: mail.id_tramite,
+            emisor: mail.emisor,
+            receptor: mail.receptor,
+            motivo: mail.motivo,
+            cantidad: mail.cantidad,
+            fecha_envio: fecha,
+            tipo: mail.tipo,
+            numero_interno: mail.numero_interno
+        })
+    })
     try {
         // Verify if mail is acepted before send
         const mailOld = await BandejaEntrada.findOne({ receptor: req.id_cuenta, tramite: id_tramite })
@@ -182,14 +186,76 @@ const obtener_bandeja_salida = async (req = request, res = response) => {
 
 
 const getUsers = async (req = request, res = response) => {
-    const id_dependencia = req.params.id_dependencia
+    const text = req.params.text
+    const regex = new RegExp(text, 'i')
     try {
-        const funcionarios = await Cuenta.find({ dependencia: id_dependencia, activo: true, funcionario: { $ne: null } })
-            .select('_id')
-            .populate('funcionario', 'nombre paterno materno cargo _id')
-        SuccessResponse(res, funcionarios)
+        // const funcionarios = await Cuenta.find({ dependencia: id_dependencia, activo: true, funcionario: { $ne: null } })
+        //     .select('_id')
+        //     .populate('funcionario', 'nombre paterno materno cargo _id')
+        // SuccessResponse(res, funcionarios)
+        // const cuentas = await Cuenta.aggregate([
+        //     {
+        //         $lookup: {
+        //             from: "funcionarios",
+        //             localField: "funcionario",
+        //             foreignField: "_id",
+        //             as: "funcionario"
+        //         }
+        //     },
+        //     {
+        //         $unwind: {
+        //             path: "$funcionario"
+        //         }
+        //     },
+        //     {
+        //         $project: {
+        //             "funcionario.nombre": 1,
+        //             "funcionario.paterno": 1,
+        //             "funcionario.materno": 1,
+        //             "funcionario.cargo": 1,
+        //             _id: 1,
+        //             activo: 1
+
+        //         }
+        //     },
+        //     {
+        //         $addFields: {
+        //             "funcionario.fullname": {
+        //                 $concat: ["$funcionario.nombre", " ", { $ifNull: ["$funcionario.paterno", ""] }, " ", { $ifNull: ["$funcionario.materno", ""] }]
+        //             }
+        //         },
+        //     },
+        //     {
+        //         $match: {
+        //             $or: [
+        //                 { "funcionario.fullname": regex },
+        //                 { "funcionario.cargo": regex },
+        //             ],
+        //             activo: true,
+        //             _id: { $ne: mongoose.Types.ObjectId(req.id_cuenta) }
+        //         }
+        //     },
+        //     {
+        //         $project: {
+        //             activo: 0
+        //         }
+        //     },
+        //     { $limit: 4 }
+        // ])
+        // return res.json({
+        //     ok: true,
+        //     cuentas
+        // })
+
+        await BandejaEntrada.find({}).then(mail=>{
+            let ids
+            mail.forEach(data=>{
+                ids=data.emisor
+            })
+            console.log(mail)
+        })
     } catch (error) {
-        ErrorResponse(res, error)
+        return ErrorResponse(res, error)
     }
 }
 

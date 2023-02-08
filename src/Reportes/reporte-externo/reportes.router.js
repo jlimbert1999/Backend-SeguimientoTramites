@@ -8,4 +8,7 @@ router.get('/solicitante/:termino', controller.GetReporteSolicitante)
 router.get('/contribuyente/:dni', controller.GetReporteContribuyente)
 router.get('/tipo-tramite/:institucion', controller.GetReporteTipoTramite)
 router.get('/tipos-tramites/reporte', controller.GetTypesTramites)
+
+router.get('/conclude', controller.getConclude)
+
 module.exports = router

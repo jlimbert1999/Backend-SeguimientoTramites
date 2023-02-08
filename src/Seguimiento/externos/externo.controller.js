@@ -340,7 +340,39 @@ const search = async (req = request, res = response) => {
             total
         })
     } catch (error) {
-        ErrorResponse(res, error)
+        return ErrorResponse(res, error)
+    }
+}
+
+const unarchived = async (req = request, res = response) => {
+    const id_tramite = req.params.id
+    try {
+        const ultimo_envio = await BandejaSalida.findOne({ tramite: id_tramite, recibido: true }).sort({ _id: -1 })
+        if (ultimo_envio) {
+            const mail_entrada = {
+                tramite: id_tramite,
+                emisor: ultimo_envio.emisor.cuenta,
+                receptor: ultimo_envio.receptor.cuenta,
+                recibido: true,
+                motivo: ultimo_envio.motivo,
+                cantidad: ultimo_envio.cantidad,
+                fecha_envio: ultimo_envio.fecha_envio,
+                tipo: ultimo_envio.tipo
+            }
+            await BandejaEntrada.create(mail_entrada)
+            await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: "EN REVISION" })
+        }
+        else {
+            await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: "INSCRITO" })
+        }
+        return res.json({
+            ok: true,
+            message: 'Tramite desarchivado'
+        })
+
+
+    } catch (error) {
+        return ErrorResponse(res, error)
     }
 }
 
@@ -355,4 +387,5 @@ module.exports = {
     addObservacion,
     putObservacion,
     concludedTramite,
+    unarchived
 }

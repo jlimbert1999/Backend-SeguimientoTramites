@@ -4,6 +4,7 @@ const BandejaSalida = require('../../Seguimiento/bandejas/bandeja-salida.model')
 const Cuentas = require('../../Configuraciones/cuentas/cuenta.model')
 const ObjectId = require('mongoose').Types.ObjectId
 const TypesTramites = require('../../Configuraciones/tipos-tramites/tipoTramite.model')
+const Usuarios = require('../../Configuraciones/usuarios/usuarios.model')
 
 const GetReporteFicha = async (req = request, resp = response) => {
     const alterno = req.params.alterno
@@ -444,6 +445,80 @@ const GetTypesTramites = async (req = request, resp = response) => {
     }
 }
 
+const getConclude = async (req = request, res = response) => {
+    const id_cuenta = req.id_cuenta
+    try {
+        const { dependencia } = await Cuentas.findById(id_cuenta).select('dependencia -_id')
+        const tramites = await TramiteExterno.aggregate([
+            {
+                $lookup: {
+                    from: "cuentas",
+                    localField: "ubicacion",
+                    foreignField: "_id",
+                    as: "ubicacion"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$ubicacion"
+                }
+            },
+            {
+                $project: {
+                    "ubicacion.activo": 0,
+                    "ubicacion.password": 0,
+                    "ubicacion.rol": 0,
+                    "ubicacion._id": 0,
+                    "ubicacion.__v": 0,
+                    __v: 0
+                }
+            },
+            {
+                $lookup: {
+                    from: 'funcionarios',
+                    localField: 'ubicacion.funcionario',
+                    foreignField: '_id',
+                    as: 'ubicacion.funcionario'
+                }
+            },
+            {
+                $unwind: {
+                    path: "$ubicacion.funcionario"
+                }
+            },
+            {
+                $project: {
+                    "ubicacion.funcionario.__v": 0,
+                    "ubicacion.funcionario._id": 0,
+                    "ubicacion.funcionario.activo": 0,
+                    "ubicacion.funcionario.cuenta": 0
+                }
+            },
+            {
+                $match: {
+                    $and: [
+                        { estado: 'CONCLUIDO' },
+                        { 'ubicacion.dependencia': dependencia }
+                    ]
+                }
+            },
+           
+            // { $skip: offset },
+            // { $limit: limit }
+        ])  
+        res.json({
+            ok: true,
+            tramites
+        })
+    } catch (error) {
+        console.log('[SERVER]:Error (finalizar tramite) => ', error)
+        return res.status(500).json({
+            ok: false,
+            message: 'Error al finalizar el tramite'
+        })
+    }
+}
+
 module.exports = {
     GetReporteFicha,
     GertReporteEstado,
@@ -451,6 +526,8 @@ module.exports = {
     GetReporteSolicitante,
     GetReporteContribuyente,
     GetReporteTipoTramite,
+
+    getConclude,
 
     GetTypesTramites
 }

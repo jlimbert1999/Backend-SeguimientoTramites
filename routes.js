@@ -33,13 +33,13 @@ router.use('/requerimientos', [verificarToken, verificarAdminRol], Requerimiento
 
 
 // FUNCIONARIOS
-router.use('/externos', [verificarToken, verificarRecepcionRol], ExternoRouter)
+router.use('/externos', [verificarToken], ExternoRouter)
 router.use('/bandejas', [verificarToken], BandejaRouter)
 
 
 router.use('/internos', [verificarToken], InternoRouter)
 
-router.use('/reportes-externos', ReportesExternosRouter)
+router.use('/reportes-externos', [verificarToken], ReportesExternosRouter)
 router.use('/reportes-internos', ReportesInternosRouter)
 
 router.use('/consulta', ConsultaRouter)

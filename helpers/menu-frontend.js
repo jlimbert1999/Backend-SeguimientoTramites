@@ -113,6 +113,11 @@ const getMenuFrontend = (rol) => {
             text: "Administracion",
             icon: "widgets",
             routerLink: "tramites-externos",
+          },
+          {
+            text: "Concluidos",
+            icon: "widgets",
+            routerLink: "tramites-externos-concluidos",
           }
         ]
       },

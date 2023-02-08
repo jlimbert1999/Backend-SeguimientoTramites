@@ -16,7 +16,7 @@ router.get('/detalle/:id', controller.getDetailsMail)
 router.get('/externo/:id', getExterno)
 router.get('/interno/:id', getInterno)
 
-router.get('/users/:id_dependencia', controller.getUsers)
+router.get('/users/:text', controller.getUsers)
 router.get('/instituciones', controllerDependencias.getInstituciones)
 router.get('/dependencias/:id_institucion', controllerCuentas.getDependencias)
 
