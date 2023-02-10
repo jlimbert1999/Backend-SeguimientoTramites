@@ -2,12 +2,24 @@ const { Schema, model } = require('mongoose')
 
 const BandejaEntradaScheme = Schema({
     emisor: {
-        type: Schema.Types.ObjectId,
-        ref: 'cuentas'
+        cuenta: {
+            type: Schema.Types.ObjectId,
+            ref: 'cuentas'
+        },
+        funcionario: {
+            type: Schema.Types.ObjectId,
+            ref: 'funcionarios'
+        }
     },
     receptor: {
-        type: Schema.Types.ObjectId,
-        ref: 'cuentas'
+        cuenta: {
+            type: Schema.Types.ObjectId,
+            ref: 'cuentas'
+        },
+        funcionario: {
+            type: Schema.Types.ObjectId,
+            ref: 'funcionarios'
+        }
     },
     tramite: {
         type: Schema.Types.ObjectId,

@@ -3,6 +3,7 @@ const BandejaSalida = require('./bandeja-salida.model')
 const Cuenta = require('../../../src/Configuraciones/cuentas/cuenta.model')
 const { TramiteExterno } = require('../externos/externo.model')
 const TramiteInterno = require('../../Seguimiento/internos/interno.model')
+const Usuarios = require('../../Configuraciones/usuarios/usuarios.model')
 const { ErrorResponse, SuccessResponse } = require('../../../helpers/responses')
 
 const { request, response } = require('express')
@@ -13,79 +14,81 @@ const addMail = async (req = request, res = response) => {
     let mailsIn = []
     let mailsOut = []
     const fecha = new Date()
-    data.forEach(mail => {
-        mailsIn.push({
-            tramite: mail.id_tramite,
-            emisor: mail.emisor.cuenta,
-            receptor: mail.receptor.cuenta,
-            recibido: false,
-            motivo: mail.motivo,
-            cantidad: mail.cantidad,
-            fecha_envio: fecha,
-            tipo: mail.tipo
-        })
-        mailsOut.push({
-            tramite: mail.id_tramite,
-            emisor: mail.emisor,
-            receptor: mail.receptor,
-            motivo: mail.motivo,
-            cantidad: mail.cantidad,
-            fecha_envio: fecha,
-            tipo: mail.tipo,
-            numero_interno: mail.numero_interno
-        })
-    })
+
+    // data.forEach(mail => {
+    //     mailsIn.push({
+    //         tramite: mail.id_tramite,
+    //         emisor: mail.emisor.cuenta,
+    //         receptor: mail.receptor.cuenta,
+    //         recibido: false,
+    //         motivo: mail.motivo,
+    //         cantidad: mail.cantidad,
+    //         fecha_envio: fecha,
+    //         tipo: mail.tipo
+    //     })
+    //     mailsOut.push({
+    //         tramite: mail.id_tramite,
+    //         emisor: mail.emisor,
+    //         receptor: mail.receptor,
+    //         motivo: mail.motivo,
+    //         cantidad: mail.cantidad,
+    //         fecha_envio: fecha,
+    //         tipo: mail.tipo,
+    //         numero_interno: mail.numero_interno
+    //     })
+    // })
     try {
         // Verify if mail is acepted before send
-        const mailOld = await BandejaEntrada.findOne({ receptor: req.id_cuenta, tramite: id_tramite })
-        if (mailOld) {
-            if (!mailOld.recibido) {
-                return res.status(405).json({
-                    ok: false,
-                    message: 'El tramite aun no ha sido aceptado para su reeenvio.'
-                })
-            }
-        }
-        await BandejaSalida.create(mail_salida)
-        const mail = await BandejaEntrada.findOneAndUpdate({ tramite: id_tramite }, mail_entrada, { upsert: true, new: true })
-        switch (tipo) {
-            case 'tramites_internos':
-                await TramiteInterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta })
-                break;
-            case 'tramites_externos':
-                await TramiteExterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta })
-                break;
-        }
-        await BandejaEntrada.populate(mail, {
-            path: 'tramite',
-            select: 'alterno estado detalle',
-            populate: {
-                path: 'tipo_tramite',
-                select: 'nombre -_id'
-            }
-        })
-        await BandejaEntrada.populate(mail, {
-            path: 'emisor',
-            select: '_id',
-            populate: [
-                {
-                    path: 'dependencia',
-                    select: 'nombre -_id',
-                    populate: {
-                        path: 'institucion',
-                        select: 'sigla -_id'
-                    }
-                },
-                {
-                    path: 'funcionario',
-                    select: 'nombre paterno materno cargo',
-                }
-            ]
-        })
-        res.json({
-            ok: true,
-            mail
-        })
+        // const mailOld = await BandejaEntrada.findOne({ receptor: req.id_cuenta, tramite: id_tramite })
+        // if (mailOld) {
+        //     if (!mailOld.recibido) {
+        //         return res.status(405).json({
+        //             ok: false,
+        //             message: 'El tramite aun no ha sido aceptado para su reeenvio.'
+        //         })
+        //     }
+        // }
+        // await BandejaSalida.create(mail_salida)
+        // const mail = await BandejaEntrada.findOneAndUpdate({ tramite: id_tramite }, mail_entrada, { upsert: true, new: true })
+        // switch (tipo) {
+        //     case 'tramites_internos':
+        //         await TramiteInterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta })
+        //         break;
+        //     case 'tramites_externos':
+        //         await TramiteExterno.findByIdAndUpdate(id_tramite, { ubicacion: receptor.cuenta })
+        //         break;
+        // }
+        // await BandejaEntrada.populate(mail, {
+        //     path: 'tramite',
+        //     select: 'alterno estado detalle',
+        //     populate: {
+        //         path: 'tipo_tramite',
+        //         select: 'nombre -_id'
+        //     }
+        // })
+        // await BandejaEntrada.populate(mail, {
+        //     path: 'emisor',
+        //     select: '_id',
+        //     populate: [
+        //         {
+        //             path: 'dependencia',
+        //             select: 'nombre -_id',
+        //             populate: {
+        //                 path: 'institucion',
+        //                 select: 'sigla -_id'
+        //             }
+        //         },
+        //         {
+        //             path: 'funcionario',
+        //             select: 'nombre paterno materno cargo',
+        //         }
+        //     ]
+        // })
+        // res.json({
+        //     ok: true,
+        //     mail
+        // })
+
     } catch (error) {
         return ErrorResponse(res, error)
     }
@@ -189,71 +192,62 @@ const getUsers = async (req = request, res = response) => {
     const text = req.params.text
     const regex = new RegExp(text, 'i')
     try {
-        // const funcionarios = await Cuenta.find({ dependencia: id_dependencia, activo: true, funcionario: { $ne: null } })
-        //     .select('_id')
-        //     .populate('funcionario', 'nombre paterno materno cargo _id')
-        // SuccessResponse(res, funcionarios)
-        // const cuentas = await Cuenta.aggregate([
-        //     {
-        //         $lookup: {
-        //             from: "funcionarios",
-        //             localField: "funcionario",
-        //             foreignField: "_id",
-        //             as: "funcionario"
-        //         }
-        //     },
-        //     {
-        //         $unwind: {
-        //             path: "$funcionario"
-        //         }
-        //     },
-        //     {
-        //         $project: {
-        //             "funcionario.nombre": 1,
-        //             "funcionario.paterno": 1,
-        //             "funcionario.materno": 1,
-        //             "funcionario.cargo": 1,
-        //             _id: 1,
-        //             activo: 1
+        const cuentas = await Cuenta.aggregate([
+            {
+                $lookup: {
+                    from: "funcionarios",
+                    localField: "funcionario",
+                    foreignField: "_id",
+                    as: "funcionario"
+                }
+            },
+            {
+                $unwind: {
+                    path: "$funcionario"
+                }
+            },
+            {
+                $project: {
+                    "funcionario.nombre": 1,
+                    "funcionario.paterno": 1,
+                    "funcionario.materno": 1,
+                    "funcionario.cargo": 1,
+                    _id: 1,
+                    activo: 1
 
-        //         }
-        //     },
-        //     {
-        //         $addFields: {
-        //             "funcionario.fullname": {
-        //                 $concat: ["$funcionario.nombre", " ", { $ifNull: ["$funcionario.paterno", ""] }, " ", { $ifNull: ["$funcionario.materno", ""] }]
-        //             }
-        //         },
-        //     },
-        //     {
-        //         $match: {
-        //             $or: [
-        //                 { "funcionario.fullname": regex },
-        //                 { "funcionario.cargo": regex },
-        //             ],
-        //             activo: true,
-        //             _id: { $ne: mongoose.Types.ObjectId(req.id_cuenta) }
-        //         }
-        //     },
-        //     {
-        //         $project: {
-        //             activo: 0
-        //         }
-        //     },
-        //     { $limit: 4 }
-        // ])
-        // return res.json({
-        //     ok: true,
-        //     cuentas
-        // })
+                }
+            },
+            {
+                $addFields: {
+                    "funcionario.fullname": {
+                        $concat: ["$funcionario.nombre", " ", { $ifNull: ["$funcionario.paterno", ""] }, " ", { $ifNull: ["$funcionario.materno", ""] }]
+                    }
+                },
+            },
+            {
+                $match: {
+                    $or: [
+                        { "funcionario.fullname": regex },
+                        { "funcionario.cargo": regex },
+                    ],
+                    activo: true,
+                    _id: { $ne: mongoose.Types.ObjectId(req.id_cuenta) }
+                }
+            },
+            {
+                $project: {
+                    activo: 0
+                }
+            },
+            { $limit: 4 },
 
-        await BandejaEntrada.find({}).then(mail=>{
-            let ids
-            mail.forEach(data=>{
-                ids=data.emisor
-            })
-            console.log(mail)
+        ])
+        console.log(cuentas)
+        return res.json({
+            ok: true,
+            cuentas
         })
+
     } catch (error) {
         return ErrorResponse(res, error)
     }

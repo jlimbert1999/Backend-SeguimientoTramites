@@ -7,12 +7,8 @@ const BandejaSalidaScheme = Schema({
             ref: 'cuentas'
         },
         funcionario: {
-            type: String,
-            required: true
-        },
-        cargo: {
-            type: String,
-            required: true
+            type: Schema.Types.ObjectId,
+            ref: 'funcionarios'
         }
     },
     receptor: {
@@ -21,12 +17,8 @@ const BandejaSalidaScheme = Schema({
             ref: 'cuentas'
         },
         funcionario: {
-            type: String,
-            required: true
-        },
-        cargo: {
-            type: String,
-            required: true
+            type: Schema.Types.ObjectId,
+            ref: 'funcionarios'
         }
     },
     tramite: {
@@ -51,11 +43,12 @@ const BandejaSalidaScheme = Schema({
         type: Date,
         required: true
     },
-    fecha_recibido: {
-        type: Date,
-    },
     recibido: {
         type: Boolean
+    },
+    
+    fecha_recibido: {
+        type: Date,
     },
     motivo_rechazo: {
         type: String

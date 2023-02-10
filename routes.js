@@ -5,7 +5,7 @@ const usuariosRouter = require('./src/Configuraciones/usuarios/usuarios.router')
 const institucionRouter = require('./src/Configuraciones/instituciones/instituciones.router')
 const dependenciasRouter = require('./src/Configuraciones/dependencias/dependencias.router')
 const cuentasRouter = require('./src/Configuraciones/cuentas/cuenta.router')
-const routerAuth = require('./src/auth/auth.router')
+const routerAuth = require('./src/Auth/auth.router')
 
 const tiposTramitesRouter = require('./src/Configuraciones/tipos-tramites/tipoTramite.router')
 const RequerimientosRouter = require('./src/Configuraciones/tipos-tramites/tipoTramite.router')
