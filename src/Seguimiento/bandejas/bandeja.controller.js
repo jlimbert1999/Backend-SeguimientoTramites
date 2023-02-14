@@ -15,19 +15,16 @@ const { default: mongoose } = require("mongoose");
 const addMail = async (req = request, res = response) => {
     let { receptores, ...data } = req.body;
     const fecha_envio = new Date();
-    if (receptores.length === 0)
-        return res
-            .status(400)
-            .json({ ok: false, message: "No se seleccionaron destinatarios" });
+    if (receptores.length === 0) return res.status(400).json({ ok: false, message: "No se seleccionaron destinatarios" });
 
     let mails = [];
 
     try {
-        // verify if exist duplicate tramite send and create dto
+        // verify if exist duplicate mail for send
         for (const account of receptores) {
             const foundDuplicate = await BandejaEntrada.findOne({
                 tramite: data.tramite,
-                receptor: account._id,
+                'receptor.cuenta': account._id,
             });
             if (foundDuplicate) {
                 return res.status(400).json({
@@ -35,6 +32,8 @@ const addMail = async (req = request, res = response) => {
                     message: `El tramite ya se encuentra en la bandeja del funcionario ${account.funcionario.nombre} ${account.funcionario.paterno} ${account.funcionario.materno}`,
                 });
             }
+
+            // Create dto for database
             mails.push({
                 ...data,
                 fecha_envio,
@@ -48,87 +47,81 @@ const addMail = async (req = request, res = response) => {
                 },
             });
         }
-        await BandejaEntrada.findOneAndDelete({tramite:data.tramite, 'receptor.cuenta':req.id_cuenta})
-        await BandejaEntrada.insertMany(mails)
-        
-        await BandejaEntrada.populate(mail, {
-            path: 'tramite',
-            select: 'alterno estado detalle',
+        await TramiteExterno.findByIdAndUpdate(data.tramite, {estado:'EN REVISION'})
+        await BandejaEntrada.findOneAndDelete({
+            tramite: data.tramite,
+            "receptor.cuenta": req.id_cuenta,
+            recibido: true
+        });
+        await BandejaSalida.insertMany(mails);
+        let MailsDB = await BandejaEntrada.insertMany(mails)
+        await BandejaEntrada.populate(MailsDB[0], {
+            path: "tramite",
+            select: "alterno estado detalle",
+        });
+        await BandejaEntrada.populate(MailsDB[0], {
+            path: "emisor.cuenta",
+            select: "_id",
             populate: {
-                path: 'tipo_tramite',
-                select: 'nombre -_id'
-            }
-        })
-        await BandejaEntrada.populate(mail, {
-            path: 'emisor',
-            select: '_id',
-            populate: [
-                {
-                    path: 'dependencia',
-                    select: 'nombre -_id',
-                    populate: {
-                        path: 'institucion',
-                        select: 'sigla -_id'
-                    }
+                path: "dependencia",
+                select: "nombre -_id",
+                populate: {
+                    path: "institucion",
+                    select: "sigla -_id",
                 },
-                {
-                    path: 'funcionario',
-                    select: 'nombre paterno materno cargo',
-                }
-            ]
-        })
-        res.json({
+            },
+        });
+        await BandejaEntrada.populate(MailsDB[0], {
+            path: "emisor.funcionario",
+            select: "nombre paterno materno cargo",
+        });
+        return res.json({
             ok: true,
-            mail
-        })
-
-        return true;
+            mail: MailsDB[0]
+        });
     } catch (error) {
         return ErrorResponse(res, error);
     }
 };
 
 const getMailsIn = async (req = request, res = response) => {
-    const id_cuenta = req.id_cuenta;
     let { offset, limit } = req.query;
     offset = offset ? offset : 0;
     limit = limit ? limit : 50;
     offset = offset * limit;
     try {
-        const [tramites, total] = await Promise.all([
-            BandejaEntrada.find({ receptor: id_cuenta })
+        const [mails, length] = await Promise.all([
+            BandejaEntrada.find({ 'receptor.cuenta': req.id_cuenta })
                 .sort({ fecha_envio: -1 })
                 .skip(offset)
                 .limit(limit)
                 .populate({
                     path: "tramite",
                     select: "alterno estado detalle",
+                })
+                .populate({
+                    path: "emisor.cuenta",
+                    select: "_id",
                     populate: {
-                        path: "tipo_tramite",
+                        path: "dependencia",
                         select: "nombre -_id",
+                        populate: {
+                            path: "institucion",
+                            select: "sigla -_id",
+                        },
                     },
                 })
                 .populate({
-                    path: "emisor",
-                    select: "_id",
-                    populate: [
-                        {
-                            path: "dependencia",
-                            select: "nombre -_id",
-                            populate: {
-                                path: "institucion",
-                                select: "sigla -_id",
-                            },
-                        },
-                        {
-                            path: "funcionario",
-                            select: "nombre paterno materno cargo",
-                        },
-                    ],
+                    path: "emisor.funcionario",
+                    select: "nombre paterno materno cargo",
                 }),
-            BandejaEntrada.count({ receptor: id_cuenta }),
+            BandejaEntrada.count({ receptor: req.id_cuenta }),
         ]);
-        SuccessResponse(res, { tramites, total });
+        return res.json({
+            ok: true,
+            mails,
+            length,
+        });
     } catch (error) {
         ErrorResponse(res, error);
     }

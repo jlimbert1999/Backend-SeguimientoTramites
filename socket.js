@@ -27,11 +27,13 @@ function startSocketServer(server) {
             });
         })
         client.on('mail', data => {
-            let { id_cuenta, tramite } = data
-            const socketIds = Group.getUser(id_cuenta)
-            socketIds.forEach(id => {
-                client.to(id.toString()).emit('newmail', tramite)
-            });
+            let { id_accounts, tramites } = data
+            id_accounts.forEach(id_account => {
+                const socketIds = Group.getUser(id_account)
+                socketIds.forEach(id_socket => {
+                    client.to(id_socket.toString()).emit('newmail', {hola:'ds'})
+                });
+            })
         })
         client.on('expel', id_cuenta => {
             const socketIds = Group.getUser(id_cuenta)
