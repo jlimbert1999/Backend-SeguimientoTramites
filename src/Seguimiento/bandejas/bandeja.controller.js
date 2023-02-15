@@ -22,6 +22,7 @@ const addMail = async (req = request, res = response) => {
     try {
         // verify if exist duplicate mail for send
         for (const account of receptores) {
+
             const foundDuplicate = await BandejaEntrada.findOne({
                 tramite: data.tramite,
                 'receptor.cuenta': account._id,
@@ -47,7 +48,7 @@ const addMail = async (req = request, res = response) => {
                 },
             });
         }
-        await TramiteExterno.findByIdAndUpdate(data.tramite, {estado:'EN REVISION'})
+        await TramiteExterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
         await BandejaEntrada.findOneAndDelete({
             tramite: data.tramite,
             "receptor.cuenta": req.id_cuenta,
@@ -75,6 +76,17 @@ const addMail = async (req = request, res = response) => {
             path: "emisor.funcionario",
             select: "nombre paterno materno cargo",
         });
+        // Update state tramite for no more sends in admin panel
+        switch (data.tipo) {
+            case 'tramites_externos':
+                await TramiteExterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
+                break;
+            case 'tramites_internos':
+                await TramiteInterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
+                break;
+            default:
+                break;
+        }
         return res.json({
             ok: true,
             mail: MailsDB[0]
@@ -249,24 +261,24 @@ const aceptar_tramite = async (req = request, res = response) => {
         await BandejaSalida.findOneAndUpdate(
             {
                 tramite: mail.tramite,
-                "emisor.cuenta": mail.emisor,
-                "receptor.cuenta": mail.receptor,
+                "emisor.cuenta": mail.emisor.cuenta,
+                "receptor.cuenta": mail.receptor.cuenta,
                 recibido: null,
             },
             { recibido: true, fecha_recibido: new Date() }
         );
-        switch (mail.tipo) {
-            case "tramites_internos":
-                await TramiteInterno.findByIdAndUpdate(mail.tramite, {
-                    estado: "EN REVISION",
-                });
-                break;
-            case "tramites_externos":
-                await TramiteExterno.findByIdAndUpdate(mail.tramite, {
-                    estado: "EN REVISION",
-                });
-                break;
-        }
+        // switch (mail.tipo) {
+        //     case "tramites_internos":
+        //         await TramiteInterno.findByIdAndUpdate(mail.tramite, {
+        //             estado: "EN REVISION",
+        //         });
+        //         break;
+        //     case "tramites_externos":
+        //         await TramiteExterno.findByIdAndUpdate(mail.tramite, {
+        //             estado: "EN REVISION",
+        //         });
+        //         break;
+        // }
         res.json({
             ok: true,
             message: "Tramite aceptado",
@@ -284,58 +296,90 @@ const rechazar_tramite = async (req = request, res = response) => {
     const { motivo_rechazo } = req.body;
     const id_bandeja = req.params.id;
     try {
-        const mail = await BandejaEntrada.findById(id_bandeja);
-        // BUSCAR ULTIMO ENVIO PARA DEVOLVER A SU BANDEJA DE ENTRADA
-        const ultimo_envio = await BandejaSalida.findOne({
-            tramite: mail.tramite,
-            "receptor.cuenta": mail.emisor,
-            recibido: true,
-        }).sort({ _id: -1 });
-        if (ultimo_envio) {
-            // si existe debe regresar a ese envio
-            await BandejaEntrada.findByIdAndUpdate(id_bandeja, {
-                emisor: ultimo_envio.emisor.cuenta,
-                receptor: ultimo_envio.receptor.cuenta,
-                recibido: true,
-                motivo: ultimo_envio.motivo,
-                cantidad: ultimo_envio.cantidad,
-                fecha_envio: ultimo_envio.fecha_envio,
-            });
-        } else {
-            // si no existe debe eliminarse de bandeja entrada
-            await BandejaEntrada.findByIdAndDelete(id_bandeja);
-        }
+        // delete mail of in mail and update mail out
+        const mailDelete = await BandejaEntrada.findByIdAndDelete(id_bandeja)
         await BandejaSalida.findOneAndUpdate(
             {
-                tramite: mail.tramite,
-                "emisor.cuenta": mail.emisor,
-                "receptor.cuenta": mail.receptor,
+                tramite: mailDelete.tramite,
+                "emisor.cuenta": mailDelete.emisor.cuenta,
+                "receptor.cuenta": mailDelete.receptor.cuenta,
                 recibido: null,
             },
             { fecha_recibido: new Date(), motivo_rechazo, recibido: false }
         );
-        switch (mail.tipo) {
-            case "tramites_externos":
-                await TramiteExterno.findByIdAndUpdate(mail.tramite, {
-                    ubicacion: mail.emisor,
-                });
-                break;
-            case "tramites_internos":
-                await TramiteInterno.findByIdAndUpdate(mail.tramite, {
-                    ubicacion: mail.emisor,
-                });
-                break;
+
+        // verify if exist most one send
+        let processActive = await BandejaEntrada.findOne({ tramite: mailDelete.tramite, 'emisor.cuenta': mailDelete.emisor.cuenta })
+        if (!processActive) {
+            const lastSend = await BandejaSalida.findOne({ tramite: mailDelete.tramite, 'emisor.receptor': mailDelete.emisor.cuenta, recibido: true }).sort({ _id: -1 })
+            if (lastSend) {
+                const newMail = new BandejaEntrada(lastSend)
+                await newMail.save()
+            }
+            else {
+                // is first send
+                switch (mailDelete.tipo) {
+                    case "tramites_internos":
+                        await TramiteInterno.findByIdAndUpdate(mailDelete.tramite, {
+                            estado: "INSCRITO",
+                        });
+                        break;
+                    case "tramites_externos":
+                        await TramiteExterno.findByIdAndUpdate(mailDelete.tramite, {
+                            estado: "INSCRITO",
+                        });
+                        break;
+                }
+            }
         }
-        res.json({
+        // const mail = await BandejaEntrada.findById(id_bandeja);
+        // // BUSCAR ULTIMO ENVIO PARA DEVOLVER A SU BANDEJA DE ENTRADA
+        // const ultimo_envio = await BandejaSalida.findOne({
+        //     tramite: mail.tramite,
+        //     "receptor.cuenta": mail.emisor,
+        //     recibido: true,
+        // }).sort({ _id: -1 });
+        // if (ultimo_envio) {
+        //     // si existe debe regresar a ese envio
+        //     await BandejaEntrada.findByIdAndUpdate(id_bandeja, {
+        //         emisor: ultimo_envio.emisor.cuenta,
+        //         receptor: ultimo_envio.receptor.cuenta,
+        //         recibido: true,
+        //         motivo: ultimo_envio.motivo,
+        //         cantidad: ultimo_envio.cantidad,
+        //         fecha_envio: ultimo_envio.fecha_envio,
+        //     });
+        // } else {
+        //     // si no existe debe eliminarse de bandeja entrada
+        //     await BandejaEntrada.findByIdAndDelete(id_bandeja);
+        // }
+        // await BandejaSalida.findOneAndUpdate(
+        //     {
+        //         tramite: mail.tramite,
+        //         "emisor.cuenta": mail.emisor,
+        //         "receptor.cuenta": mail.receptor,
+        //         recibido: null,
+        //     },
+        //     { fecha_recibido: new Date(), motivo_rechazo, recibido: false }
+        // );
+        // switch (mail.tipo) {
+        //     case "tramites_externos":
+        //         await TramiteExterno.findByIdAndUpdate(mail.tramite, {
+        //             ubicacion: mail.emisor,
+        //         });
+        //         break;
+        //     case "tramites_internos":
+        //         await TramiteInterno.findByIdAndUpdate(mail.tramite, {
+        //             ubicacion: mail.emisor,
+        //         });
+        //         break;
+        // }
+        return res.json({
             ok: true,
             message: "Tramite rechazado",
         });
     } catch (error) {
-        console.log("[SERVER]: error (rechazar tramite)", error);
-        res.status(500).json({
-            ok: true,
-            message: "No se ha podido rechazar el tramite",
-        });
+        return ErrorResponse(res, error)
     }
 };
 

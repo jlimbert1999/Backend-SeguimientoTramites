@@ -117,25 +117,7 @@ const getOne = async (req = request, res = response) => {
             await TramiteExterno.findById(req.params.id)
                 .populate('solicitante', '-_id -__v')
                 .populate('representante', '-_id -__v')
-                .populate('tipo_tramite', 'nombre -_id')
-                .populate({
-                    path: 'ubicacion',
-                    select: '_id',
-                    populate: [
-                        {
-                            path: 'funcionario',
-                            select: 'nombre paterno materno cargo -_id'
-                        },
-                        {
-                            path: 'dependencia',
-                            select: 'nombre -_id',
-                            populate: {
-                                path: 'institucion',
-                                select: 'sigla -_id'
-                            }
-                        }
-                    ]
-                }),
+                .populate('tipo_tramite', 'nombre -_id'),
 
             await BandejaSalida.find({ tramite: req.params.id }).select('-_id -__v')
                 .populate({
@@ -151,6 +133,10 @@ const getOne = async (req = request, res = response) => {
                     }
                 })
                 .populate({
+                    path: 'emisor.funcionario',
+                    select: '-_id nombre paterno materno cargo',
+                })
+                .populate({
                     path: 'receptor.cuenta',
                     select: '_id',
                     populate: {
@@ -162,7 +148,10 @@ const getOne = async (req = request, res = response) => {
                         }
                     }
                 })
-
+                .populate({
+                    path: 'receptor.funcionario',
+                    select: '-_id nombre paterno materno cargo',
+                })
         ])
         res.json({
             ok: true,
