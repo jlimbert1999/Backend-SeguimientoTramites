@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const http = require('http');
 const cors = require('cors')
+const morgan = require('morgan')
 require('dotenv').config()
 const path = require("path");
 
@@ -17,6 +18,8 @@ const server = http.createServer(app);
 app.use(cors())
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
+
+app.use(morgan('dev'))
 
 // Establecer conexicon del socket con server
 sockets(server)

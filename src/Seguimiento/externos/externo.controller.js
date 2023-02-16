@@ -54,12 +54,12 @@ const get = async (req = request, res = response) => {
                 .sort({ _id: -1 })
                 .skip(offset)
                 .limit(limit)
-                .populate('tipo_tramite', 'nombre -_id')
                 .populate('solicitante')
-                .populate('representante'),
+                .populate('representante')
+                .populate('tipo_tramite', 'nombre'),
             await TramiteExterno.count({ cuenta: req.id_cuenta })
         ]);
-        return res.json({
+        return res.status(200).json({
             ok: true,
             total,
             tramites
