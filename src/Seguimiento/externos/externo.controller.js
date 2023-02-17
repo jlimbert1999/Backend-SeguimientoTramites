@@ -290,6 +290,8 @@ const search = async (req = request, res = response) => {
     const text = req.params.text
     let { type, limit, offset } = req.query
     const regex = new RegExp(text, 'i')
+    offset = parseInt(offset) || 0;
+    limit = parseInt(limit) || 10;
     offset = offset * limit
     try {
         let tramites, total
@@ -298,26 +300,83 @@ const search = async (req = request, res = response) => {
             total = await TramiteExterno.count({ alterno: regex, cuenta: req.id_cuenta })
         }
         else if (type === 'solicitante') {
-            const ids_solicitantes = await Solicitante.aggregate([
+            // const ids_solicitantes = await Solicitante.aggregate([
+            //     {
+            //         $addFields: {
+            //             fullname: {
+            //                 $concat: ["$nombre", " ", { $ifNull: ["$paterno", ""] }, " ", { $ifNull: ["$materno", ""] }]
+            //             }
+            //         },
+            //     },
+            //     {
+            //         $match: {
+            //             $or: [
+            //                 { fullname: regex },
+            //                 { dni: regex }
+            //             ]
+            //         }
+            //     },
+            //     { $project: { _id: 1 } }
+            // ]);
+            // tramites = await TramiteExterno.find({ cuenta: req.id_cuenta, solicitante: { $in: ids_solicitantes } }).skip(offset).limit(limit)
+            // total = await TramiteExterno.count({ cuenta: req.id_cuenta, solicitante: { $in: ids_solicitantes } })
+
+            tramites = await TramiteExterno.aggregate([
+                {
+                    $lookup: {
+                        from: "solicitantes",
+                        localField: "solicitante",
+                        foreignField: "_id",
+                        as: "solicitante",
+                    },
+                },
+                {
+                    $unwind: {
+                        path: "$solicitante",
+                    },
+                },
+                // {
+                //     $project: {
+                //         "funcionario.nombre": 1,
+                //         "funcionario.paterno": 1,
+                //         "funcionario.materno": 1,
+                //         "funcionario.cargo": 1,
+                //         "funcionario._id": 1,
+                //         _id: 1,
+                //         activo: 1,
+                //     },
+                // },
                 {
                     $addFields: {
-                        fullname: {
-                            $concat: ["$nombre", " ", { $ifNull: ["$paterno", ""] }, " ", { $ifNull: ["$materno", ""] }]
-                        }
+                        "solicitante.fullname": {
+                            $concat: [
+                                "$solicitante.nombre",
+                                " ",
+                                { $ifNull: ["$solicitante.paterno", ""] },
+                                " ",
+                                { $ifNull: ["$solicitante.materno", ""] },
+                            ],
+                        },
                     },
                 },
                 {
                     $match: {
                         $or: [
-                            { fullname: regex },
-                            { dni: regex }
-                        ]
+                            { "solicitante.fullname": regex },
+                            { alterno: regex },
+                            { detalle: regex },
+                            { estado: regex },
+                        ],
+                    },
+                },
+                {
+                    $project: {
+                        "solicitante.fullname": 0
                     }
                 },
-                { $project: { _id: 1 } }
+                { $skip: offset },
+                { $limit: limit },
             ]);
-            tramites = await TramiteExterno.find({ cuenta: req.id_cuenta, solicitante: { $in: ids_solicitantes } }).skip(offset).limit(limit)
-            total = await TramiteExterno.count({ cuenta: req.id_cuenta, solicitante: { $in: ids_solicitantes } })
         }
 
         await TramiteExterno.populate(tramites, { path: 'tipo_tramite', select: 'nombre -_id' })

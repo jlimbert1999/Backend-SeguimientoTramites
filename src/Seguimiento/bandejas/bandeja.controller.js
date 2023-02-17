@@ -23,14 +23,14 @@ const addMail = async (req = request, res = response) => {
         // verify if exist duplicate mail for send
         for (const account of receptores) {
 
-            const foundDuplicate = await BandejaEntrada.findOne({
+            const foundDuplicate = await BandejaSalida.findOne({
                 tramite: data.tramite,
-                'receptor.cuenta': account._id,
+                $or: [{ 'emisor.cuenta': account._id }, { 'receptor.cuenta': account._id }]
             });
             if (foundDuplicate) {
                 return res.status(400).json({
                     ok: false,
-                    message: `El tramite ya se encuentra en la bandeja del funcionario ${account.funcionario.nombre} ${account.funcionario.paterno} ${account.funcionario.materno}`,
+                    message: `Debe regresar el tramite al funcionario que realizo el envio`,
                 });
             }
 
@@ -311,13 +311,16 @@ const rechazar_tramite = async (req = request, res = response) => {
         // verify if exist most one send
         let processActive = await BandejaEntrada.findOne({ tramite: mailDelete.tramite, 'emisor.cuenta': mailDelete.emisor.cuenta })
         if (!processActive) {
-            const lastSend = await BandejaSalida.findOne({ tramite: mailDelete.tramite, 'emisor.receptor': mailDelete.emisor.cuenta, recibido: true }).sort({ _id: -1 })
+            let lastSend = await BandejaSalida.findOne({ tramite: mailDelete.tramite, 'emisor.receptor': mailDelete.emisor.cuenta, recibido: true }).sort({ _id: -1 })
             if (lastSend) {
+                lastSend = lastSend.toObject()
+                delete lastSend._id
+                delete lastSend.__v
+                console.log(lastSend)
                 const newMail = new BandejaEntrada(lastSend)
                 await newMail.save()
             }
             else {
-                // is first send
                 switch (mailDelete.tipo) {
                     case "tramites_internos":
                         await TramiteInterno.findByIdAndUpdate(mailDelete.tramite, {
@@ -553,6 +556,43 @@ const searchInMailsExterno = async (req = request, res = response) => {
         });
     } catch (error) {
         ErrorResponse(res, error);
+    }
+};
+
+
+const returnMail = async (req = request, res = response) => {
+    const id_bandeja = req.params.id;
+    try {
+        const mail = await BandejaEntrada.findById(id_bandeja)
+            .select("cantidad fecha_envio motivo recibido tramite")
+            .populate({
+                path: "emisor",
+                select: "_id",
+                populate: [
+                    {
+                        path: "funcionario",
+                        select: "nombre paterno materno cargo -_id",
+                    },
+                    {
+                        path: "dependencia",
+                        select: "nombre -_id",
+                        populate: {
+                            path: "institucion",
+                            select: "sigla -_id",
+                        }
+                    },
+                ],
+            });
+        res.json({
+            ok: true,
+            mail,
+        });
+    } catch (error) {
+        console.log("[SERVER]: error (aceptar tramite)", error);
+        res.status(500).json({
+            ok: true,
+            message: "No se ha podido aceptar el tramite",
+        });
     }
 };
 
