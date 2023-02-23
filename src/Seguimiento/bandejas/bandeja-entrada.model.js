@@ -41,7 +41,7 @@ const BandejaEntradaScheme = Schema({
   },
   fecha_envio: {
     type: Date,
-    required: true,
+    default: Date.now(),
   },
   recibido: {
     type: Boolean,

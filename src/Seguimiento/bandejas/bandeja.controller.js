@@ -14,30 +14,23 @@ const { default: mongoose } = require("mongoose");
 
 const addMail = async (req = request, res = response) => {
     let { receptores, ...data } = req.body;
-    const fecha_envio = new Date();
-    if (receptores.length === 0) return res.status(400).json({ ok: false, message: "No se seleccionaron destinatarios" });
-
     let mails = [];
-
     try {
         // verify if exist duplicate mail for send
         for (const account of receptores) {
-
-            const foundDuplicate = await BandejaSalida.findOne({
+            const foundDuplicate = await BandejaEntrada.findOne({
                 tramite: data.tramite,
-                $or: [{ 'emisor.cuenta': account._id }, { 'receptor.cuenta': account._id }]
+                'receptor.cuenta': account._id
             });
             if (foundDuplicate) {
                 return res.status(400).json({
                     ok: false,
-                    message: `Debe regresar el tramite al funcionario que realizo el envio`,
+                    message: `El funcionario ${account.funcionario.nombre} ${account.funcionario.paterno} ${account.funcionario.materno} ya tiene el tramite en su bandeja de entrada`,
                 });
             }
-
             // Create dto for database
             mails.push({
                 ...data,
-                fecha_envio,
                 emisor: {
                     cuenta: req.id_cuenta,
                     funcionario: req.id_funcionario,
@@ -48,7 +41,6 @@ const addMail = async (req = request, res = response) => {
                 },
             });
         }
-        await TramiteExterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
         await BandejaEntrada.findOneAndDelete({
             tramite: data.tramite,
             "receptor.cuenta": req.id_cuenta,
@@ -56,37 +48,42 @@ const addMail = async (req = request, res = response) => {
         });
         await BandejaSalida.insertMany(mails);
         let MailsDB = await BandejaEntrada.insertMany(mails)
-        await BandejaEntrada.populate(MailsDB[0], {
-            path: "tramite",
-            select: "alterno estado detalle",
-        });
-        await BandejaEntrada.populate(MailsDB[0], {
-            path: "emisor.cuenta",
-            select: "_id",
-            populate: {
-                path: "dependencia",
-                select: "nombre -_id",
+        await BandejaEntrada.populate(MailsDB, [
+            {
+                path: "tramite",
+                select: "alterno estado detalle",
+            },
+            {
+                path: "emisor.cuenta",
+                select: "_id",
                 populate: {
-                    path: "institucion",
-                    select: "sigla -_id",
+                    path: "dependencia",
+                    select: "nombre -_id",
+                    populate: {
+                        path: "institucion",
+                        select: "sigla -_id",
+                    },
                 },
             },
-        });
-        await BandejaEntrada.populate(MailsDB[0], {
-            path: "emisor.funcionario",
-            select: "nombre paterno materno cargo",
-        });
+            {
+                path: "emisor.funcionario",
+                select: "nombre paterno materno cargo",
+            }
+        ])
+        console.log(MailsDB);
+
+
         // Update state tramite for no more sends in admin panel
-        switch (data.tipo) {
-            case 'tramites_externos':
-                await TramiteExterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
-                break;
-            case 'tramites_internos':
-                await TramiteInterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
-                break;
-            default:
-                break;
-        }
+        // switch (data.tipo) {
+        //     case 'tramites_externos':
+        //         await TramiteExterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
+        //         break;
+        //     case 'tramites_internos':
+        //         await TramiteInterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
+        //         break;
+        //     default:
+        //         break;
+        // }
         return res.json({
             ok: true,
             mail: MailsDB[0]

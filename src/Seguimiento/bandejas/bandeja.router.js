@@ -4,10 +4,25 @@ const controllerDependencias = require('../../Configuraciones/dependencias/depen
 const controllerCuentas = require('../../Configuraciones/cuentas/cuenta.controller')
 const { getOne: getExterno } = require('../externos/externo.controller')
 const { getOne: getInterno } = require('../internos/interno.controller')
+const { checkSchema } = require('express-validator');
+const validarBody = require('../../../middlewares/validar_body')
 
 router.get('/entrada', controller.getMailsIn)
 router.get('/salida', controller.obtener_bandeja_salida)
-router.post('/', controller.addMail)
+router.post('/',
+    [
+        checkSchema({
+            receptores: {
+                isArray: {
+                    options: {
+                        min: 1
+                    }
+                }
+            },
+        }),
+        validarBody
+    ], controller.addMail)
+
 router.put('/aceptar/:id', controller.aceptar_tramite)
 router.put('/rechazar/:id', controller.rechazar_tramite)
 
