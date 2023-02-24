@@ -23,8 +23,8 @@ router.post('/',
         validarBody
     ], controller.addMail)
 
-router.put('/aceptar/:id', controller.aceptar_tramite)
-router.put('/rechazar/:id', controller.rechazar_tramite)
+router.put('/aceptar/:id', controller.accept)
+router.put('/rechazar/:id', controller.decline)
 
 router.get('/detalle/:id', controller.getDetailsMail)
 
@@ -37,5 +37,7 @@ router.get('/dependencias/:id_institucion', controllerCuentas.getDependencias)
 
 router.get('/search-interno/:text', controller.searchInMails)
 router.get('/search-externo/:text', controller.searchInMailsExterno)
+
+router.delete('/salida/:id', controller.cancel)
 
 module.exports = router

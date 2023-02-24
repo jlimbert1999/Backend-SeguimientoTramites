@@ -42,11 +42,11 @@ const BandejaSalidaScheme = Schema({
     fecha_envio: {
         type: Date,
         default: Date.now(),
-      },
+    },
     recibido: {
         type: Boolean
     },
-    
+
     fecha_recibido: {
         type: Date,
     },
@@ -58,7 +58,7 @@ const BandejaSalidaScheme = Schema({
     }
 })
 BandejaSalidaScheme.method('toJSON', function () {
-    const { __v, _id, ...object } = this.toObject()
+    const { __v, ...object } = this.toObject()
     return object
 })
 module.exports = model('bandeja_salida', BandejaSalidaScheme)

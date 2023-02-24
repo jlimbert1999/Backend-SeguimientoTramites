@@ -20,7 +20,8 @@ const addMail = async (req = request, res = response) => {
         for (const account of receptores) {
             const foundDuplicate = await BandejaEntrada.findOne({
                 tramite: data.tramite,
-                'receptor.cuenta': account._id
+                'receptor.cuenta': account._id,
+                'emisor.cuenta': req.id_cuenta
             });
             if (foundDuplicate) {
                 return res.status(400).json({
@@ -48,6 +49,18 @@ const addMail = async (req = request, res = response) => {
         });
         await BandejaSalida.insertMany(mails);
         let MailsDB = await BandejaEntrada.insertMany(mails)
+        switch (data.tipo) {
+            case "tramites_internos":
+                await TramiteInterno.findByIdAndUpdate(data.tramite, {
+                    estado: "EN REVISION",
+                });
+                break;
+            case "tramites_externos":
+                await TramiteExterno.findByIdAndUpdate(data.tramite, {
+                    estado: "EN REVISION",
+                });
+                break;
+        }
         await BandejaEntrada.populate(MailsDB, [
             {
                 path: "tramite",
@@ -70,23 +83,9 @@ const addMail = async (req = request, res = response) => {
                 select: "nombre paterno materno cargo",
             }
         ])
-        console.log(MailsDB);
-
-
-        // Update state tramite for no more sends in admin panel
-        // switch (data.tipo) {
-        //     case 'tramites_externos':
-        //         await TramiteExterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
-        //         break;
-        //     case 'tramites_internos':
-        //         await TramiteInterno.findByIdAndUpdate(data.tramite, { estado: 'EN REVISION' })
-        //         break;
-        //     default:
-        //         break;
-        // }
         return res.json({
             ok: true,
-            mail: MailsDB[0]
+            mails: MailsDB
         });
     } catch (error) {
         return ErrorResponse(res, error);
@@ -171,7 +170,8 @@ const obtener_bandeja_salida = async (req = request, res = response) => {
                 }),
             BandejaSalida.count({ "emisor.cuenta": req.id_cuenta }),
         ]);
-        res.json({
+
+        return res.json({
             ok: true,
             tramites,
             total,
@@ -249,12 +249,19 @@ const getUsers = async (req = request, res = response) => {
     }
 };
 
-const aceptar_tramite = async (req = request, res = response) => {
+const accept = async (req = request, res = response) => {
     const id_bandeja = req.params.id;
     try {
         const mail = await BandejaEntrada.findByIdAndUpdate(id_bandeja, {
             recibido: true,
         });
+        if (!mail) {
+            // if mail no exist, mail is canceled
+            return res.status(400).json({
+                ok: true,
+                message: 'El tramite ya no puede ser aceptado por que el envio ha sido cancelado'
+            })
+        }
         await BandejaSalida.findOneAndUpdate(
             {
                 tramite: mail.tramite,
@@ -264,37 +271,28 @@ const aceptar_tramite = async (req = request, res = response) => {
             },
             { recibido: true, fecha_recibido: new Date() }
         );
-        // switch (mail.tipo) {
-        //     case "tramites_internos":
-        //         await TramiteInterno.findByIdAndUpdate(mail.tramite, {
-        //             estado: "EN REVISION",
-        //         });
-        //         break;
-        //     case "tramites_externos":
-        //         await TramiteExterno.findByIdAndUpdate(mail.tramite, {
-        //             estado: "EN REVISION",
-        //         });
-        //         break;
-        // }
         res.json({
             ok: true,
             message: "Tramite aceptado",
         });
     } catch (error) {
-        console.log("[SERVER]: error (aceptar tramite)", error);
-        res.status(500).json({
-            ok: true,
-            message: "No se ha podido aceptar el tramite",
-        });
+        return ErrorResponse(res, error)
     }
 };
 
-const rechazar_tramite = async (req = request, res = response) => {
+const decline = async (req = request, res = response) => {
     const { motivo_rechazo } = req.body;
     const id_bandeja = req.params.id;
     try {
         // delete mail of in mail and update mail out
         const mailDelete = await BandejaEntrada.findByIdAndDelete(id_bandeja)
+        if (!mailDelete) {
+            // if mail no exist, mail is canceled
+            return res.status(400).json({
+                ok: true,
+                message: 'El envio del tramite ha sido cancelado'
+            })
+        }
         await BandejaSalida.findOneAndUpdate(
             {
                 tramite: mailDelete.tramite,
@@ -313,7 +311,6 @@ const rechazar_tramite = async (req = request, res = response) => {
                 lastSend = lastSend.toObject()
                 delete lastSend._id
                 delete lastSend.__v
-                console.log(lastSend)
                 const newMail = new BandejaEntrada(lastSend)
                 await newMail.save()
             }
@@ -593,12 +590,56 @@ const returnMail = async (req = request, res = response) => {
     }
 };
 
+const cancel = async (req = request, res = response) => {
+    const id_bandeja = req.params.id;
+    try {
+        const mailDelete = await BandejaSalida.findById(id_bandeja)
+        if (mailDelete.recibido !== undefined) {
+            return res.status(400).json({
+                ok: false,
+                message: 'El tramite ya ha sido evaluado por el funcionario receptor.'
+            })
+        }
+        await Promise.all([
+            BandejaSalida.findByIdAndDelete(id_bandeja),
+            BandejaEntrada.findOneAndDelete({ tramite: mailDelete.tramite, 'emisor.cuenta': mailDelete.emisor.cuenta, 'receptor.cuenta': mailDelete.receptor.cuenta })
+        ])
+        let message = "El funcionario receptor, ya no podra ver el envio."
+        // verify if all send for update state
+        const processActive = await BandejaSalida.findOne({ tramite: mailDelete.tramite })
+        if (!processActive) {
+            let tramiteDB
+            switch (mailDelete.tipo) {
+                case "tramites_internos":
+                    tramiteDB = await TramiteInterno.findByIdAndUpdate(mailDelete.tramite, {
+                        estado: "INSCRITO",
+                    });
+                    break;
+                case "tramites_externos":
+                    tramiteDB = await TramiteExterno.findByIdAndUpdate(mailDelete.tramite, {
+                        estado: "INSCRITO",
+                    });
+                    break;
+            }
+            message = `Todos los envios realizados para el tramite: ${tramiteDB.alterno} se han cancelado. El estado ahora es: INSCRITO.`
+        }
+        return res.json({
+            ok: true,
+            message
+        });
+    } catch (error) {
+        return ErrorResponse(res, error)
+    }
+};
+
+
+
 module.exports = {
     addMail,
     getMailsIn,
     obtener_bandeja_salida,
-    aceptar_tramite,
-    rechazar_tramite,
+    accept,
+    decline,
 
     getDetailsMail,
 
@@ -606,4 +647,6 @@ module.exports = {
 
     searchInMails,
     searchInMailsExterno,
+
+    cancel
 };

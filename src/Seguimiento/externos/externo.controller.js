@@ -271,8 +271,15 @@ const concludedTramite = async (req = request, res = response) => {
     const id_tramite = req.params.id
     const { referencia } = req.body
     try {
-        await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date(), detalle_conclusion: referencia })
-        await BandejaEntrada.findOneAndDelete({ tramite: id_tramite })
+        await BandejaEntrada.findOneAndDelete({ tramite: id_tramite, 'receptor.cuenta': req.id_cuenta })
+        let processActive = await BandejaEntrada.findOne({ tramite: id_tramite })
+        if (!processActive) {
+            await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date(), detalle_conclusion: referencia, $push: { eventos: { funcionario: req.id_funcionario, descripcion: referencia } } })
+        }
+        else {
+            await TramiteExterno.findByIdAndUpdate(id_tramite, { fecha_finalizacion: new Date(), $push: { eventos: { funcionario: req.id_funcionario, descripcion: referencia } } })
+        }
+
         res.json({
             ok: true,
             message: 'Tramite finalizado'
