@@ -295,100 +295,72 @@ const concludedTramite = async (req = request, res = response) => {
 
 const search = async (req = request, res = response) => {
     const text = req.params.text
-    let { type, limit, offset } = req.query
+    let { limit, offset } = req.query
     const regex = new RegExp(text, 'i')
     offset = parseInt(offset) || 0;
     limit = parseInt(limit) || 10;
     offset = offset * limit
     try {
-        let tramites, total
-        if (type === 'alterno') {
-            tramites = await TramiteExterno.find({ alterno: regex, cuenta: req.id_cuenta }).skip(offset).limit(limit)
-            total = await TramiteExterno.count({ alterno: regex, cuenta: req.id_cuenta })
-        }
-        else if (type === 'solicitante') {
-            // const ids_solicitantes = await Solicitante.aggregate([
-            //     {
-            //         $addFields: {
-            //             fullname: {
-            //                 $concat: ["$nombre", " ", { $ifNull: ["$paterno", ""] }, " ", { $ifNull: ["$materno", ""] }]
-            //             }
-            //         },
-            //     },
-            //     {
-            //         $match: {
-            //             $or: [
-            //                 { fullname: regex },
-            //                 { dni: regex }
-            //             ]
-            //         }
-            //     },
-            //     { $project: { _id: 1 } }
-            // ]);
-            // tramites = await TramiteExterno.find({ cuenta: req.id_cuenta, solicitante: { $in: ids_solicitantes } }).skip(offset).limit(limit)
-            // total = await TramiteExterno.count({ cuenta: req.id_cuenta, solicitante: { $in: ids_solicitantes } })
-
-            tramites = await TramiteExterno.aggregate([
-                {
-                    $lookup: {
-                        from: "solicitantes",
-                        localField: "solicitante",
-                        foreignField: "_id",
-                        as: "solicitante",
-                    },
+        const data = await TramiteExterno.aggregate([
+            {
+                $lookup: {
+                    from: "solicitantes",
+                    localField: "solicitante",
+                    foreignField: "_id",
+                    as: "solicitante",
                 },
-                {
-                    $unwind: {
-                        path: "$solicitante",
-                    },
+            },
+            {
+                $unwind: {
+                    path: "$solicitante",
                 },
-                // {
-                //     $project: {
-                //         "funcionario.nombre": 1,
-                //         "funcionario.paterno": 1,
-                //         "funcionario.materno": 1,
-                //         "funcionario.cargo": 1,
-                //         "funcionario._id": 1,
-                //         _id: 1,
-                //         activo: 1,
-                //     },
-                // },
-                {
-                    $addFields: {
-                        "solicitante.fullname": {
-                            $concat: [
-                                "$solicitante.nombre",
-                                " ",
-                                { $ifNull: ["$solicitante.paterno", ""] },
-                                " ",
-                                { $ifNull: ["$solicitante.materno", ""] },
-                            ],
-                        },
-                    },
-                },
-                {
-                    $match: {
-                        $or: [
-                            { "solicitante.fullname": regex },
-                            { alterno: regex },
-                            { detalle: regex },
-                            { estado: regex },
+            },
+            {
+                $addFields: {
+                    "solicitante.fullname": {
+                        $concat: [
+                            "$solicitante.nombre",
+                            " ",
+                            { $ifNull: ["$solicitante.paterno", ""] },
+                            " ",
+                            { $ifNull: ["$solicitante.materno", ""] },
                         ],
                     },
                 },
-                {
-                    $project: {
-                        "solicitante.fullname": 0
-                    }
+            },
+            {
+                $match: {
+                    $or: [
+                        { "solicitante.fullname": regex },
+                        { alterno: regex },
+                        { detalle: regex },
+                        { cite: regex },
+                    ],
                 },
-                { $skip: offset },
-                { $limit: limit },
-            ]);
-        }
-
-        await TramiteExterno.populate(tramites, { path: 'tipo_tramite', select: 'nombre -_id' })
-        await TramiteExterno.populate(tramites, { path: 'solicitante' })
-        await TramiteExterno.populate(tramites, { path: 'representante' })
+            },
+            {
+                $project: {
+                    "solicitante.fullname": 0
+                }
+            },
+            {
+                $facet: {
+                    paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                    totalCount: [
+                        {
+                            $count: 'count'
+                        }
+                    ]
+                }
+            }
+        ]);
+        await TramiteExterno.populate(data[0].paginatedResults.length, [
+            { path: 'tipo_tramite', select: 'nombre -_id' },
+            { path: 'solicitante' },
+            { path: 'representante' }
+        ])
+        let tramites = data[0].paginatedResults
+        const total = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
         return res.json({
             ok: true,
             tramites,
