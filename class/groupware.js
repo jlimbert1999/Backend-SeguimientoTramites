@@ -21,7 +21,9 @@ class Groupware {
     getUser(id_cuenta) {
         let user = this.users.find(user => user.id_cuenta === id_cuenta);
         if (!user) {
-            user.socketIds = []
+            user = {
+                socketIds: []
+            }
         }
         return user.socketIds
     }

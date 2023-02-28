@@ -11,7 +11,7 @@ const tiposTramitesRouter = require('./src/Configuraciones/tipos-tramites/tipoTr
 const RequerimientosRouter = require('./src/Configuraciones/tipos-tramites/tipoTramite.router')
 
 const ExternoRouter = require('./src/Seguimiento/externos/externo.router')
-const BandejaRouter = require('./src/Seguimiento/bandejas/bandeja.router')
+// const BandejaRouter = require('./src/Seguimiento/bandejas/bandeja.router')
 
 const ReportesExternosRouter = require('./src/Reportes/reporte-externo/reportes.router')
 const ReportesInternosRouter = require('./src/Reportes/reporte-interno/reportes.router')
@@ -21,6 +21,9 @@ const ConsultaRouter = require('./src/Consulta/consulta.router')
 const InternoRouter = require('./src/Seguimiento/internos/interno.router')
 
 const PerfilRouter = require('./src/Configuraciones/perfil/perfil.router')
+
+const ExternoController = require('./src/Tramites/tramite.controller')
+const BandejaController = require('./src/Bandejas/bandejas.controller')
 
 router.use('/login', routerAuth)
 // ADMINISTRADOR
@@ -33,8 +36,8 @@ router.use('/requerimientos', [verificarToken, verificarAdminRol], Requerimiento
 
 
 // FUNCIONARIOS
-router.use('/externos', [verificarToken], ExternoRouter)
-router.use('/bandejas', [verificarToken], BandejaRouter)
+// router.use('/externos', [verificarToken], ExternoRouter)
+// router.use('/bandejas', [verificarToken], BandejaRouter)
 
 
 router.use('/internos', [verificarToken], InternoRouter)
@@ -45,5 +48,9 @@ router.use('/reportes-internos', ReportesInternosRouter)
 router.use('/consulta', ConsultaRouter)
 
 router.use('/perfil', verificarToken, PerfilRouter)
+
+// nuevo
+router.use('/tramites', ExternoController)
+router.use('/bandejas', BandejaController)
 
 module.exports = router

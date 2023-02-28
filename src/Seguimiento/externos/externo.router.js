@@ -4,8 +4,8 @@ const checkFields = require('../../../middlewares/validar_body')
 const { check, param } = require('express-validator')
 
 // Obtener datos para registro
-router.get('/tipos/:segmento', controller.getTypes)
-router.get('/segmentos', controller.getGroupsTypes)
+// router.get('/tipos/:segmento', controller.getTypes)
+// router.get('/segmentos', controller.getGroupsTypes)
 
 // Manejo de observaciones
 router.put('/observacion/:id', controller.addObservacion)
@@ -13,14 +13,15 @@ router.put('/observacion/corregir/:id', controller.putObservacion)
 
 
 // Administrar tramite
-router.get('/', controller.get)
-router.post('/', controller.add)
-router.put('/:id', controller.edit)
+// router.get('/', controller.get)
+// router.post('/', controller.add)
+// router.put('/:id', controller.edit)
+
 router.put('/concluir/:id', controller.concludedTramite)
 router.put('/desarchivar/:id', controller.unarchived)
 
 // Buscar tramites
-router.get('/search/:text', controller.search)
+// router.get('/search/:text', controller.search)
 
 // Obtener toda la informacion de un tramite
 router.get('/:id',

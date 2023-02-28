@@ -8,6 +8,26 @@ function ErrorResponse(resp = response, consoleMessage) {
     })
 }
 
+function ServerErrorResponde(error, res) {
+    if (!error.status) {
+        console.log('[SERVER]: Error => ', error)
+        return res.status(500).json({
+            ok: false,
+            message: 'Ha ocurrido un error en el servidor'
+        })
+    }
+    return res.status(error.status).json({
+        ok: false,
+        message: error.message
+    })
+}
+
+function ExceptionResponse(message, status) {
+    const error = new Error(message);
+    error.status = status
+    return error;
+}
+
 function SuccessResponse(res = response, data, message) {
     switch (message) {
         case null:
@@ -31,5 +51,8 @@ function SuccessResponse(res = response, data, message) {
 
 module.exports = {
     ErrorResponse,
-    SuccessResponse
+    SuccessResponse,
+    ServerErrorResponde,
+    ExceptionResponse
+    // BadRequestResponse
 }

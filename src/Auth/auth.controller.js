@@ -2,7 +2,7 @@ const { request, response } = require('express')
 const Cuenta = require('../Configuraciones/cuentas/cuenta.model')
 const bcrypt = require('bcrypt');
 const jwt = require('../../helpers/generate_token')
-const BandejaEntrada = require('../Seguimiento/bandejas/bandeja-entrada.model')
+const EntradaModel = require('../Bandejas/models/entrada.model')
 const { getMenuFrontend } = require('../../helpers/menu-frontend')
 const { ErrorResponse } = require('../../helpers/responses')
 
@@ -34,7 +34,7 @@ const login = async (req = request, res = response) => {
         }
 
         let token = await jwt.generarToken(cuentaDB)
-        const number_mails = await BandejaEntrada.count({ receptor: cuentaDB._id })
+        const number_mails = await EntradaModel.count({ receptor: cuentaDB._id })
         return res.send({
             ok: true,
             token,
