@@ -127,6 +127,7 @@ const TramiteExternoScheme = Schema({
     },
     eventos: [
         {
+            _id: false,
             funcionario: {
                 type: Schema.Types.ObjectId,
                 ref: 'funcionarios',

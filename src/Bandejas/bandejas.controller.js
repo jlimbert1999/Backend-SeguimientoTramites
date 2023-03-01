@@ -6,9 +6,12 @@ const { ServerErrorResponde } = require('../../helpers/responses')
 
 const EntradaService = require('./services/entrada.service')
 const SalidaService = require('./services/salida.service');
+const ArchivoService = require('../Tramites/services/archivos.service');
 const entradaService = new EntradaService();
 const salidaService = new SalidaService();
+const archivoService = new ArchivoService()
 
+// ENTRADAS
 router.get('/entrada', verificarToken, async (req = request, res = response) => {
     try {
         const { mails, length } = await entradaService.get(req.id_cuenta)
@@ -20,7 +23,6 @@ router.get('/entrada', verificarToken, async (req = request, res = response) => 
         ServerErrorResponde(error, res)
     }
 })
-
 router.post('/entrada', verificarToken, async (req = request, res = response) => {
     try {
         let { receptores, ...data } = req.body
@@ -32,7 +34,6 @@ router.post('/entrada', verificarToken, async (req = request, res = response) =>
         ServerErrorResponde(error, res)
     }
 })
-
 router.get('/entrada/users/:text', verificarToken, async (req = request, res = response) => {
     try {
         const cuentas = await entradaService.getAccounts(req.params.text, req.id_cuenta)
@@ -43,17 +44,6 @@ router.get('/entrada/users/:text', verificarToken, async (req = request, res = r
         ServerErrorResponde(error, res)
     }
 })
-router.put('/aceptar/:id', verificarToken, async (req = request, res = response) => {
-    try {
-        const message = await entradaService.acept(req.params.id)
-        return res.status(200).json({
-            message
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
-
 
 
 
@@ -79,6 +69,46 @@ router.delete('/salida/:id', verificarToken, async (req = request, res = respons
         ServerErrorResponde(error, res)
     }
 })
+
+
+// CONTROL DE FLUJO
+router.put('/aceptar/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        const message = await entradaService.acept(req.params.id)
+        return res.status(200).json({
+            message
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.put('/rechazar/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        let { motivo_rechazo } = req.body
+        const message = await entradaService.decline(req.params.id, motivo_rechazo)
+        return res.status(200).json({
+            message
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+router.put('/concluir/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        let { descripcion } = req.body
+        let mailIn = await entradaService.conclude(req.params.id, req.id_funcionario, descripcion)
+        await archivoService.add(req.id_dependencia,)
+        const message = await archivoService.add()
+        return res.status(200).json({
+            message
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+
 
 
 

@@ -215,23 +215,14 @@ class ExternoService {
         return editTramite
     }
 
-    // async conclude(id_tramite, tramite, solicitante, representante) {
-    //     const id_tramite = req.params.id
-    //     const { referencia } = req.body
-    //     await BandejaEntrada.findOneAndDelete({ tramite: id_tramite, 'receptor.cuenta': req.id_cuenta })
-    //     let processActive = await BandejaEntrada.findOne({ tramite: id_tramite })
-    //     if (!processActive) {
-    //         await TramiteExterno.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date(), detalle_conclusion: referencia, $push: { eventos: { funcionario: req.id_funcionario, descripcion: referencia } } })
-    //     }
-    //     else {
-    //         await TramiteExterno.findByIdAndUpdate(id_tramite, { fecha_finalizacion: new Date(), $push: { eventos: { funcionario: req.id_funcionario, descripcion: referencia } } })
-    //     }
-
-    //     res.json({
-    //         ok: true,
-    //         message: 'Tramite finalizado'
-    //     })
-    // }
+    async concludeInit(id_tramite, descripcion, id_funcionario) {
+        const existWorkflow = await SalidaModel.findOne({ tramite: id_tramite })
+        if (existWorkflow) {
+            throw ({ status: 400, message: 'El tramite ya cuenta con un flujo de trabajo. Por lo que no se puede concluir desde la administracion' });
+        }
+        await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date(), detalle_conclusion: descripcion, $push: { eventos: { funcionario: id_funcionario, descripcion } } })
+        return "Tramite concluido"
+    }
 
 
 

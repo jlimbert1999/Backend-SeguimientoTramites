@@ -48,14 +48,14 @@ class SalidaService {
             SalidaModel.findByIdAndDelete(id_bandeja),
             EntradaModel.findOneAndDelete({ tramite: cancelMail.tramite, 'emisor.cuenta': cancelMail.emisor.cuenta, 'receptor.cuenta': cancelMail.receptor.cuenta })
         ])
-
         // verify if all send for update state
         const processActive = await EntradaModel.findOne({ tramite: cancelMail.tramite, 'emisor.cuenta': id_cuenta })
         if (!processActive) {
             const existWorkflow = await SalidaModel.findOne({ tramite: cancelMail.tramite })
             if (existWorkflow) {
                 // revert delete mail entrada for send
-                const mailOld = await SalidaModel.findOne({ tramite: existWorkflow.tramite, 'receptor.cuenta': id_cuenta, recibido: true }).sort({ _id: -1 })
+                let mailOld = await SalidaModel.findOne({ tramite: cancelMail.tramite, 'receptor.cuenta': id_cuenta, recibido: true }).sort({ _id: -1 })
+                mailOld = mailOld.toObject()
                 delete mailOld._id
                 delete mailOld.__v
                 const newMailOld = new EntradaModel(mailOld)
@@ -78,14 +78,8 @@ class SalidaService {
                 }
                 return `Todos los envios realizados para el tramite: ${tramiteDB.alterno} se han cancelado. El estado ahora es: INSCRITO.`
             }
-
         }
         return 'El funcionario receptor ya no podra ver el tramite enviado'
-
-
-
-
-
     }
 
 

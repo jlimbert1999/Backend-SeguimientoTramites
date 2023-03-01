@@ -23,8 +23,8 @@ router.post('/',
         validarBody
     ], controller.addMail)
 
-router.put('/aceptar/:id', controller.accept)
-router.put('/rechazar/:id', controller.decline)
+// router.put('/aceptar/:id', controller.accept)
+// router.put('/rechazar/:id', controller.decline)
 
 router.get('/detalle/:id', controller.getDetailsMail)
 

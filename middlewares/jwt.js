@@ -19,6 +19,7 @@ const verificarToken = async (req, res, next) => {
         req.id_cuenta = decoded.id_cuenta;
         req.id_funcionario = account.funcionario;
         req.rol = account.rol
+        req.id_dependencia = account.dependencia
         next();
     } catch (error) {
         return res.status(401).json({

@@ -82,6 +82,18 @@ router.put('/externos/:id', verificarToken, async (req = request, res = response
         ServerErrorResponde(error, res)
     }
 })
+router.put('/externos/concluir/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        let { descripcion } = req.body
+        const message = await externoService.concludeInit(req.params.id, descripcion, req.id_funcionario)
+        return res.status(200).json({
+            message
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 
 
 

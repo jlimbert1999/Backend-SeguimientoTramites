@@ -60,6 +60,53 @@ class EntradaService {
         return 'Tramite aceptado'
     }
 
+    async decline(id_bandeja, motivo_rechazo) {
+        // delete mail of MailsIn and update MailsOut
+        const mail = await EntradaModel.findByIdAndDelete(id_bandeja)
+        if (!mail) {
+            // if mail no exist, mail is canceled
+            throw ({ status: 400, message: `El envio de este tramite ha sido cancelado` });
+        }
+        await SalidaModel.findOneAndUpdate(
+            {
+                tramite: mail.tramite,
+                "emisor.cuenta": mail.emisor.cuenta,
+                "receptor.cuenta": mail.receptor.cuenta,
+                recibido: null,
+            },
+            { fecha_recibido: new Date(), motivo_rechazo, recibido: false }
+        );
+
+        // verify if all send for update state
+        const processActive = await EntradaModel.findOne({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta })
+        if (!processActive) {
+            let mailOld = await SalidaModel.findOne({ tramite: mail.tramite, 'receptor.cuenta': mail.emisor.cuenta, recibido: true }).sort({ _id: -1 })
+            if (mailOld) {
+                mailOld = mailOld.toObject()
+                delete mailOld._id
+                delete mailOld.__v
+                const newMailOld = new EntradaModel(mailOld)
+                await newMailOld.save()
+            }
+            else {
+                switch (mail.tipo) {
+                    // case "tramites_internos":
+                    //     tramiteDB = await E.findByIdAndUpdate(mailDelete.tramite, {
+                    //         estado: "INSCRITO",
+                    //     });
+                    //     break;
+                    case "tramites_externos":
+                        await ExternoModel.findByIdAndUpdate(mail.tramite, {
+                            estado: "INSCRITO",
+                        });
+                        break;
+                }
+            }
+        }
+        return 'Tramite rechazado'
+
+    }
+
 
 
 
@@ -193,6 +240,26 @@ class EntradaService {
         return cuentas
 
     }
+
+    async conclude(id_bandeja, funcionario, descripcion) {
+        const mail = await EntradaModel.findByIdAndDelete(id_bandeja)
+        if (!mail) throw ({ status: 400, message: `El envio de este tramite ha sido cancelado` });
+
+        let processActive = await EntradaModel.findOne({ tramite: mail.tramite })
+        if (!processActive) {
+            switch (mail.tipo) {
+                case 'tramites_externos':
+                    await ExternoModel.findByIdAndUpdate(mail.tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date(), detalle_conclusion: descripcion, $push: { eventos: { funcionario, descripcion } } })
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        const location = await SalidaModel.findOne({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta, 'receptor.cuenta': mail.receptor.cuenta, recibido: true }).sort({ _id: - 1 })
+    }
+
+
 
 
 
