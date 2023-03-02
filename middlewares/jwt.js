@@ -8,7 +8,7 @@ const verificarToken = async (req, res, next) => {
             throw "No token provided";
         }
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        const account = await Cuentas.findById(decoded.id_cuenta).select("funcionario activo rol");
+        const account = await Cuentas.findById(decoded.id_cuenta).select("funcionario activo rol dependencia");
         if (!account) return res.status(404).json({ ok: false, message: "La sesion no es valida. La cuenta no existe" });
         if (!account.activo || !account.funcionario && account.rol !== "admin") {
             return res.status(401).json({

@@ -5,9 +5,8 @@ const ArchivoScheme = Schema({
         type: Schema.Types.ObjectId,
         ref: 'dependencias'
     },
-    ultima_ubicacion: {
-        type: String,
-        required: true
+    location: {
+        type: String
     },
     tramite: {
         type: Schema.Types.ObjectId,

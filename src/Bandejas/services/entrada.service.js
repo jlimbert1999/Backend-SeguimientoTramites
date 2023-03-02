@@ -238,18 +238,15 @@ class EntradaService {
             { $limit: 4 },
         ]);
         return cuentas
-
     }
 
     async conclude(id_bandeja, funcionario, descripcion) {
         const mail = await EntradaModel.findByIdAndDelete(id_bandeja)
-        if (!mail) throw ({ status: 400, message: `El envio de este tramite ha sido cancelado` });
-
         let processActive = await EntradaModel.findOne({ tramite: mail.tramite })
         if (!processActive) {
             switch (mail.tipo) {
                 case 'tramites_externos':
-                    await ExternoModel.findByIdAndUpdate(mail.tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date(), detalle_conclusion: descripcion, $push: { eventos: { funcionario, descripcion } } })
+                    await ExternoModel.findByIdAndUpdate(mail.tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date(), detalle_conclusion: descripcion, $push: { eventos: { funcionario, descripcion: 'Ha marcado el tramite como CONCLUIDO' } } })
                     break;
 
                 default:
@@ -257,6 +254,7 @@ class EntradaService {
             }
         }
         const location = await SalidaModel.findOne({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta, 'receptor.cuenta': mail.receptor.cuenta, recibido: true }).sort({ _id: - 1 })
+        return location
     }
 
 
@@ -264,8 +262,6 @@ class EntradaService {
 
 
 }
-
-
 
 
 

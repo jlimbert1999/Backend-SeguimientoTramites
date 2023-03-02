@@ -71,6 +71,11 @@ const getMenuFrontend = (rol) => {
         routerLink: "bandeja-salida",
       },
       {
+        text: "Archivos",
+        icon: "files",
+        routerLink: "archivos",
+      },
+      {
         text: "Reportes",
         icon: "analytics",
         children: [
@@ -143,6 +148,11 @@ const getMenuFrontend = (rol) => {
         text: "Bandeja salida",
         icon: "mail",
         routerLink: "bandeja-salida",
+      },
+      {
+        text: "Archivos",
+        icon: "files",
+        routerLink: "archivos",
       },
       {
         text: "Reportes",
