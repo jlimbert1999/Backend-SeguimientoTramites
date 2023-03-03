@@ -27,7 +27,8 @@ class ExternoService {
             await ExternoModel.findById(id_tramite)
                 .populate('solicitante', '-_id -__v')
                 .populate('representante', '-_id -__v')
-                .populate('tipo_tramite', 'nombre -_id'),
+                .populate('tipo_tramite', 'nombre -_id')
+                .populate('eventos.funcionario', 'nombre paterno materno -_id'),
 
             await SalidaModel.find({ tramite: id_tramite }).select('-_id -__v')
                 .populate({

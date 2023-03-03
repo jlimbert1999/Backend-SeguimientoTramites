@@ -2,18 +2,29 @@ const ArchivosModel = require('../models/archivo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const EntradaModel = require('../../Bandejas/models/entrada.model')
 const { ExternoModel } = require('../../Tramites/models/externo.model')
+
 class ArchivoService {
-    async add(dependencia, location, tramite, tipo, funcionario, descripcion) {
-        let archivo
-        if (location) {
-            archivo = { dependencia, location, tramite, tipo, funcionario, descripcion }
+    async archiveMail(mail, funcionario, dependencia, descripcion,) {
+        const lastPosition = await SalidaModel.findOne({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta, 'receptor.cuenta': mail.receptor.cuenta, recibido: true }).sort({ _id: -1 })
+        if (!lastPosition) {
+            throw ({ status: 400, message: `El tramite no se ha podido archivar. No se encontro un flujo de trabajo` });
         }
-        else {
-            archivo = { dependencia, tramite, tipo, funcionario, descripcion }
+        let archive = {
+            location: lastPosition._id,
+            tramite: lastPosition.tramite,
+            tipo: lastPosition.tipo,
+            funcionario,
+            dependencia,
+            descripcion
         }
-        const newArchivo = new ArchivosModel(archivo)
-        await newArchivo.save()
+        const newArchive = new ArchivosModel(archive)
+        await newArchive.save()
     }
+
+    async archiveTramite() {
+    }
+
+
     async get(id_dependencia) {
         const tramites = await ArchivosModel.find({ dependencia: id_dependencia })
             .populate('tramite', 'alterno estado')
@@ -21,33 +32,33 @@ class ArchivoService {
         return tramites
     }
 
-    async unarchive(id_archivo) {
-        const archivo = await ArchivosModel.findById(id_archivo).populate('tramite', 'estado')
+    async unarchive(id_archivo, funcionario, descripcion) {
+        const archivo = await ArchivosModel.findByIdAndDelete(id_archivo).populate('tramite', 'estado')
+
+        if (!archivo) {
+            throw ({ status: 400, message: `El tramite ya ha sido desarchivado` });
+        }
+        let newState
         if (archivo.location) {
-            let mailOld = SalidaModel.findById(archivo.location)
+            let mailOld = await SalidaModel.findById(archivo.location)
+            mailOld = mailOld.toObject()
             delete mailOld._id
             delete mailOld.__v
             const newMail = new EntradaModel(mailOld)
             await newMail.save()
-            if (archivo.tramite.estado === 'CONCLUIDO') {
-                switch (archivo.tipo) {
-                    case 'tramites_externos':
-                        await ExternoModel.findByIdAndUpdate(archivo.tramite._id, { estado: 'EN REVISION' })
-                        break;
-                    default:
-                        break;
-                }
-            }
+            newState = 'EN REVISION'
         }
         else {
-            switch (archivo.tipo) {
-                case 'tramites_externos':
-                    await ExternoModel.findByIdAndUpdate(archivo.tramite._id, { estado: 'INSCRITO' })
-                    break;
-                default:
-                    break;
-            }
+            newState = 'INSCRITO'
         }
+        switch (archivo.tipo) {
+            case 'tramites_externos':
+                await ExternoModel.findByIdAndUpdate(archivo.tramite._id, { estado: newState, $push: { eventos: { funcionario: funcionario, descripcion: `Ha desarchivado el tramite por: ${descripcion}` } } })
+                break;
+            default:
+                break;
+        }
+
         return 'Tramite desarchivado correctamentes'
     }
 }

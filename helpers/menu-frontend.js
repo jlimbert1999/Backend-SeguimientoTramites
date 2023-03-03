@@ -72,7 +72,7 @@ const getMenuFrontend = (rol) => {
       },
       {
         text: "Archivos",
-        icon: "files",
+        icon: "folder_copy",
         routerLink: "archivos",
       },
       {
@@ -151,7 +151,7 @@ const getMenuFrontend = (rol) => {
       },
       {
         text: "Archivos",
-        icon: "files",
+        icon: "folder_copy",
         routerLink: "archivos",
       },
       {

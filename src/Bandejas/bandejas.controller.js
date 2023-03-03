@@ -6,8 +6,10 @@ const { ServerErrorResponde } = require('../../helpers/responses')
 
 const EntradaService = require('./services/entrada.service')
 const SalidaService = require('./services/salida.service');
+const ArchivoService = require('../Archivos/services/archivo.service')
 const entradaService = new EntradaService();
 const salidaService = new SalidaService();
+const archivoService = new ArchivoService();
 
 // ENTRADAS
 router.get('/entrada', verificarToken, async (req = request, res = response) => {
@@ -94,13 +96,12 @@ router.put('/rechazar/:id', verificarToken, async (req = request, res = response
 
 router.put('/concluir/:id', verificarToken, async (req = request, res = response) => {
     try {
-        // let { descripcion } = req.body
-        // const location = await entradaService.conclude(req.params.id, req.id_funcionario, descripcion)
-        // console.log('mi dep', req.id_dependencia)
-        // await archivoService.add(req.id_dependencia, location._id, location.tramite, location.tipo, req.id_funcionario, descripcion)
-        // return res.status(200).json({
-        //     message:'Tramite cocluido'
-        // })
+        let { descripcion } = req.body
+        const mail = await entradaService.conclude(req.params.id, req.id_funcionario, descripcion)
+        await archivoService.archiveMail(mail, req.id_funcionario, req.id_dependencia, descripcion)
+        return res.status(200).json({
+            message: 'Tramite cocluido'
+        })
     } catch (error) {
         ServerErrorResponde(error, res)
     }

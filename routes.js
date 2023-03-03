@@ -41,7 +41,7 @@ router.use('/requerimientos', [verificarToken, verificarAdminRol], Requerimiento
 // router.use('/bandejas', [verificarToken], BandejaRouter)
 
 
-router.use('/internos', [verificarToken], InternoRouter)
+// router.use('/internos', [verificarToken], InternoRouter)
 
 router.use('/reportes-externos', [verificarToken], ReportesExternosRouter)
 router.use('/reportes-internos', ReportesInternosRouter)

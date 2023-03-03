@@ -1,10 +1,15 @@
 const router = require('express').Router()
 const { request, response, json } = require('express');
 const { verificarToken } = require('../../middlewares/jwt');
+
 const ExternoService = require('./services/externo.service')
+const InternoService = require('./services/interno.service')
 const externoService = new ExternoService();
+const internoService = new InternoService()
+
 const { ServerErrorResponde } = require('../../helpers/responses')
 
+// EXTERNOS
 router.get('/externos/segmentos', verificarToken, async (req = request, res = response) => {
     try {
         const groups = await externoService.getGroupsTypes(req.params.segmento)
@@ -15,7 +20,6 @@ router.get('/externos/segmentos', verificarToken, async (req = request, res = re
         ServerErrorResponde(error, res)
     }
 })
-
 router.get('/externos', verificarToken, async (req = request, res = response) => {
     try {
         const { tramites, total } = await externoService.get(req.id_cuenta, req.query.limit, req.query.offset)
@@ -38,7 +42,6 @@ router.get('/externos/:id', verificarToken, async (req = request, res = response
         ServerErrorResponde(error, res)
     }
 })
-
 router.get('/externos/search/:text', verificarToken, async (req = request, res = response) => {
     try {
         const { tramites, total } = await externoService.search(req.params.text, req.query.limit, req.query.offset)
@@ -60,7 +63,6 @@ router.get('/externos/tipos/:segmento', verificarToken, async (req = request, re
         ServerErrorResponde(error, res)
     }
 })
-
 router.post('/externos', verificarToken, async (req = request, res = response) => {
     try {
         const tramite = await externoService.add(req.id_cuenta, req.body.tramite, req.body.solicitante, req.body.representante)
@@ -71,7 +73,6 @@ router.post('/externos', verificarToken, async (req = request, res = response) =
         ServerErrorResponde(error, res)
     }
 })
-
 router.put('/externos/:id', verificarToken, async (req = request, res = response) => {
     try {
         const tramite = await externoService.edit(req.params.id, req.body.tramite, req.body.solicitante, req.body.representante)
@@ -88,6 +89,33 @@ router.put('/externos/concluir/:id', verificarToken, async (req = request, res =
         const message = await externoService.concludeInit(req.params.id, descripcion, req.id_funcionario)
         return res.status(200).json({
             message
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+
+
+
+// INTERNOS
+router.get('/internos', verificarToken, async (req = request, res = response) => {
+    try {
+        const { tramites, total } = await internoService.get(req.id_cuenta, req.query.limit, req.query.offset)
+        return res.status(200).json({
+            tramites,
+            total
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.get('/internos/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        const { tramite, workflow } = await internoService.getOne(req.params.id)
+        return res.status(200).json({
+            tramite,
+            workflow
         })
     } catch (error) {
         ServerErrorResponde(error, res)
