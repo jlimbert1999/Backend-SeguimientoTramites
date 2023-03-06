@@ -44,7 +44,7 @@ router.get('/externos/:id', verificarToken, async (req = request, res = response
 })
 router.get('/externos/search/:text', verificarToken, async (req = request, res = response) => {
     try {
-        const { tramites, total } = await externoService.search(req.params.text, req.query.limit, req.query.offset)
+        const { tramites, total } = await externoService.search(req.params.text, req.query.limit, req.query.offset, req.id_cuenta)
         return res.status(200).json({
             tramites,
             total
@@ -99,12 +99,23 @@ router.put('/externos/concluir/:id', verificarToken, async (req = request, res =
 
 
 // INTERNOS
+router.get('/internos/tipos', verificarToken, async (req = request, res = response) => {
+    try {
+        const tipos = await internoService.getTypes()
+        return res.status(200).json({
+            tipos
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 router.get('/internos', verificarToken, async (req = request, res = response) => {
     try {
-        const { tramites, total } = await internoService.get(req.id_cuenta, req.query.limit, req.query.offset)
+        const { tramites, length } = await internoService.get(req.id_cuenta, req.query.limit, req.query.offset)
         return res.status(200).json({
             tramites,
-            total
+            length
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -121,6 +132,51 @@ router.get('/internos/:id', verificarToken, async (req = request, res = response
         ServerErrorResponde(error, res)
     }
 })
+
+router.post('/internos', verificarToken, async (req = request, res = response) => {
+    try {
+        const tramite = await internoService.add(req.body, req.id_cuenta)
+        return res.status(200).json({
+            tramite
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.put('/internos/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        const tramite = await internoService.edit(req.params.id, req.body)
+        return res.status(200).json({
+            tramite
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+router.get('/internos/usuarios/:text', verificarToken, async (req = request, res = response) => {
+    try {
+        const users = await internoService.getUsers(req.params.text)
+        return res.status(200).json({
+            users
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+router.get('/internos/search/:text', verificarToken, async (req = request, res = response) => {
+    try {
+        const { tramites, length } = await internoService.search(req.id_cuenta, req.query.limit, req.query.offset, req.params.text)
+        return res.status(200).json({
+            tramites,
+            length
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 
 
 

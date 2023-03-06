@@ -53,7 +53,7 @@ const TramiteInternoScheme = Schema({
     },
     fecha_registro: {
         type: Date,
-        required: true
+        default: Date.now()
     },
     observaciones: [{
         _id: false,

@@ -67,7 +67,7 @@ class ExternoService {
         return { tramite, workflow }
     }
 
-    async search(text, limit, offset) {
+    async search(text, limit, offset, id_cuenta) {
         const regex = new RegExp(text, 'i')
         offset = parseInt(offset) || 0;
         limit = parseInt(limit) || 10;
@@ -101,6 +101,7 @@ class ExternoService {
             },
             {
                 $match: {
+                    cuenta: id_cuenta,
                     $or: [
                         { "solicitante.fullname": regex },
                         { alterno: regex },
