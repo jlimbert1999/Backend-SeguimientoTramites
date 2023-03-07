@@ -1,6 +1,7 @@
 const EntradaModel = require('../models/entrada.model')
 const SalidaModel = require('../models/salida.model')
 const { ExternoModel } = require('../../Tramites/models/externo.model')
+const InternoModel = require('../../Tramites/models/interno.model')
 const CuentaModel = require("../../../src/Configuraciones/cuentas/cuenta.model");
 const { default: mongoose } = require("mongoose");
 
@@ -167,11 +168,11 @@ class EntradaService {
         await SalidaModel.insertMany(mails);
         let MailsDB = await EntradaModel.insertMany(mails)
         switch (data.tipo) {
-            // case "tramites_internos":
-            //     await TramiteInterno.findByIdAndUpdate(data.tramite, {
-            //         estado: "EN REVISION",
-            //     });
-            //     break;
+            case "tramites_internos":
+                await InternoModel.findByIdAndUpdate(data.tramite, {
+                    estado: "EN REVISION",
+                });
+                break;
             case "tramites_externos":
                 await ExternoModel.findByIdAndUpdate(data.tramite, {
                     estado: "EN REVISION",
@@ -201,7 +202,6 @@ class EntradaService {
             }
         ])
         return MailsDB
-
     }
 
     async getAccounts(text, id_cuenta) {

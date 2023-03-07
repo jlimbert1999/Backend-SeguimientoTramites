@@ -51,13 +51,7 @@ const getMenuFrontend = (rol) => {
       {
         text: "Internos",
         icon: "description",
-        children: [
-          {
-            text: "Administracion",
-            icon: "widgets",
-            routerLink: "tramites-internos",
-          },
-        ]
+        routerLink: "tramites-internos"
       },
       {
         text: "Bandeja entrada",
@@ -113,29 +107,12 @@ const getMenuFrontend = (rol) => {
       {
         text: "Externos",
         icon: "folder",
-        children: [
-          {
-            text: "Administracion",
-            icon: "widgets",
-            routerLink: "tramites-externos",
-          },
-          {
-            text: "Concluidos",
-            icon: "widgets",
-            routerLink: "tramites-externos-concluidos",
-          }
-        ]
+        routerLink: "tramites-externos",
       },
       {
         text: "Internos",
         icon: "snippet_folder",
-        children: [
-          {
-            text: "Administracion",
-            icon: "widgets",
-            routerLink: "tramites-internos",
-          }
-        ]
+        routerLink: "tramites-internos"
       },
       {
 

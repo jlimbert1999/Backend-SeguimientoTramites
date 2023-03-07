@@ -3,6 +3,7 @@ const { ServerErrorResponde, BadRequestResponse, ExceptionResponse } = require('
 const { ExternoModel, SolicitanteModel, RepresentanteModel } = require('../models/externo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const TiposModel = require('../../Configuraciones/tipos-tramites/tipoTramite.model')
+const { default: mongoose } = require('mongoose')
 
 class ExternoService {
     async get(id_cuenta, limit, offset) {
@@ -101,7 +102,7 @@ class ExternoService {
             },
             {
                 $match: {
-                    cuenta: id_cuenta,
+                    cuenta: mongoose.Types.ObjectId(id_cuenta),
                     $or: [
                         { "solicitante.fullname": regex },
                         { alterno: regex },
@@ -126,6 +127,7 @@ class ExternoService {
                 }
             }
         ]);
+
         await ExternoModel.populate(data[0].paginatedResults.length, [
             { path: 'tipo_tramite', select: 'nombre -_id' },
             { path: 'solicitante' },
@@ -133,6 +135,7 @@ class ExternoService {
         ])
         let tramites = data[0].paginatedResults
         const total = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
+        console.log(tramites.length)
         return { tramites, total }
 
     }

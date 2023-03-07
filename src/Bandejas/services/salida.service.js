@@ -1,6 +1,7 @@
 const SalidaModel = require('../models/salida.model')
 const EntradaModel = require('../models/entrada.model')
 const { ExternoModel } = require('../../Tramites/models/externo.model')
+const InternoModel = require('../../Tramites/models/interno.model')
 class SalidaService {
     async get(id_cuenta, limit, offset) {
         offset = offset ? offset : 0;
@@ -32,7 +33,12 @@ class SalidaService {
                             },
                         },
                     ],
+                })
+                .populate({
+                    path: "receptor.funcionario",
+                    select: "nombre paterno materno cargo -_id",
                 }),
+
             SalidaModel.count({ "emisor.cuenta": id_cuenta }),
         ]);
         return { mails, length }
@@ -60,16 +66,16 @@ class SalidaService {
                 delete mailOld.__v
                 const newMailOld = new EntradaModel(mailOld)
                 await newMailOld.save()
-                return `El tramite ha vuelto ha su bandeja de entrada`
+                return `El tramite ahora se ecuentra en su bandeja de entrada`
             }
             else {
                 let tramiteDB
                 switch (cancelMail.tipo) {
-                    // case "tramites_internos":
-                    //     tramiteDB = await E.findByIdAndUpdate(mailDelete.tramite, {
-                    //         estado: "INSCRITO",
-                    //     });
-                    //     break;
+                    case "tramites_internos":
+                        tramiteDB = await InternoModel.findByIdAndUpdate(cancelMail.tramite, {
+                            estado: "INSCRITO",
+                        });
+                        break;
                     case "tramites_externos":
                         tramiteDB = await ExternoModel.findByIdAndUpdate(cancelMail.tramite, {
                             estado: "INSCRITO",
@@ -79,8 +85,72 @@ class SalidaService {
                 return `Todos los envios realizados para el tramite: ${tramiteDB.alterno} se han cancelado. El estado ahora es: INSCRITO.`
             }
         }
-        return 'El funcionario receptor ya no podra ver el tramite enviado'
+        return 'Se ha cancelado uno de sus envios correctamente'
     }
+
+
+    async search(id_cuenta, limit, offset) {
+        offset = offset ? offset : 0;
+        limit = limit ? limit : 10;
+        offset = offset * limit;
+
+        const data = await ExternoModel.aggregate([
+            {
+                $lookup: {
+                    from: "solicitantes",
+                    localField: "solicitante",
+                    foreignField: "_id",
+                    as: "solicitante",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$solicitante",
+                },
+            },
+            {
+                $addFields: {
+                    "solicitante.fullname": {
+                        $concat: [
+                            "$solicitante.nombre",
+                            " ",
+                            { $ifNull: ["$solicitante.paterno", ""] },
+                            " ",
+                            { $ifNull: ["$solicitante.materno", ""] },
+                        ],
+                    },
+                },
+            },
+            {
+                $match: {
+                    cuenta: mongoose.Types.ObjectId(id_cuenta),
+                    $or: [
+                        { "solicitante.fullname": regex },
+                        { alterno: regex },
+                        { detalle: regex },
+                        { cite: regex },
+                    ],
+                },
+            },
+            {
+                $project: {
+                    "solicitante.fullname": 0
+                }
+            },
+            {
+                $facet: {
+                    paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                    totalCount: [
+                        {
+                            $count: 'count'
+                        }
+                    ]
+                }
+            }
+        ])
+        return { mails, length }
+    }
+
 
 
 
