@@ -137,6 +137,7 @@ class EntradaService {
 
     async add(receptores, data, id_cuenta, id_funcionario) {
         let mails = [];
+        const fecha = new Date()
         for (const account of receptores) {
             const foundDuplicate = await EntradaModel.findOne({
                 tramite: data.tramite,
@@ -149,6 +150,7 @@ class EntradaService {
             // Create dto for database
             mails.push({
                 ...data,
+                fecha_envio: fecha,
                 emisor: {
                     cuenta: id_cuenta,
                     funcionario: id_funcionario,
@@ -291,6 +293,85 @@ class EntradaService {
                 break;
         }
         return mail
+    }
+
+    async search(id_cuenta, text, type, offset, limit) {
+        // offset = offset ? offset : 0;
+        // limit = limit ? limit : 50;
+        // offset = offset * limit;
+        // console.log(text)
+        // const regex = new RegExp(text, "i");
+        // let data
+        // if (type === 'EXTERNO') {
+        //     data = await EntradaModel.aggregate([
+        //         {
+        //             $lookup: {
+        //                 from: "tramites_externos",
+        //                 localField: "tramite",
+        //                 foreignField: "_id",
+        //                 as: "tramite",
+        //             },
+        //         },
+        //         {
+        //             $unwind: {
+        //                 path: "$tramites_externos",
+        //             },
+        //         },
+        //         {
+        //             $match: {
+        //                 // receptor: id_cuenta,
+        //                 $or: [
+        //                     { "tramite.alterno": regex },
+        //                     { "tramite.detalle": regex },
+        //                     { motivo: regex },
+        //                     { numero_interno: regex },
+        //                 ]
+        //             },
+        //         },
+        //         {
+        //             $facet: {
+        //                 paginatedResults: [{ $skip: offset }, { $limit: limit }],
+        //                 totalCount: [
+        //                     {
+        //                         $count: 'count'
+        //                     }
+        //                 ]
+        //             }
+        //         }
+        //     ]);
+        // }
+
+        // else if (type === 'INTERNO') {
+
+        // }
+        // console.log(data)
+
+        // await ExternoModel.populate(data[0].paginatedResults.length, [
+        //     {
+        //         path: "tramite",
+        //         select: "alterno estado detalle",
+        //     },
+        //     {
+        //         path: "emisor.cuenta",
+        //         select: "_id",
+        //         populate: {
+        //             path: "dependencia",
+        //             select: "nombre -_id",
+        //             populate: {
+        //                 path: "institucion",
+        //                 select: "sigla -_id",
+        //             },
+        //         },
+        //     },
+        //     {
+        //         path: "emisor.funcionario",
+        //         select: "nombre paterno materno cargo",
+        //     }
+        // ])
+        // const mails = data[0].paginatedResults
+        // const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
+        // return { mails, length }
+
     }
 
 

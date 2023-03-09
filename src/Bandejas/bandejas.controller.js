@@ -108,6 +108,20 @@ router.put('/concluir/:id', verificarToken, async (req = request, res = response
 })
 
 
+router.get('/search/:text', verificarToken, async (req = request, res = response) => {
+    try {
+        const { mails, length } = await entradaService.search(req.id_cuenta, req.params.text, req.query.type, req.query.offset, req.query.limit)
+        return res.status(200).json({
+            mails,
+            length
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+
+
 
 
 
