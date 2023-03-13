@@ -25,6 +25,7 @@ const PerfilRouter = require('./src/Configuraciones/perfil/perfil.router')
 const ExternoController = require('./src/Tramites/tramite.controller')
 const BandejaController = require('./src/Bandejas/bandejas.controller')
 const ArchivoController = require('./src/Archivos/archivo.controller')
+const ReporteController=require('./src/Reportes/reporte.controller')
 
 router.use('/login', routerAuth)
 // ADMINISTRADOR
@@ -54,5 +55,6 @@ router.use('/perfil', verificarToken, PerfilRouter)
 router.use('/tramites', ExternoController)
 router.use('/bandejas', BandejaController)
 router.use('/archivos', ArchivoController)
+router.use('/reportes', ReporteController)
 
 module.exports = router

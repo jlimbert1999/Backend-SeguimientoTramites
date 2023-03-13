@@ -135,7 +135,6 @@ class ExternoService {
         ])
         let tramites = data[0].paginatedResults
         const total = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
-        console.log(tramites.length)
         return { tramites, total }
 
     }

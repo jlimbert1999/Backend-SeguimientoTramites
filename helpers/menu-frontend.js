@@ -76,7 +76,7 @@ const getMenuFrontend = (rol) => {
           {
             text: "Ficha de tramite",
             icon: "description",
-            routerLink: "reporte-ficha",
+            routerLink: "ficha",
           },
           {
             text: "Estado",
@@ -138,7 +138,7 @@ const getMenuFrontend = (rol) => {
           {
             text: "Ficha de tramite",
             icon: "description",
-            routerLink: "reporte-ficha",
+            routerLink: "reportes/ficha",
           },
           {
             text: "Estado",
