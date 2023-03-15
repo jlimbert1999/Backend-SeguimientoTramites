@@ -19,4 +19,18 @@ router.get('/ficha/:alterno', async (req = request, res = response) => {
     }
 })
 
-module.exports=router
+
+router.get('/busqueda/:tipo', async (req = request, res = response) => {
+    try {
+        let params = req.query
+        const tramites = await reporteService.reporteBusqueda(params)
+        return res.status(200).json({
+            tramites
+        })
+
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+module.exports = router

@@ -1,4 +1,4 @@
-const {ExternoModel} = require('../../Tramites/models/externo.model')
+const { ExternoModel } = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 class ReporteService {
@@ -54,7 +54,7 @@ class ReporteService {
                 throw ({ status: 405, message: `No se encontro ningun tramite Externo o Interno con el alterno: ${alterno}` });
             }
         }
-        const workflow = await SalidaModel.find({ tramite: tramite._id})
+        const workflow = await SalidaModel.find({ tramite: tramite._id })
             // .select('fecha_envio fecha_recibido fecha_envio')
             .populate({
                 path: 'emisor.cuenta',
@@ -95,6 +95,54 @@ class ReporteService {
             tipo
         }
     }
+
+    async reporteBusqueda(params) {
+
+        console.log(new Date(params.start))
+
+        let query = {}
+        let { alterno, cite, start, end, ...info } = params
+
+        alterno = alterno ? new RegExp(alterno, 'i') : undefined
+        cite = cite ? new RegExp(cite, 'i') : undefined
+
+        Object.assign(query, alterno ? { alterno } : '', cite ? { cite } : '', info)
+
+
+        let result = Object
+            .keys(query)
+            .map(k => ({ [k]: query[k] }));
+
+      
+        // if (start && end) {
+        //     tramites = await ExternoModel.find({ $and: result, fecha_registro:  })
+        // }
+        // else {
+
+        // }
+
+        // async get(id_cuenta, limit, offset) {
+        //     offset = offset ? offset : 0
+        //     limit = limit ? limit : 10
+        //     offset = offset * limit
+        //     const [tramites, total] = await Promise.all([
+        //         await ExternoModel.find({ cuenta: id_cuenta })
+        //             .sort({ _id: -1 })
+        //             .skip(offset)
+        //             .limit(limit)
+        //             .populate('solicitante')
+        //             .populate('representante')
+        //             .populate('tipo_tramite', 'nombre'),
+        //         await ExternoModel.count({ cuenta: id_cuenta })
+        //     ]);
+        //     return { tramites, total }
+        // }
+        const tramites = await ExternoModel.find({ $and: result })
+
+        return tramites
+
+    }
+
 
 }
 
