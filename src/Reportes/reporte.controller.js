@@ -22,12 +22,20 @@ router.get('/ficha/:alterno', async (req = request, res = response) => {
 
 router.get('/busqueda/:tipo', async (req = request, res = response) => {
     try {
+        console.log(req.query)
         let params = req.query
-        const tramites = await reporteService.reporteBusqueda(params)
+        let type = req.params.tipo
+        if (!type) {
+            return res.status(400).json({
+                ok: false,
+                message: 'Seleccione el tipo de tramite (INTERNO / EXTERNO) para generar el reporte'
+            })
+        }
+        const { tramites, length } = await reporteService.reporteBusqueda(params, type)
         return res.status(200).json({
-            tramites
+            tramites,
+            length
         })
-
     } catch (error) {
         ServerErrorResponde(error, res)
     }
