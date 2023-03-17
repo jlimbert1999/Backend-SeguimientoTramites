@@ -22,7 +22,6 @@ router.get('/ficha/:alterno', async (req = request, res = response) => {
 
 router.get('/busqueda/:tipo', async (req = request, res = response) => {
     try {
-        console.log(req.query)
         let params = req.query
         let type = req.params.tipo
         if (!type) {

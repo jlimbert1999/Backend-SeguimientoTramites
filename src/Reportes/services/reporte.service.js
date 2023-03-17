@@ -122,27 +122,21 @@ class ReporteService {
             })
         }
         let tramites = [], length = 0
-        // offset = parseInt(offset) || 0;
-        // limit = parseInt(limit) || 10;
+        limit = limit ? parseInt(limit) : 10;
+        offset = offset ? parseInt(offset) : 0;
         offset = offset * limit
-        console.log(query)
-        console.log('limit', limit)
-        console.log('offset', offset)
         if (type === 'EXTERNO') {
             [tramites, length] = await Promise.all([
-                ExternoModel.find(query).populate('solicitante'),
-                ExternoModel.countDocuments(query)
+                ExternoModel.find(query).populate('solicitante').skip(offset).limit(limit),
+                ExternoModel.count(query)
             ])
-
         }
         else {
             [tramites, length] = await Promise.all([
                 InternoModel.find(query).skip(offset).limit(limit),
-                InternoModel.countDocuments(query)
+                InternoModel.count(query)
             ])
         }
-        console.log(tramites.length)
-        console.log(length)
         return { tramites, length }
 
     }
