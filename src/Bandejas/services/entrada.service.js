@@ -296,81 +296,80 @@ class EntradaService {
     }
 
     async search(id_cuenta, text, type, offset, limit) {
-        // offset = offset ? offset : 0;
-        // limit = limit ? limit : 50;
-        // offset = offset * limit;
-        // console.log(text)
-        // const regex = new RegExp(text, "i");
-        // let data
-        // if (type === 'EXTERNO') {
-        //     data = await EntradaModel.aggregate([
-        //         {
-        //             $lookup: {
-        //                 from: "tramites_externos",
-        //                 localField: "tramite",
-        //                 foreignField: "_id",
-        //                 as: "tramite",
-        //             },
-        //         },
-        //         {
-        //             $unwind: {
-        //                 path: "$tramites_externos",
-        //             },
-        //         },
-        //         {
-        //             $match: {
-        //                 // receptor: id_cuenta,
-        //                 $or: [
-        //                     { "tramite.alterno": regex },
-        //                     { "tramite.detalle": regex },
-        //                     { motivo: regex },
-        //                     { numero_interno: regex },
-        //                 ]
-        //             },
-        //         },
-        //         {
-        //             $facet: {
-        //                 paginatedResults: [{ $skip: offset }, { $limit: limit }],
-        //                 totalCount: [
-        //                     {
-        //                         $count: 'count'
-        //                     }
-        //                 ]
-        //             }
-        //         }
-        //     ]);
-        // }
+        offset = offset ? parseInt(offset) : 0;
+        limit = limit ? parseInt(limit) : 10;
+        offset = offset * limit;
+        const regex = new RegExp(text, "i");
+        let data
+        if (type === 'EXTERNO') {
+            data = await EntradaModel.aggregate([
+                {
+                    $match: {
+                        tipo: 'tramites_externos'
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "tramites_externos",
+                        localField: "tramite",
+                        foreignField: "_id",
+                        as: "tramite",
+                    },
+                },
+                {
+                    $unwind: "$tramite"
+                },
+                {
+                    $match: {
+                        'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
+                        $or: [
+                            { "tramite.alterno": regex },
+                            { "tramite.detalle": regex },
+                            { motivo: regex },
+                            { numero_interno: regex },
+                        ]
+                    },
+                },
+                {
+                    $facet: {
+                        paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                        totalCount: [
+                            {
+                                $count: 'count'
+                            }
+                        ]
+                    }
+                }
+            ]);
+            await EntradaModel.populate(data[0].paginatedResults, [
+                {
+                    path: "emisor.cuenta",
+                    select: "_id",
+                    populate: {
+                        path: "dependencia",
+                        select: "nombre -_id",
+                        populate: {
+                            path: "institucion",
+                            select: "sigla -_id",
+                        },
+                    },
+                },
+                {
+                    path: "emisor.funcionario",
+                    select: "nombre paterno materno cargo",
+                }
+            ])
+        }
 
-        // else if (type === 'INTERNO') {
+        else if (type === 'INTERNO') {
 
-        // }
-        // console.log(data)
+        }
+       
 
-        // await ExternoModel.populate(data[0].paginatedResults.length, [
-        //     {
-        //         path: "tramite",
-        //         select: "alterno estado detalle",
-        //     },
-        //     {
-        //         path: "emisor.cuenta",
-        //         select: "_id",
-        //         populate: {
-        //             path: "dependencia",
-        //             select: "nombre -_id",
-        //             populate: {
-        //                 path: "institucion",
-        //                 select: "sigla -_id",
-        //             },
-        //         },
-        //     },
-        //     {
-        //         path: "emisor.funcionario",
-        //         select: "nombre paterno materno cargo",
-        //     }
-        // ])
-        // const mails = data[0].paginatedResults
-        // const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
-        // return { mails, length }
+      
+        const mails = data[0].paginatedResults
+        const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
+        return { mails, length }
 
     }
 

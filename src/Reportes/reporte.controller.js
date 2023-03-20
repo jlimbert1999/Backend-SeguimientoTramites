@@ -24,10 +24,10 @@ router.get('/busqueda/:tipo', async (req = request, res = response) => {
     try {
         let params = req.query
         let type = req.params.tipo
-        if (!type) {
+        if (type === undefined || params === undefined) {
             return res.status(400).json({
                 ok: false,
-                message: 'Seleccione el tipo de tramite (INTERNO / EXTERNO) para generar el reporte'
+                message: 'Parametros para la busqueda incorrectos.'
             })
         }
         const { tramites, length } = await reporteService.reporteBusqueda(params, type)

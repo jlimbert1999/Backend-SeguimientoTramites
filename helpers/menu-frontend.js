@@ -99,8 +99,8 @@ const getMenuFrontend = (rol) => {
             routerLink: "reporte-solicitante",
           },
           {
-            text: "Busqueda 2",
-            icon: "person_search",
+            text: "Busqueda",
+            icon: "find_in_page",
             routerLink: "busqueda",
           },
         ]
@@ -166,8 +166,8 @@ const getMenuFrontend = (rol) => {
             routerLink: "reporte-solicitante",
           },
           {
-            text: "Busqueda 2",
-            icon: "person_search",
+            text: "Busqueda",
+            icon: "find_in_page",
             routerLink: "reportes/busqueda",
           },
         ]

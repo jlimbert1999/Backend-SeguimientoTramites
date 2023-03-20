@@ -99,14 +99,14 @@ class ReporteService {
     }
 
     async reporteBusqueda(params, type) {
-        let { limit, offset, alterno, cite, start, end, ...info } = params
+        let { limit, offset, alterno, cite, detalle, start, end, ...info } = params
         info = Object
             .keys(info)
             .map(k => ({ [k]: info[k] }));
 
         alterno = alterno ? info.push({ alterno: new RegExp(alterno, 'i') }) : undefined
         cite = cite ? info.push({ cite: new RegExp(cite, 'i') }) : undefined
-        // tipo_tramite = tipo_tramite ? info.push({ tipo_tramite: mongoose.Types.ObjectId(tipo_tramite) }) : undefined
+        detalle = detalle ? info.push({ detalle: new RegExp(detalle, 'i') }) : undefined
 
         let query = {}
         info.length > 0 ? Object.assign(query, { $and: info }) : ''
@@ -121,6 +121,22 @@ class ReporteService {
                 }
             })
         }
+        // else {
+        //     if (start) {
+        //         Object.assign(query, {
+        //             fecha_registro: {
+        //                 $gte: start
+        //             }
+        //         })
+        //     }
+        //     else {
+        //         Object.assign(query, {
+        //             fecha_registro: {
+        //                 $lt: end
+        //             }
+        //         })
+        //     }
+        // }
         let tramites = [], length = 0
         limit = limit ? parseInt(limit) : 10;
         offset = offset ? parseInt(offset) : 0;
