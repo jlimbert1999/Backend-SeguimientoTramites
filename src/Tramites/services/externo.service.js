@@ -228,6 +228,29 @@ class ExternoService {
         return "Tramite concluido"
     }
 
+    async addObservacion(id_tramite, descripcion, funcionario, id_cuenta) {
+        const tramitedb = await ExternoModel.findById(id_tramite)
+        if (!tramitedb) {
+            throw ({ status: 400, message: 'El tramite para observar no existe' });
+        }
+        if (tramitedb.estado === 'CONCLUIDO') {
+            throw ({ status: 400, message: 'El tramite ya ha sido concluido' });
+        }
+        let observacion = {
+            id_cuenta,
+            funcionario,
+            descripcion
+        }
+        const data = await ExternoModel.findByIdAndUpdate(id_tramite, {
+            $push: {
+                observaciones: observacion
+            },
+            estado: 'OBSERVADO'
+        }, { new: true }).select('observaciones estado -_id')
+        return data
+    }
+
+
 
 
     addLeadingZeros(num, totalLength) {

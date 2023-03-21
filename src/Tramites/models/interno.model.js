@@ -60,8 +60,14 @@ const TramiteInternoScheme = Schema({
         id_cuenta: String,
         funcionario: String,
         descripcion: String,
-        corregido: Boolean,
-        fecha: Date
+        corregido: {
+            type: Boolean,
+            default: false
+        },
+        fecha: {
+            type: Date,
+            default: Date.now()
+        }
     }],
     detalle_conclusion: {
         type: String

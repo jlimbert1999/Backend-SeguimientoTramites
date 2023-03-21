@@ -9,7 +9,7 @@ const { default: mongoose } = require("mongoose");
 class EntradaService {
     async get(id_cuenta, limit, offset) {
         offset = offset ? offset : 0;
-        limit = limit ? limit : 50;
+        limit = limit ? limit : 10;
         offset = offset * limit;
         const [mails, length] = await Promise.all([
             EntradaModel.find({ 'receptor.cuenta': id_cuenta })
@@ -36,7 +36,7 @@ class EntradaService {
                     path: "emisor.funcionario",
                     select: "nombre paterno materno cargo",
                 }),
-            EntradaModel.count({ receptor: id_cuenta }),
+            EntradaModel.count({ 'receptor.cuenta': id_cuenta }),
         ]);
         return { mails, length }
     }
@@ -130,6 +130,34 @@ class EntradaService {
         }
         return 'Tramite rechazado'
 
+    }
+
+    async getDatails(id_bandeja) {
+        const details = await EntradaModel.findById(id_bandeja)
+            .select("cantidad fecha_envio motivo recibido tramite tipo")
+            .populate({
+                path: "emisor.cuenta",
+                select: "_id",
+                populate: [
+                    {
+                        path: "funcionario",
+                        select: "nombre paterno materno cargo -_id",
+                    },
+                    {
+                        path: "dependencia",
+                        select: "nombre -_id",
+                        populate: {
+                            path: "institucion",
+                            select: "sigla -_id",
+                        },
+                    },
+                ],
+            }).populate({
+                path: "emisor.funcionario",
+                select: "nombre paterno materno cargo -_id",
+            });
+
+        return details
     }
 
 
@@ -341,32 +369,67 @@ class EntradaService {
                     }
                 }
             ]);
-            await EntradaModel.populate(data[0].paginatedResults, [
-                {
-                    path: "emisor.cuenta",
-                    select: "_id",
-                    populate: {
-                        path: "dependencia",
-                        select: "nombre -_id",
-                        populate: {
-                            path: "institucion",
-                            select: "sigla -_id",
-                        },
-                    },
-                },
-                {
-                    path: "emisor.funcionario",
-                    select: "nombre paterno materno cargo",
-                }
-            ])
         }
 
         else if (type === 'INTERNO') {
-
+            data = await EntradaModel.aggregate([
+                {
+                    $match: {
+                        tipo: 'tramites_internos'
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "tramites_internos",
+                        localField: "tramite",
+                        foreignField: "_id",
+                        as: "tramite",
+                    },
+                },
+                {
+                    $unwind: "$tramite"
+                },
+                {
+                    $match: {
+                        'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
+                        $or: [
+                            { "tramite.alterno": regex },
+                            { "tramite.detalle": regex },
+                            { motivo: regex },
+                            { numero_interno: regex },
+                        ]
+                    },
+                },
+                {
+                    $facet: {
+                        paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                        totalCount: [
+                            {
+                                $count: 'count'
+                            }
+                        ]
+                    }
+                }
+            ]);
         }
-       
-
-      
+        await EntradaModel.populate(data[0].paginatedResults, [
+            {
+                path: "emisor.cuenta",
+                select: "_id",
+                populate: {
+                    path: "dependencia",
+                    select: "nombre -_id",
+                    populate: {
+                        path: "institucion",
+                        select: "sigla -_id",
+                    },
+                },
+            },
+            {
+                path: "emisor.funcionario",
+                select: "nombre paterno materno cargo",
+            }
+        ])
         const mails = data[0].paginatedResults
         const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
         return { mails, length }

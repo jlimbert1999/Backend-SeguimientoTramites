@@ -45,6 +45,24 @@ router.get('/entrada/users/:text', verificarToken, async (req = request, res = r
     }
 })
 
+router.get('/entrada/detalles/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        if (!req.params.id) {
+            return res.status(400).json({
+                ok: false,
+                message: 'Parametro para la bandeja de entrada incorrecto'
+            })
+        }
+        const details = await entradaService.getDatails(req.params.id)
+        return res.status(200).json({
+            ok: true,
+            details
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 
 
 // SALIDAS
@@ -110,7 +128,14 @@ router.put('/concluir/:id', verificarToken, async (req = request, res = response
 
 router.get('/search/:text', verificarToken, async (req = request, res = response) => {
     try {
+        if (!req.query.type) {
+            return res.status(400).json({
+                ok: false,
+                message: 'Seleccione el tipo de busqueda a realizar INTERNOS / EXTERNOS'
+            })
+        }
         const { mails, length } = await entradaService.search(req.id_cuenta, req.params.text, req.query.type, req.query.offset, req.query.limit)
+
         return res.status(200).json({
             mails,
             length

@@ -83,6 +83,25 @@ router.put('/externos/:id', verificarToken, async (req = request, res = response
         ServerErrorResponde(error, res)
     }
 })
+router.put('/externos/observacion/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        if (!req.params.id) {
+            return res.status(400).json({
+                ok: false,
+                message: 'Parametro incorrecto para el registro de observacion'
+            })
+        }
+        let { descripcion, funcionario } = req.body
+        const observaciones = await externoService.addObservacion(req.params.id, descripcion, funcionario, req.id_cuenta)
+        return res.status(200).json({
+            ok: true,
+            observaciones
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 router.put('/externos/concluir/:id', verificarToken, async (req = request, res = response) => {
     try {
         let { descripcion } = req.body

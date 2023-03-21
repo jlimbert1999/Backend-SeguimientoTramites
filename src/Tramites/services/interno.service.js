@@ -55,6 +55,10 @@ class InternoService {
                     }
                 })
                 .populate({
+                    path: 'emisor.funcionario',
+                    select: '-_id nombre paterno materno cargo',
+                })
+                .populate({
                     path: 'receptor.cuenta',
                     select: '_id',
                     populate: {
@@ -65,6 +69,10 @@ class InternoService {
                             select: 'sigla'
                         }
                     }
+                })
+                .populate({
+                    path: 'receptor.funcionario',
+                    select: '-_id nombre paterno materno cargo',
                 })
         ])
         return { tramite, workflow }

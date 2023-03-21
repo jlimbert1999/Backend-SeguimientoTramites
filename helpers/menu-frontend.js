@@ -56,13 +56,13 @@ const getMenuFrontend = (rol) => {
       {
         text: "Bandeja entrada",
         icon: "drafts",
-        routerLink: "bandeja-entrada",
+        routerLink: "bandejas/entrada",
       },
       {
 
         text: "Bandeja salida",
         icon: "mail",
-        routerLink: "bandeja-salida",
+        routerLink: "bandejas/salida",
       },
       {
         text: "Archivos",
@@ -101,7 +101,7 @@ const getMenuFrontend = (rol) => {
           {
             text: "Busqueda",
             icon: "find_in_page",
-            routerLink: "busqueda",
+            routerLink: "reportes/busqueda",
           },
         ]
       }
@@ -123,13 +123,13 @@ const getMenuFrontend = (rol) => {
 
         text: "Bandeja entrada",
         icon: "drafts",
-        routerLink: "bandeja-entrada",
+        routerLink: "bandejas/entrada",
       },
       {
 
         text: "Bandeja salida",
         icon: "mail",
-        routerLink: "bandeja-salida",
+        routerLink: "bandejas/salida",
       },
       {
         text: "Archivos",
