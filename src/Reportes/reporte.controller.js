@@ -40,4 +40,52 @@ router.get('/busqueda/:tipo', async (req = request, res = response) => {
     }
 })
 
+router.post('/solicitante', async (req = request, res = response) => {
+    try {
+        if (!req.body) {
+            return res.status(400).json({
+                ok: false,
+                message: 'Debe seleccionar los parametros para la busqueda'
+            })
+        }
+        const tramites = await reporteService.reporteSolicitante(req.body)
+        return res.status(200).json({
+            ok: true,
+            tramites
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.post('/representante', async (req = request, res = response) => {
+    try {
+        co
+        if (!req.body) {
+            return res.status(400).json({
+                ok: false,
+                message: 'Debe seleccionar los parametros para la busqueda'
+            })
+        }
+        const tramites = await reporteService.reporteRepresentante(req.body)
+        return res.status(200).json({
+            ok: true,
+            tramites
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+router.get('/estadistico/instituciones', async (req = request, res = response) => {
+    try {
+        const data = await reporteService.estadisticoInstitucion()
+        return res.json({
+            ok: true,
+            data
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 module.exports = router

@@ -1,7 +1,7 @@
 const { ExternoModel } = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
-const { default: mongoose } = require("mongoose");
+const InstitucionesModel = require('../../Configuraciones/instituciones/instituciones.model')
 
 class ReporteService {
     async reporteFicha(alterno) {
@@ -97,7 +97,6 @@ class ReporteService {
             tipo
         }
     }
-
     async reporteBusqueda(params, type) {
         let { limit, offset, alterno, cite, detalle, start, end, ...info } = params
         info = Object
@@ -156,7 +155,81 @@ class ReporteService {
         return { tramites, length }
 
     }
+    async estadisticoInstitucion() {
+        let instituciones = await InstitucionesModel.find({ activo: true }).select('nombre sigla -_id')
+        if (!instituciones) {
+            throw ({ status: 400, message: `No existen instituciones registradas` });
+        }
+        let data = []
+        for (const institucion of instituciones) {
+            const cantidad_externos = await ExternoModel.count({ alterno: { $regex: institucion.sigla } })
+            const cantidad_internos = await InternoModel.count({ alterno: { $regex: institucion.sigla } })
+            data.push({ name: institucion.nombre, cantidad_externos, cantidad_internos })
+        }
+        return data
+    }
+    async reporteSolicitante(parametros) {
+        // convert object in array of objects for key
+        parametros = Object
+            .keys(parametros)
+            .map(k => ({ [`solicitante.${k}`]: new RegExp(parametros[k], 'i') }));
 
+        const tramites = await ExternoModel.aggregate([
+            {
+                $lookup: {
+                    from: "solicitantes",
+                    localField: "solicitante",
+                    foreignField: "_id",
+                    as: "solicitante",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$solicitante",
+                },
+            },
+            {
+                $match: {
+                    $and: parametros
+                },
+            },
+        ]);
+        if (tramites.length === 0) {
+            throw ({ status: 404, message: `El solicitante con los parametros ingresados no existe` });
+        }
+        return tramites
+    }
+    async reporteRepresentante(parametros) {
+        // convert object in array of objects for key
+        parametros = Object
+            .keys(parametros)
+            .map(k => ({ [`representante.${k}`]: new RegExp(parametros[k], 'i') }));
+
+        const tramites = await ExternoModel.aggregate([
+            {
+                $lookup: {
+                    from: "representantes",
+                    localField: "representante",
+                    foreignField: "_id",
+                    as: "representante",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$representante",
+                },
+            },
+            {
+                $match: {
+                    $and: parametros
+                },
+            },
+        ]);
+        if (tramites.length === 0) {
+            throw ({ status: 404, message: `El representante con los parametros ingresados no existe` });
+        }
+        return tramites
+    }
 
 }
 

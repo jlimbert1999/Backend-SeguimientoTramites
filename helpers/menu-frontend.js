@@ -91,7 +91,7 @@ const getMenuFrontend = (rol) => {
           {
             text: "Solicitante",
             icon: "contact_page",
-            routerLink: "reporte-contribuyente",
+            routerLink: "reportes/solicitante",
           },
           {
             text: "Busqueda",
@@ -102,6 +102,11 @@ const getMenuFrontend = (rol) => {
             text: "Busqueda",
             icon: "find_in_page",
             routerLink: "reportes/busqueda",
+          },
+          {
+            text: "Estadistico",
+            icon: "find_in_page",
+            routerLink: "reportes/estadistico",
           },
         ]
       }
@@ -158,7 +163,7 @@ const getMenuFrontend = (rol) => {
           {
             text: "Solicitante",
             icon: "contact_page",
-            routerLink: "reporte-contribuyente",
+            routerLink: "reportes/solicitante",
           },
           {
             text: "Busqueda",
@@ -169,6 +174,11 @@ const getMenuFrontend = (rol) => {
             text: "Busqueda",
             icon: "find_in_page",
             routerLink: "reportes/busqueda",
+          },
+          {
+            text: "Estadistico",
+            icon: "find_in_page",
+            routerLink: "reportes/estadistico",
           },
         ]
       },
