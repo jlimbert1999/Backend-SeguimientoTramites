@@ -7,8 +7,8 @@ const { default: mongoose } = require('mongoose')
 
 class ExternoService {
     async get(id_cuenta, limit, offset) {
-        offset = offset ? offset : 0
-        limit = limit ? limit : 10
+        offset = parseInt(offset) ? offset : 0
+        limit = parseInt(limit) ? limit : 10
         offset = offset * limit
         const [tramites, total] = await Promise.all([
             await ExternoModel.find({ cuenta: id_cuenta })

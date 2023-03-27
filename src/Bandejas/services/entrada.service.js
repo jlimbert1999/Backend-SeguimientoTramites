@@ -329,110 +329,158 @@ class EntradaService {
         offset = offset * limit;
         const regex = new RegExp(text, "i");
         let data
-        if (type === 'EXTERNO') {
-            data = await EntradaModel.aggregate([
-                {
-                    $match: {
-                        tipo: 'tramites_externos'
-                    },
-                },
-                {
-                    $lookup: {
-                        from: "tramites_externos",
-                        localField: "tramite",
-                        foreignField: "_id",
-                        as: "tramite",
-                    },
-                },
-                {
-                    $unwind: "$tramite"
-                },
-                {
-                    $match: {
-                        'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
-                        $or: [
-                            { "tramite.alterno": regex },
-                            { "tramite.detalle": regex },
-                            { motivo: regex },
-                            { numero_interno: regex },
-                        ]
-                    },
-                },
-                {
-                    $facet: {
-                        paginatedResults: [{ $skip: offset }, { $limit: limit }],
-                        totalCount: [
-                            {
-                                $count: 'count'
-                            }
-                        ]
-                    }
-                }
-            ]);
-        }
+        // if (type === 'EXTERNO') {
+        //     data = await EntradaModel.aggregate([
+        //         {
+        //             $match: {
+        //                 tipo: 'tramites_externos'
+        //             },
+        //         },
+        //         {
+        //             $lookup: {
+        //                 from: "tramites_externos",
+        //                 localField: "tramite",
+        //                 foreignField: "_id",
+        //                 as: "tramite",
+        //             },
+        //         },
+        //         {
+        //             $unwind: "$tramite"
+        //         },
+        //         {
+        //             $match: {
+        //                 'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
+        //                 $or: [
+        //                     { "tramite.alterno": regex },
+        //                     { "tramite.detalle": regex },
+        //                     { motivo: regex },
+        //                     { numero_interno: regex },
+        //                 ]
+        //             },
+        //         },
+        //         {
+        //             $facet: {
+        //                 paginatedResults: [{ $skip: offset }, { $limit: limit }],
+        //                 totalCount: [
+        //                     {
+        //                         $count: 'count'
+        //                     }
+        //                 ]
+        //             }
+        //         }
+        //     ]);
+        // }
 
-        else if (type === 'INTERNO') {
-            data = await EntradaModel.aggregate([
-                {
-                    $match: {
-                        tipo: 'tramites_internos'
-                    },
-                },
-                {
-                    $lookup: {
-                        from: "tramites_internos",
-                        localField: "tramite",
-                        foreignField: "_id",
-                        as: "tramite",
-                    },
-                },
-                {
-                    $unwind: "$tramite"
-                },
-                {
-                    $match: {
-                        'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
-                        $or: [
-                            { "tramite.alterno": regex },
-                            { "tramite.detalle": regex },
-                            { motivo: regex },
-                            { numero_interno: regex },
-                        ]
-                    },
-                },
-                {
-                    $facet: {
-                        paginatedResults: [{ $skip: offset }, { $limit: limit }],
-                        totalCount: [
-                            {
-                                $count: 'count'
-                            }
-                        ]
-                    }
-                }
-            ]);
-        }
-        await EntradaModel.populate(data[0].paginatedResults, [
+        // else if (type === 'INTERNO') {
+        //     data = await EntradaModel.aggregate([
+        //         {
+        //             $match: {
+        //                 tipo: 'tramites_internos'
+        //             },
+        //         },
+        //         {
+        //             $lookup: {
+        //                 from: "tramites_internos",
+        //                 localField: "tramite",
+        //                 foreignField: "_id",
+        //                 as: "tramite",
+        //             },
+        //         },
+        //         {
+        //             $unwind: "$tramite"
+        //         },
+        //         {
+        //             $match: {
+        //                 'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
+        //                 $or: [
+        //                     { "tramite.alterno": regex },
+        //                     { "tramite.detalle": regex },
+        //                     { motivo: regex },
+        //                     { numero_interno: regex },
+        //                 ]
+        //             },
+        //         },
+        //         {
+        //             $facet: {
+        //                 paginatedResults: [{ $skip: offset }, { $limit: limit }],
+        //                 totalCount: [
+        //                     {
+        //                         $count: 'count'
+        //                     }
+        //                 ]
+        //             }
+        //         }
+        //     ]);
+        // }
+
+        data = await EntradaModel.aggregate([
             {
-                path: "emisor.cuenta",
-                select: "_id",
-                populate: {
-                    path: "dependencia",
-                    select: "nombre -_id",
-                    populate: {
-                        path: "institucion",
-                        select: "sigla -_id",
-                    },
+                $lookup: {
+                    from: "tramites_externos",
+                    localField: "tramite",
+                    foreignField: "_id",
+                    as: "tramite1",
                 },
             },
             {
-                path: "emisor.funcionario",
-                select: "nombre paterno materno cargo",
-            }
-        ])
-        const mails = data[0].paginatedResults
-        const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
-        return { mails, length }
+                $unwind: "$tramite1"
+            },
+            {
+                $lookup: {
+                    from: "tramites_internos",
+                    localField: "tramite",
+                    foreignField: "_id",
+                    as: "tramite2",
+                },
+            },
+            {
+                $unwind: "$tramite2"
+            },
+            // {
+            //     $match: {
+            //         'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
+            //         $or: [
+            //             { "tramite.alterno": regex },
+            //             { "tramite.detalle": regex },
+            //             { motivo: regex },
+            //             { numero_interno: regex },
+            //         ]
+            //     },
+            // },
+            // {
+            //     $facet: {
+            //         paginatedResults: [{ $skip: offset }, { $limit: limit }],
+            //         totalCount: [
+            //             {
+            //                 $count: 'count'
+            //             }
+            //         ]
+            //     }
+            // }
+        ]);
+        // await EntradaModel.populate(data[0].paginatedResults, [
+        //     {
+        //         path: "emisor.cuenta",
+        //         select: "_id",
+        //         populate: {
+        //             path: "dependencia",
+        //             select: "nombre -_id",
+        //             populate: {
+        //                 path: "institucion",
+        //                 select: "sigla -_id",
+        //             },
+        //         },
+        //     },
+        //     {
+        //         path: "emisor.funcionario",
+        //         select: "nombre paterno materno cargo",
+        //     }
+        // ])
+        // const mails = data[0].paginatedResults
+        // const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
+        console.log(data)
+
+        return { mails: data, length: 0 }
 
     }
 

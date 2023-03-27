@@ -172,7 +172,10 @@ class ReporteService {
         // convert object in array of objects for key
         parametros = Object
             .keys(parametros)
-            .map(k => ({ [`solicitante.${k}`]: new RegExp(parametros[k], 'i') }));
+            .map(k => {
+                if (k == 'dni') return ({ [`solicitante.${k}`]: parametros[k] })
+                else return ({ [`solicitante.${k}`]: new RegExp(parametros[k], 'i') })
+            });
 
         const tramites = await ExternoModel.aggregate([
             {
@@ -195,7 +198,7 @@ class ReporteService {
             },
         ]);
         if (tramites.length === 0) {
-            throw ({ status: 404, message: `El solicitante con los parametros ingresados no existe` });
+            throw ({ status: 404, message: `No existen tramites con los parametros del solicitante ingresados` });
         }
         return tramites
     }
