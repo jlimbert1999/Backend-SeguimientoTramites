@@ -2,6 +2,8 @@ const SalidaModel = require('../models/salida.model')
 const EntradaModel = require('../models/entrada.model')
 const { ExternoModel } = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
+const { default: mongoose } = require("mongoose");
+
 class SalidaService {
     async get(id_cuenta, limit, offset) {
         offset = offset ? offset : 0;
@@ -14,11 +16,7 @@ class SalidaService {
                 .limit(limit)
                 .populate({
                     path: "tramite",
-                    select: "alterno estado",
-                    populate: {
-                        path: "tipo_tramite",
-                        select: "nombre -_id",
-                    },
+                    select: "alterno estado detalle",
                 })
                 .populate({
                     path: "receptor.cuenta",
@@ -89,71 +87,116 @@ class SalidaService {
     }
 
 
-    async search(id_cuenta, limit, offset) {
-        offset = offset ? offset : 0;
-        limit = limit ? limit : 10;
+    async search(id_cuenta, text, type, offset, limit) {
+        offset = offset ? parseInt(offset) : 0;
+        limit = limit ? parseInt(limit) : 10;
         offset = offset * limit;
-
-        const data = await ExternoModel.aggregate([
-            {
-                $lookup: {
-                    from: "solicitantes",
-                    localField: "solicitante",
-                    foreignField: "_id",
-                    as: "solicitante",
+        const regex = new RegExp(text, "i");
+        let data
+        if (type === 'EXTERNO') {
+            data = await SalidaModel.aggregate([
+                {
+                    $match: {
+                        tipo: 'tramites_externos'
+                    },
                 },
-            },
-            {
-                $unwind: {
-                    path: "$solicitante",
+                {
+                    $lookup: {
+                        from: "tramites_externos",
+                        localField: "tramite",
+                        foreignField: "_id",
+                        as: "tramite",
+                    },
                 },
-            },
+                {
+                    $unwind: "$tramite"
+                },
+                {
+                    $match: {
+                        'emisor.cuenta': mongoose.Types.ObjectId(id_cuenta),
+                        $or: [
+                            { "tramite.alterno": regex },
+                            { "tramite.detalle": regex },
+                            { motivo: regex },
+                            { numero_interno: regex },
+                        ]
+                    },
+                },
+                {
+                    $facet: {
+                        paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                        totalCount: [
+                            {
+                                $count: 'count'
+                            }
+                        ]
+                    }
+                }
+            ]);
+        }
+        else if (type === 'INTERNO') {
+            data = await SalidaModel.aggregate([
+                {
+                    $match: {
+                        tipo: 'tramites_internos'
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "tramites_internos",
+                        localField: "tramite",
+                        foreignField: "_id",
+                        as: "tramite",
+                    },
+                },
+                {
+                    $unwind: "$tramite"
+                },
+                {
+                    $match: {
+                        'emisor.cuenta': mongoose.Types.ObjectId(id_cuenta),
+                        $or: [
+                            { "tramite.alterno": regex },
+                            { "tramite.detalle": regex },
+                            { motivo: regex },
+                            { numero_interno: regex },
+                        ]
+                    },
+                },
+                {
+                    $facet: {
+                        paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                        totalCount: [
+                            {
+                                $count: 'count'
+                            }
+                        ]
+                    }
+                }
+            ]);
+        }
+        await SalidaModel.populate(data[0].paginatedResults, [
             {
-                $addFields: {
-                    "solicitante.fullname": {
-                        $concat: [
-                            "$solicitante.nombre",
-                            " ",
-                            { $ifNull: ["$solicitante.paterno", ""] },
-                            " ",
-                            { $ifNull: ["$solicitante.materno", ""] },
-                        ],
+                path: "receptor.cuenta",
+                select: "_id",
+                populate: {
+                    path: "dependencia",
+                    select: "nombre -_id",
+                    populate: {
+                        path: "institucion",
+                        select: "sigla -_id",
                     },
                 },
             },
             {
-                $match: {
-                    cuenta: mongoose.Types.ObjectId(id_cuenta),
-                    $or: [
-                        { "solicitante.fullname": regex },
-                        { alterno: regex },
-                        { detalle: regex },
-                        { cite: regex },
-                    ],
-                },
-            },
-            {
-                $project: {
-                    "solicitante.fullname": 0
-                }
-            },
-            {
-                $facet: {
-                    paginatedResults: [{ $skip: offset }, { $limit: limit }],
-                    totalCount: [
-                        {
-                            $count: 'count'
-                        }
-                    ]
-                }
+                path: "receptor.funcionario",
+                select: "nombre paterno materno cargo",
             }
         ])
+        const mails = data[0].paginatedResults
+        const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
         return { mails, length }
     }
-
-
-
-
 }
 
 

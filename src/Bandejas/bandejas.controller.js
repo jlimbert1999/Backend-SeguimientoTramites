@@ -11,10 +11,13 @@ const entradaService = new EntradaService();
 const salidaService = new SalidaService();
 const archivoService = new ArchivoService();
 
+var fs = require("fs");
+
 // ENTRADAS
 router.get('/entrada', verificarToken, async (req = request, res = response) => {
     try {
-        const { mails, length } = await entradaService.get(req.id_cuenta)
+        const { limit, offset } = req.query
+        const { mails, length } = await entradaService.get(req.id_cuenta, limit, offset)
         return res.status(200).json({
             mails,
             length
@@ -62,6 +65,24 @@ router.get('/entrada/detalles/:id', verificarToken, async (req = request, res = 
         ServerErrorResponde(error, res)
     }
 })
+router.get('/entrada/search/:type', verificarToken, async (req = request, res = response) => {
+    try {
+        if (!req.params.type) {
+            return res.status(400).json({
+                ok: false,
+                message: 'Seleccione el tipo de busqueda a realizar INTERNOS / EXTERNOS'
+            })
+        }
+        const { mails, length } = await entradaService.search(req.id_cuenta, req.query.text, req.params.type, req.query.offset, req.query.limit)
+        return res.status(200).json({
+            mails,
+            length
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 
 
 
@@ -87,14 +108,38 @@ router.delete('/salida/:id', verificarToken, async (req = request, res = respons
         ServerErrorResponde(error, res)
     }
 })
+router.get('/salida/search/:type', verificarToken, async (req = request, res = response) => {
+    try {
+        if (!req.params.type) {
+            return res.status(400).json({
+                ok: false,
+                message: 'Seleccione el tipo de busqueda a realizar INTERNOS / EXTERNOS'
+            })
+        }
+        const { mails, length } = await salidaService.search(req.id_cuenta, req.query.text, req.params.type, req.query.offset, req.query.limit)
+        return res.status(200).json({
+            mails,
+            length
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 
 
 // CONTROL DE FLUJO
 router.put('/aceptar/:id', verificarToken, async (req = request, res = response) => {
     try {
-        const message = await entradaService.acept(req.params.id)
+        const { image } = req.body
+        var base64Data = image.replace(/^data:image\/png;base64,/, "");
+
+        fs.writeFile("firma.png", base64Data, 'base64', function (err) {
+            console.log(err);
+        });
+
         return res.status(200).json({
-            message
+            message: 'se subio'
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -126,24 +171,6 @@ router.put('/concluir/:id', verificarToken, async (req = request, res = response
 })
 
 
-router.get('/search/:text', verificarToken, async (req = request, res = response) => {
-    try {
-        if (!req.query.type) {
-            return res.status(400).json({
-                ok: false,
-                message: 'Seleccione el tipo de busqueda a realizar INTERNOS / EXTERNOS'
-            })
-        }
-        const { mails, length } = await entradaService.search(req.id_cuenta, req.params.text, req.query.type, req.query.offset, req.query.limit)
-
-        return res.status(200).json({
-            mails,
-            length
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
 
 
 
