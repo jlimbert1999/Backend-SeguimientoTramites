@@ -9,17 +9,17 @@ const getMenuFrontend = (rol) => {
           {
             text: "Instituciones",
             icon: "apartment",
-            routerLink: "instituciones",
+            routerLink: "configuraciones/instituciones",
           },
           {
             text: "Dependencias",
             icon: "holiday_village",
-            routerLink: "dependencias",
+            routerLink: "configuraciones/dependencias",
           },
           {
             text: "Tipos de tramite",
             icon: "note",
-            routerLink: "tipos",
+            routerLink: "configuraciones/tipos",
           },
         ]
       },
@@ -30,17 +30,17 @@ const getMenuFrontend = (rol) => {
           {
             text: "Cuentas",
             icon: "account_circle",
-            routerLink: "cuentas",
+            routerLink: "configuraciones/cuentas",
           },
           {
             text: "Funcionarios",
             icon: "person",
-            routerLink: "funcionarios",
+            routerLink: "configuraciones/funcionarios",
           },
           {
             text: "Grupo de trabajo",
             icon: "groups",
-            routerLink: "groupware",
+            routerLink: "configuraciones/groupware",
           },
         ]
       },
@@ -107,6 +107,11 @@ const getMenuFrontend = (rol) => {
             text: "Estadistico",
             icon: "find_in_page",
             routerLink: "reportes/estadistico",
+          },
+          {
+            text: "Unidad",
+            icon: "find_in_page",
+            routerLink: "reportes/unidad",
           },
         ]
       }
@@ -179,6 +184,11 @@ const getMenuFrontend = (rol) => {
             text: "Estadistico",
             icon: "find_in_page",
             routerLink: "reportes/estadistico",
+          },
+          {
+            text: "Unidad",
+            icon: "find_in_page",
+            routerLink: "reportes/unidad",
           },
         ]
       },

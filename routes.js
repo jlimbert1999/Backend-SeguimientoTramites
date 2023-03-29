@@ -25,7 +25,8 @@ const PerfilRouter = require('./src/Configuraciones/perfil/perfil.router')
 const ExternoController = require('./src/Tramites/tramite.controller')
 const BandejaController = require('./src/Bandejas/bandejas.controller')
 const ArchivoController = require('./src/Archivos/archivo.controller')
-const ReporteController=require('./src/Reportes/reporte.controller')
+const ReporteController = require('./src/Reportes/reporte.controller')
+const ConfiguracionController = require('./src/Configuraciones/configuraciones.controller')
 
 router.use('/login', routerAuth)
 // ADMINISTRADOR
@@ -52,6 +53,7 @@ router.use('/consulta', ConsultaRouter)
 router.use('/perfil', verificarToken, PerfilRouter)
 
 // nuevo
+router.use('/configuraciones', ConfiguracionController)
 router.use('/tramites', ExternoController)
 router.use('/bandejas', BandejaController)
 router.use('/archivos', ArchivoController)
