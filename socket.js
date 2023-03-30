@@ -48,6 +48,7 @@ function startSocketServer(server) {
         // })
 
         client.on('disconnect', () => {
+            console.log(client.handshake.time);
             Group.deleteUser(client.id, client.handshake.auth.token)
             client.broadcast.emit('listar', Group.getUsers())
         })

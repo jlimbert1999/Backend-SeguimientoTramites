@@ -36,7 +36,6 @@ const editar_usuario = async (req = request, res = response) => {
                 ok: false,
                 message: 'El id del funcionario no existe'
             })
-
         }
         if (usuariodb.dni !== dni) {
             const existeDni = await Usuario.findOne({ dni })

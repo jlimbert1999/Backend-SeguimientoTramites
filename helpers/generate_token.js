@@ -3,11 +3,11 @@ const jwt = require('jsonwebtoken')
 const generarToken = (cuenta) => {
     return new Promise((resolve, reject) => {
         let payload
-        if (cuenta.rol == 'admin') {
+        if (cuenta.rol.includes('admin')) {
             payload = {
                 id_cuenta: cuenta._id,
                 funcionario: {
-                    nombre_completo: 'Administrador',
+                    nombre_completo: 'ADMINISTRADOR',
                     cargo: "Configuraciones"
                 },
                 rol: cuenta.rol
@@ -17,11 +17,10 @@ const generarToken = (cuenta) => {
             payload = {
                 id_cuenta: cuenta._id,
                 funcionario: {
-                    nombre_completo: `${cuenta.funcionario.nombre} ${cuenta.funcionario.paterno} ${cuenta.funcionario.materno ? cuenta.funcionario.materno : ''}`,
+                    nombre_completo: `${cuenta.funcionario.nombre} ${cuenta.funcionario.paterno} ${cuenta.funcionario.materno}`,
                     cargo: cuenta.funcionario.cargo
                 },
                 rol: cuenta.rol,
-                codigo: cuenta.dependencia.institucion.sigla,
                 cite: cuenta.dependencia.codigo
             }
         }
@@ -29,8 +28,7 @@ const generarToken = (cuenta) => {
             expiresIn: '8h'
         }, (err, token) => {
             if (err) {
-                console.log('[SERVER]: error (generar token) => ', err);
-                reject({ code: 500, message: 'Error interno, intente de nuevo' })
+                reject({ status: 500, message: 'Error en el servidor login' })
             }
             else {
                 resolve(token)

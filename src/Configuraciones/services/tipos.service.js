@@ -46,17 +46,29 @@ class TipoService {
         )
         return { tipos, length }
     }
-    async editRequirements(id_tipo, id_requisito, requerimientos) {
-        let cambiosRequerimiento = {}
-        // crear campos a actualizar en array requerimientos
-        for (const [key, value] of Object.entries(requerimientos)) {
-            cambiosRequerimiento[`requerimientos.$.${key}`] = value
+    async editRequirements(id_tipo, id_requisito, nombre) {
+        const tipoDB = await TipoModel.findOne({ _id: id_tipo })
+        if (!tipoDB) {
+            throw ({ status: 400, message: 'El tipo de tramite no existe' });
         }
-        const newTipo = await TipoModel.updateOne({ "_id": id_tipo, "requerimientos._id": id_requisito }, {
-            $set: cambiosRequerimiento
-        }, { new: true })
-        return newTipo
-
+        await TipoModel.updateOne({ "_id": id_tipo, "requerimientos._id": id_requisito }, {
+            $set: { 'requerimientos.$.nombre': nombre }
+        })
+        let requisito = tipoDB.requerimientos.find(element => element._id == id_requisito);
+        requisito.nombre = nombre
+        return requisito
+    }
+    async deleteRequirements(id_tipo, id_requisito) {
+        const tipoDB = await TipoModel.findOne({ _id: id_tipo })
+        if (!tipoDB) {
+            throw ({ status: 400, message: 'El tipo de tramite no existe' });
+        }
+        let requisito = tipoDB.requerimientos.find(element => element._id == id_requisito);
+        await TipoModel.updateOne({ "_id": id_tipo, "requerimientos._id": id_requisito }, {
+            $set: { 'requerimientos.$.activo': !requisito.activo }
+        })
+        requisito.activo = !requisito.activo
+        return requisito
     }
 }
 module.exports = TipoService
