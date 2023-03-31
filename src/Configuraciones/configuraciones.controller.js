@@ -305,16 +305,17 @@ router.post('/cuentas', verificarToken, async (req = request, res = response) =>
     // }
 })
 
-router.get('/funcionarios/search/:text', verificarToken, async (req = request, res = response) => {
-    // try {
-    //     const { funcionarios, length } = await funcionarioService.search(req.query.limit, req.query.offset, req.params.text)
-    //     return res.status(200).json({
-    //         funcionarios,
-    //         length
-    //     })
-    // } catch (error) {
-    //     ServerErrorResponde(error, res)
-    // }
+router.get('/cuentas/search', verificarToken, async (req = request, res = response) => {
+    try {
+        const { cuentas, length } = await cuentaService.search(req.query.limit, req.query.offset, req.query.text, req.query.institucion, req.query.dependencia)
+        return res.status(200).json({
+            ok: true,
+            cuentas,
+            length
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
 })
 router.put('/funcionarios/:id', verificarToken, async (req = request, res = response) => {
     // try {

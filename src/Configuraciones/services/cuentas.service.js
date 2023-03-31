@@ -1,6 +1,8 @@
 
+const { default: mongoose } = require("mongoose");
 const CuentaModel = require('../models/cuentas.model')
 const DependenciaModel = require('../models/dependencias.model')
+
 class CuentaService {
     async getDependencias(id_institucion) {
         const dependencias = DependenciaModel.find({ institucion: id_institucion, activo: true })
@@ -8,23 +10,39 @@ class CuentaService {
     }
 
     async get(limit, offset) {
-        offset = parseInt(offset) ? offset : 0
-        limit = parseInt(limit) ? limit : 10
-        offset = offset * limit
-        const [cuentas, length] = await Promise.all(
-            [
-                CuentaModel.find({ rol: { $ne: 'admin' } }).select('login rol activo').sort({ _id: -1 }).skip(offset).limit(limit).populate({
-                    path: 'dependencia',
-                    select: 'nombre -_id',
-                    populate: {
-                        path: 'institucion',
-                        select: 'sigla -_id'
-                    }
-                }).populate('funcionario'),
-                CuentaModel.count({ rol: { $ne: 'admin' } })
-            ]
-        )
-        return { cuentas, length }
+        // offset = parseInt(offset) ? offset : 0
+        // limit = parseInt(limit) ? limit : 10
+        // offset = offset * limit
+        // const [cuentas, length] = await Promise.all(
+        //     [
+        //         CuentaModel.find({ rol: { $ne: 'admin' } }).select('login rol activo').sort({ _id: -1 }).skip(offset).limit(limit).populate({
+        //             path: 'dependencia',
+        //             select: 'nombre -_id',
+        //             populate: {
+        //                 path: 'institucion',
+        //                 select: 'sigla -_id'
+        //             }
+        //         }).populate('funcionario'),
+        //         CuentaModel.count({ rol: { $ne: 'admin' } })
+        //     ]
+        // )
+        const cuentasdb = await CuentaModel.find({}).select('rol funcionario')
+        for (const cuenta of cuentasdb) {
+            if (cuenta.rol[0] === 'RECEPCION') {
+                await CuentaModel.findByIdAndUpdate(cuenta._id, { rol: ['EXTERNOS', 'INTERNOS', 'BANDEJAS', 'REPORTES'] })
+            }
+            else if (cuenta.rol[0] === 'EVALUACION') {
+                await CuentaModel.findByIdAndUpdate(cuenta._id, { rol: ['INTERNOS', 'BANDEJAS', 'REPORTES'] })
+            }
+            // else if (cuenta.rol[0] === 'admin') {
+            //     await CuentaModel.findByIdAndUpdate(cuenta._id, { rol: ['INTERNOS', 'BANDEJAS', 'REPORTES'] })
+            // }
+
+
+        }
+
+        return { cuentas: [], length: 0 }
+
     }
     // async add(dependencia) {
     //     const { sigla, codigo } = dependencia
@@ -84,20 +102,119 @@ class CuentaService {
     //     return newDependencia
     // }
 
-    // async search(limit, offset, text) {
-    //     limit = parseInt(limit) || 10
-    //     offset = parseInt(offset) || 0
-    //     offset = offset * limit
-    //     const regex = new RegExp(text, 'i')
-    //     const [dependencias, length] = await Promise.all(
-    //         [
-    //             DependenciaModel.find({ $or: [{ nombre: regex }, { sigla: regex }] }).skip(offset).limit(limit).populate("institucion", "sigla"),
-    //             DependenciaModel.find({ $or: [{ nombre: regex }, { sigla: regex }] }).count()
-    //         ]
-    //     )
-    //     return { dependencias, length }
-    // }
-
+    async search(limit, offset, text, institucion, dependencia) {
+        limit = parseInt(limit) || 10
+        offset = parseInt(offset) || 0
+        offset = offset * limit
+        let query = {}
+        if (institucion) {
+            Object.assign(query, { 'dependencia.institucion._id': mongoose.Types.ObjectId(institucion) })
+            if (dependencia) {
+                Object.assign(query, { 'dependencia._id': mongoose.Types.ObjectId(dependencia) })
+            }
+        }
+        if (text) {
+            Object.assign(query, {
+                $or: [
+                    { "funcionario.fullname": new RegExp(text, 'i') },
+                    { "funcionario.cargo": new RegExp(text, 'i') },
+                    { "funcionario.dni": new RegExp(text, 'i') }
+                ],
+            })
+        }
+        const data = await CuentaModel.aggregate([
+            {
+                $lookup: {
+                    from: "dependencias",
+                    localField: "dependencia",
+                    foreignField: "_id",
+                    as: "dependencia",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$dependencia",
+                },
+            },
+            {
+                $project: {
+                    password: 0,
+                    __v: 0,
+                    'dependencia.activo': 0,
+                    'dependencia.__v': 0,
+                    'dependencia.codigo': 0,
+                    'dependencia.sigla': 0,
+                }
+            },
+            {
+                $lookup: {
+                    from: "instituciones",
+                    localField: "dependencia.institucion",
+                    foreignField: "_id",
+                    as: "dependencia.institucion",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$dependencia.institucion",
+                },
+            },
+            {
+                $project: {
+                    'dependencia.institucion.activo': 0,
+                    'dependencia.institucion.__v': 0,
+                }
+            },
+            {
+                $lookup: {
+                    from: "funcionarios",
+                    localField: "funcionario",
+                    foreignField: "_id",
+                    as: "funcionario",
+                },
+            },
+            {
+                $unwind: {
+                    path: "$funcionario",
+                },
+            },
+            {
+                $project: {
+                    'funcionario.activo': 0,
+                    'funcionario.__v': 0,
+                }
+            },
+            {
+                $addFields: {
+                    "funcionario.fullname": {
+                        $concat: [
+                            "$funcionario.nombre",
+                            " ",
+                            { $ifNull: ["$funcionario.paterno", ""] },
+                            " ",
+                            { $ifNull: ["$funcionario.materno", ""] },
+                        ],
+                    },
+                },
+            },
+            {
+                $match: query
+            },
+            {
+                $facet: {
+                    paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                    totalCount: [
+                        {
+                            $count: 'count'
+                        }
+                    ]
+                }
+            }
+        ]);
+        const cuentas = data[0].paginatedResults
+        const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
+        return { cuentas, length }
+    }
 }
 
 
