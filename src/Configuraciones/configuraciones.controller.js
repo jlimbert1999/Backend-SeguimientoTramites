@@ -1,5 +1,5 @@
 const router = require('express').Router()
-const { request, response, json } = require('express');
+const { request, response, json, text } = require('express');
 const { verificarToken } = require('../../middlewares/jwt');
 
 const { ServerErrorResponde } = require('../../helpers/responses')
@@ -244,6 +244,28 @@ router.get('/funcionarios/search/:text', verificarToken, async (req = request, r
         return res.status(200).json({
             funcionarios,
             length
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.get('/funcionarios/organizacion/:id', async (req = request, res = response) => {
+    try {
+        const funcionarios = await funcionarioService.getOrganization(req.params.id)
+        return res.status(200).json({
+            funcionarios,
+
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.get('/funcionarios/search-one/:text', verificarToken, async (req = request, res = response) => {
+    try {
+        const funcionarios = await funcionarioService.searchOne(req.params.text, req.id_funcionario)
+        return res.status(200).json({
+            ok: true,
+            funcionarios
         })
     } catch (error) {
         ServerErrorResponde(error, res)

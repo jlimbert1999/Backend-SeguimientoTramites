@@ -1,4 +1,6 @@
 const FuncionarioModel = require('../models/funcionarios.model')
+const { default: mongoose } = require("mongoose");
+
 class FuncionarioService {
 
     async get(limit, offset) {
@@ -12,6 +14,21 @@ class FuncionarioService {
             ]
         )
         return { funcionarios, length }
+    }
+    async getOrganization(id) {
+        const funcionarios = FuncionarioModel.aggregate([
+            { $match: { _id: mongoose.Types.ObjectId(id) } },
+            {
+                $graphLookup: {
+                    from: "funcionarios",
+                    startWith: "$superior",
+                    connectFromField: "superior",
+                    connectToField: "_id",
+                    as: "reportingHierarchy"
+                }
+            }
+        ])
+        return funcionarios
     }
     async add(funcionario) {
         const { dni } = funcionario
@@ -64,6 +81,13 @@ class FuncionarioService {
         )
         return { funcionarios, length }
     }
+
+    async searchOne(text, id_funcionario) {
+        const regex = new RegExp(text, 'i')
+        const funcionarios = FuncionarioModel.find({ _id: { $ne: id_funcionario }, $or: [{ nombre: regex }, { paterno: regex }, { materno: regex }, { dni: regex }, { cargo: regex }] }).limit(5)
+        return funcionarios
+    }
+
     async addMultipleUsers(funcionarios) {
         const all_dni = funcionarios.map(funcionario => funcionario.dni)
         let existeDni = await FuncionarioModel.findOne({ "dni": { "$in": all_dni } })

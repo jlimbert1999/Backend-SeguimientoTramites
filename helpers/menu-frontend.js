@@ -42,6 +42,11 @@ const getMenuFrontend = (rol) => {
             icon: "groups",
             routerLink: "configuraciones/groupware",
           },
+          {
+            text: "Organigrama",
+            icon: "groups",
+            routerLink: "configuraciones/organigrama",
+          },
         ]
       },
     ]

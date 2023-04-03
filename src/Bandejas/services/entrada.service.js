@@ -331,16 +331,18 @@ class EntradaService {
         let data
         if (type === 'EXTERNO') {
             data = await EntradaModel.aggregate([
-                {
-                    $match: {
-                        tipo: 'tramites_externos'
-                    },
-                },
+                // {
+                //     $match: {
+                //         tipo: 'tramites_externos'
+                //     },
+                // },
                 {
                     $lookup: {
-                        from: "tramites_externos",
+                        from: 'placeholder',
+                        // from: "tramites_externos",
                         localField: "tramite",
                         foreignField: "_id",
+                        refPath: "tipo",
                         as: "tramite",
                     },
                 },

@@ -10,38 +10,23 @@ class CuentaService {
     }
 
     async get(limit, offset) {
-        // offset = parseInt(offset) ? offset : 0
-        // limit = parseInt(limit) ? limit : 10
-        // offset = offset * limit
-        // const [cuentas, length] = await Promise.all(
-        //     [
-        //         CuentaModel.find({ rol: { $ne: 'admin' } }).select('login rol activo').sort({ _id: -1 }).skip(offset).limit(limit).populate({
-        //             path: 'dependencia',
-        //             select: 'nombre -_id',
-        //             populate: {
-        //                 path: 'institucion',
-        //                 select: 'sigla -_id'
-        //             }
-        //         }).populate('funcionario'),
-        //         CuentaModel.count({ rol: { $ne: 'admin' } })
-        //     ]
-        // )
-        const cuentasdb = await CuentaModel.find({}).select('rol funcionario')
-        for (const cuenta of cuentasdb) {
-            if (cuenta.rol[0] === 'RECEPCION') {
-                await CuentaModel.findByIdAndUpdate(cuenta._id, { rol: ['EXTERNOS', 'INTERNOS', 'BANDEJAS', 'REPORTES'] })
-            }
-            else if (cuenta.rol[0] === 'EVALUACION') {
-                await CuentaModel.findByIdAndUpdate(cuenta._id, { rol: ['INTERNOS', 'BANDEJAS', 'REPORTES'] })
-            }
-            // else if (cuenta.rol[0] === 'admin') {
-            //     await CuentaModel.findByIdAndUpdate(cuenta._id, { rol: ['INTERNOS', 'BANDEJAS', 'REPORTES'] })
-            // }
-
-
-        }
-
-        return { cuentas: [], length: 0 }
+        offset = parseInt(offset) ? offset : 0
+        limit = parseInt(limit) ? limit : 10
+        offset = offset * limit
+        const [cuentas, length] = await Promise.all(
+            [
+                CuentaModel.find({ rol: { $ne: 'admin' } }).select('login rol activo').sort({ _id: -1 }).skip(offset).limit(limit).populate({
+                    path: 'dependencia',
+                    select: 'nombre -_id',
+                    populate: {
+                        path: 'institucion',
+                        select: 'sigla -_id'
+                    }
+                }).populate('funcionario'),
+                CuentaModel.count({ rol: { $ne: 'admin' } })
+            ]
+        )
+        return { cuentas, length }
 
     }
     // async add(dependencia) {
