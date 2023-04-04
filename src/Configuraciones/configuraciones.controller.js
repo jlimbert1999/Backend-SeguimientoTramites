@@ -305,6 +305,16 @@ router.get('/cuentas/dependencias/:id_institucion', verificarToken, async (req =
         ServerErrorResponde(error, res)
     }
 })
+router.get('/cuentas/funcionarios/:text', verificarToken, async (req = request, res = response) => {
+    try {
+        const funcionarios = await cuentaService.getUserAssign(req.params.text)
+        return res.status(200).json({
+            funcionarios
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
 router.get('/cuentas', verificarToken, async (req = request, res = response) => {
     try {
         const { cuentas, length } = await cuentaService.get(req.query.limit, req.query.offset)
@@ -316,15 +326,39 @@ router.get('/cuentas', verificarToken, async (req = request, res = response) => 
         ServerErrorResponde(error, res)
     }
 })
+router.put('/cuentas/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        const { cuentas, length } = await cuentaService.edit(req.params.id, req.body.login, req.body.password, req.body.rol)
+        return res.status(200).json({
+            cuentas,
+            length
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.get('/cuentas/details/:id', verificarToken, async (req = request, res = response) => {
+    try {
+        const { externos, internos, entrada, salida } = await cuentaService.getDetails(req.params.id)
+        return res.status(200).json({
+            externos,
+            internos,
+            entrada,
+            salida
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
 router.post('/cuentas', verificarToken, async (req = request, res = response) => {
-    // try {
-    //     const funcionario = await funcionarioService.add(req.body)
-    //     return res.status(200).json({
-    //         funcionario
-    //     })
-    // } catch (error) {
-    //     ServerErrorResponde(error, res)
-    // }
+    try {
+        const cuenta = await cuentaService.add(req.body.cuenta, req.body.funcionario)
+        return res.status(200).json({
+            cuenta
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
 })
 
 router.get('/cuentas/search', verificarToken, async (req = request, res = response) => {

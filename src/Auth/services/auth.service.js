@@ -17,7 +17,7 @@ class CuentaService {
         }).populate('funcionario', 'nombre paterno materno cargo')
         if (!cuentaDB) throw ({ status: 400, message: 'El Nombre de Usuario o Contraseña no son correctos' });
         if (!cuentaDB.activo) throw ({ status: 400, message: 'La cuenta ha sido deshabilitada' });
-        if (!cuentaDB.funcionario && !cuentaDB.rol.includes('admin')) throw ({ status: 400, message: 'La cuenta ha sido desvinculada' });
+        if (!cuentaDB.funcionario && !cuentaDB.rol.includes('ADMINISTRADOR')) throw ({ status: 400, message: 'La cuenta ha sido desvinculada' });
         const validPassword = bcrypt.compareSync(password, cuentaDB.password)
         if (!validPassword) throw ({ status: 400, message: 'El Nombre de Usuario o Contraseña no son correctos' });
         let token = await jwt.generarToken(cuentaDB)

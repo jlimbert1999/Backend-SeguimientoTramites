@@ -2,7 +2,6 @@ const FuncionarioModel = require('../models/funcionarios.model')
 const { default: mongoose } = require("mongoose");
 
 class FuncionarioService {
-
     async get(limit, offset) {
         offset = parseInt(offset) ? offset : 0
         limit = parseInt(limit) ? limit : 10

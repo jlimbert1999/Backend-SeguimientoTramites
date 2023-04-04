@@ -16,7 +16,7 @@ const verificarToken = async (req, res, next) => {
                 message: "Account is disabled",
             });
         }
-        if (!account.funcionario && !account.rol.includes("admin")) {
+        if (!account.funcionario && !account.rol.includes("ADMINISTRADOR")) {
             return res.status(401).json({
                 ok: false,
                 message: "Account is unlink",

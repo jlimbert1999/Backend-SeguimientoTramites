@@ -1,14 +1,19 @@
 
 const { default: mongoose } = require("mongoose");
+const bcrypt = require('bcrypt');
 const CuentaModel = require('../models/cuentas.model')
+const FuncionarioModel = require('../../Configuraciones/models/funcionarios.model')
 const DependenciaModel = require('../models/dependencias.model')
+const { ExternoModel } = require('../../Tramites/models/externo.model')
+const InternoModel = require('../../Tramites/models/interno.model')
+const EntradaModel = require('../../Bandejas/models/entrada.model')
+const SalidaModel = require('../../Bandejas/models/salida.model')
 
 class CuentaService {
     async getDependencias(id_institucion) {
         const dependencias = DependenciaModel.find({ institucion: id_institucion, activo: true })
         return dependencias
     }
-
     async get(limit, offset) {
         offset = parseInt(offset) ? offset : 0
         limit = parseInt(limit) ? limit : 10
@@ -29,63 +34,73 @@ class CuentaService {
         return { cuentas, length }
 
     }
-    // async add(dependencia) {
-    //     const { sigla, codigo } = dependencia
-    //     if (!sigla || !codigo) {
-    //         throw ({ status: 400, message: 'La dependencia debe tener una sigla y un codigo' });
-    //     }
-    //     const duplicado = await DependenciaModel.findOne(
-    //         { $or: [{ sigla }, { codigo }] }
-    //     );
-    //     if (duplicado) {
-    //         throw ({ status: 400, message: 'El codigo o sigla de la dependencia ya existen' });
-    //     }
-    //     const newDependencia = new DependenciaModel(dependencia);
-    //     const dependenciadb = await newDependencia.save();
-    //     await DependenciaModel.populate(dependenciadb, { path: 'institucion', select: 'sigla' })
-    //     return dependenciadb
+    async add(cuenta, funcionario) {
+        const existeDni = await FuncionarioModel.findOne({ dni: funcionario.dni })
+        if (existeDni) {
+            throw ({ status: 400, message: 'El DNI introducido ya existe' });
+        }
+        const existeLogin = await CuentaModel.findOne({ login: cuenta.login })
+        if (existeLogin) {
+            throw ({ status: 400, message: 'El login introducido ya existe' });
+        }
+        // marcar como con cuenta
+        funcionario['cuenta'] = true
+        const newUser = new FuncionarioModel(funcionario)
+        const userdb = await newUser.save()
 
-    // }
-    // async edit(id_dependencia, dependencia) {
-    //     const { sigla, codigo } = dependencia
-    //     if (!sigla || !codigo) {
-    //         throw ({ status: 400, message: 'La dependencia debe tener una sigla y un codigo' });
-    //     }
-    //     const dependenciadb = await DependenciaModel.findById(id_dependencia);
-    //     if (!dependenciadb) {
-    //         return res.status(400).json({
-    //             ok: false,
-    //             message: "La dependencia no existe",
-    //         });
-    //     }
-    //     if (dependenciadb.sigla !== sigla) {
-    //         const existeSigla = await DependenciaModel.findOne({ sigla });
-    //         if (existeSigla) {
-    //             throw ({ status: 400, message: 'La sigla de la dependencia ya existe' });
-    //         }
-    //     }
-    //     if (dependenciadb.codigo !== codigo) {
-    //         const existeCodigo = await DependenciaModel.findOne({ codigo });
-    //         if (existeCodigo) {
-    //             throw ({ status: 400, message: 'El codigo de la dependencia ya existe' });
-    //         }
-    //     }
-    //     const newDependencia = await DependenciaModel.findByIdAndUpdate(
-    //         id_dependencia,
-    //         dependencia,
-    //         { new: true }
-    //     ).populate("institucion", "sigla");
-    //     return newDependencia
-    // }
-
-    // async delete(id_dependencia) {
-    //     const dependenciadb = await DependenciaModel.findById(id_dependencia)
-    //     if (!dependenciadb) {
-    //         throw ({ status: 400, message: 'La dependencia no existe' });
-    //     }
-    //     const newDependencia = await DependenciaModel.findByIdAndUpdate(id_dependencia, { activo: !dependenciadb.activo }, { new: true }).populate("institucion", "sigla")
-    //     return newDependencia
-    // }
+        const salt = bcrypt.genSaltSync();
+        cuenta.password = bcrypt.hashSync(cuenta.password.toString(), salt)
+        cuenta.funcionario = userdb._id
+        const newCuenta = new CuentaModel(cuenta)
+        let accountdb = await newCuenta.save()
+        await CuentaModel.populate(accountdb, [
+            {
+                path: 'dependencia',
+                select: 'nombre -_id',
+                populate: {
+                    path: 'institucion',
+                    select: 'sigla -_id'
+                }
+            },
+            { path: 'funcionario' }
+        ])
+        accountdb = accountdb.toObject()
+        delete accountdb.password
+        delete accountdb.__v
+        return accountdb
+    }
+    async edit(id_cuenta, data) {
+        const cuentaDB = await CuentaModel.findById(id_cuenta)
+        if (!cuentaDB) {
+            throw ({ status: 400, message: 'La cuenta no existe' });
+        }
+        if (cuentaDB.login !== data.login) {
+            const existeLogin = await CuentaModel.findOne({ login: data.login })
+            if (existeLogin) {
+                throw ({ status: 400, message: 'El login introducido ya existe' });
+            }
+        }
+        // if (data.password) {
+        //     const salt = bcrypt.genSaltSync()
+        //     data.password = data.password.toString()
+        //     data.password = bcrypt.hashSync(data.password, salt)
+        // }
+        console.log(data);
+        let cuenta = await CuentaModel.findByIdAndUpdate(id_cuenta, data, { new: true })
+            .populate({
+                path: 'dependencia',
+                select: 'nombre -_id',
+                populate: {
+                    path: 'institucion',
+                    select: 'sigla -_id'
+                }
+            })
+            .populate('funcionario')
+        cuenta = cuenta.toObject()
+        delete cuenta.password
+        delete cuenta.__v
+        return cuenta
+    }
 
     async search(limit, offset, text, institucion, dependencia) {
         limit = parseInt(limit) || 10
@@ -200,7 +215,58 @@ class CuentaService {
         const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
         return { cuentas, length }
     }
-}
+
+    async getDetails(id_cuenta) {
+        let externos, internos, salida, entrada
+        const account = await CuentaModel.findById(id_cuenta).select('rol')
+        if (account.rol.includes('EXTERNOS')) {
+            externos = await ExternoModel.count({ cuenta: id_cuenta })
+        }
+        if (account.rol.includes('INTERNOS')) {
+            internos = await InternoModel.count({ cuenta: id_cuenta })
+        }
+        if (account.rol.includes('BANDEJAS')) {
+            entrada = await EntradaModel.count({ 'receptor.cuenta': id_cuenta })
+            salida = await SalidaModel.count({ 'emisor.cuenta': id_cuenta })
+        }
+
+        return {
+            externos,
+            internos,
+            entrada,
+            salida
+        }
+    }
+    async getUserAssign(text) {
+        const regex = new RegExp(text, 'i')
+        const funcionarios = await FuncionarioModel.aggregate([
+            {
+                $addFields: {
+                    fullname: {
+                        $concat: ["$nombre", " ", { $ifNull: ["$paterno", ""] }, " ", { $ifNull: ["$materno", ""] }]
+                    }
+                },
+            },
+            {
+                $match: {
+                    cuenta: false,
+                    $or: [
+                        { fullname: regex },
+                        { dni: regex },
+                        { cargo: regex }
+
+                    ]
+                }
+            },
+            { $project: { __v: 0 } },
+            { $limit: 5 }
+        ]);
+        return funcionarios
+    }
+
+};
+
+
 
 
 

@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken')
 const generarToken = (cuenta) => {
     return new Promise((resolve, reject) => {
         let payload
-        if (cuenta.rol.includes('admin')) {
+        if (cuenta.rol.includes('ADMINISTRADOR')) {
             payload = {
                 id_cuenta: cuenta._id,
                 funcionario: {

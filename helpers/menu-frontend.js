@@ -1,6 +1,6 @@
 const getMenuFrontend = (rol) => {
   let Menu = []
-  if (rol == 'admin') {
+  if (rol.includes('ADMINISTRADOR')) {
     Menu = [
       {
         text: "Configuraciones",
