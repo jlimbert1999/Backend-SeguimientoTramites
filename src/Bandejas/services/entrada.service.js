@@ -2,7 +2,7 @@ const EntradaModel = require('../models/entrada.model')
 const SalidaModel = require('../models/salida.model')
 const { ExternoModel } = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
-const CuentaModel = require("../../../src/Configuraciones/cuentas/cuenta.model");
+const CuentaModel = require("../../Configuraciones/models/cuentas.model");
 const { default: mongoose } = require("mongoose");
 
 
