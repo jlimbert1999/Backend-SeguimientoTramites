@@ -1,6 +1,5 @@
 const router = require('express').Router()
 const { request, response, json } = require('express');
-const { verificarToken } = require('../../middlewares/jwt');
 const { ServerErrorResponde } = require('../../helpers/responses')
 
 const ReporteService = require('./services/reporte.service')

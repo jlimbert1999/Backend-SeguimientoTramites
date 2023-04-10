@@ -1,5 +1,4 @@
 const router = require('express').Router()
-const { verificarToken, verificarAdminRol, verificarRecepcionRol } = require('./middlewares/jwt')
 
 const usuariosRouter = require('./src/Configuraciones/usuarios/usuarios.router')
 const institucionRouter = require('./src/Configuraciones/instituciones/instituciones.router')
@@ -45,12 +44,12 @@ const AuthController = require('./src/Auth/auth.controller')
 
 // router.use('/internos', [verificarToken], InternoRouter)
 
-router.use('/reportes-externos', [verificarToken], ReportesExternosRouter)
+router.use('/reportes-externos', ReportesExternosRouter)
 router.use('/reportes-internos', ReportesInternosRouter)
 
 router.use('/consulta', ConsultaRouter)
 
-router.use('/perfil', verificarToken, PerfilRouter)
+router.use('/perfil', PerfilRouter)
 
 // nuevo
 router.use('/login', AuthController)

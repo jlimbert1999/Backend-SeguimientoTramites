@@ -1,7 +1,7 @@
 const router = require('express').Router()
 const { request, response } = require('express');
 
-const { verificarToken } = require('../../middlewares/jwt');
+const  verifyToken  = require('../../middlewares/verifyToken');
 const { ServerErrorResponde } = require('../../helpers/responses')
 
 const EntradaService = require('./services/entrada.service')
@@ -14,7 +14,7 @@ const archivoService = new ArchivoService();
 var fs = require("fs");
 
 // ENTRADAS
-router.get('/entrada', verificarToken, async (req = request, res = response) => {
+router.get('/entrada', verifyToken, async (req = request, res = response) => {
     try {
         const { limit, offset } = req.query
         const { mails, length } = await entradaService.get(req.id_cuenta, limit, offset)
@@ -26,7 +26,7 @@ router.get('/entrada', verificarToken, async (req = request, res = response) => 
         ServerErrorResponde(error, res)
     }
 })
-router.post('/entrada', verificarToken, async (req = request, res = response) => {
+router.post('/entrada', verifyToken, async (req = request, res = response) => {
     try {
         let { receptores, ...data } = req.body
         const MailsDB = await entradaService.add(receptores, data, req.id_cuenta, req.id_funcionario)
@@ -37,7 +37,7 @@ router.post('/entrada', verificarToken, async (req = request, res = response) =>
         ServerErrorResponde(error, res)
     }
 })
-router.get('/entrada/users/:text', verificarToken, async (req = request, res = response) => {
+router.get('/entrada/users/:text', verifyToken, async (req = request, res = response) => {
     try {
         const cuentas = await entradaService.getAccounts(req.params.text, req.id_cuenta)
         return res.status(200).json({
@@ -48,7 +48,7 @@ router.get('/entrada/users/:text', verificarToken, async (req = request, res = r
     }
 })
 
-router.get('/entrada/detalles/:id', verificarToken, async (req = request, res = response) => {
+router.get('/entrada/detalles/:id', verifyToken, async (req = request, res = response) => {
     try {
         if (!req.params.id) {
             return res.status(400).json({
@@ -65,7 +65,7 @@ router.get('/entrada/detalles/:id', verificarToken, async (req = request, res = 
         ServerErrorResponde(error, res)
     }
 })
-router.get('/entrada/search/:type', verificarToken, async (req = request, res = response) => {
+router.get('/entrada/search/:type', verifyToken, async (req = request, res = response) => {
     try {
         if (!req.params.type) {
             return res.status(400).json({
@@ -87,7 +87,7 @@ router.get('/entrada/search/:type', verificarToken, async (req = request, res = 
 
 
 // SALIDAS
-router.get('/salida', verificarToken, async (req = request, res = response) => {
+router.get('/salida', verifyToken, async (req = request, res = response) => {
     try {
         const { mails, length } = await salidaService.get(req.id_cuenta, req.query.limit, req.query.offset)
         return res.status(200).json({
@@ -98,7 +98,7 @@ router.get('/salida', verificarToken, async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.delete('/salida/:id', verificarToken, async (req = request, res = response) => {
+router.delete('/salida/:id', verifyToken, async (req = request, res = response) => {
     try {
         const message = await salidaService.cancel(req.params.id, req.id_cuenta)
         return res.status(200).json({
@@ -108,7 +108,7 @@ router.delete('/salida/:id', verificarToken, async (req = request, res = respons
         ServerErrorResponde(error, res)
     }
 })
-router.get('/salida/search/:type', verificarToken, async (req = request, res = response) => {
+router.get('/salida/search/:type', verifyToken, async (req = request, res = response) => {
     try {
         if (!req.params.type) {
             return res.status(400).json({
@@ -129,7 +129,7 @@ router.get('/salida/search/:type', verificarToken, async (req = request, res = r
 
 
 // CONTROL DE FLUJO
-router.put('/aceptar/:id', verificarToken, async (req = request, res = response) => {
+router.put('/aceptar/:id', verifyToken, async (req = request, res = response) => {
     try {
         const { image } = req.body
         var base64Data = image.replace(/^data:image\/png;base64,/, "");
@@ -145,7 +145,7 @@ router.put('/aceptar/:id', verificarToken, async (req = request, res = response)
         ServerErrorResponde(error, res)
     }
 })
-router.put('/rechazar/:id', verificarToken, async (req = request, res = response) => {
+router.put('/rechazar/:id', verifyToken, async (req = request, res = response) => {
     try {
         let { motivo_rechazo } = req.body
         const message = await entradaService.decline(req.params.id, motivo_rechazo)
@@ -157,7 +157,7 @@ router.put('/rechazar/:id', verificarToken, async (req = request, res = response
     }
 })
 
-router.put('/concluir/:id', verificarToken, async (req = request, res = response) => {
+router.put('/concluir/:id', verifyToken, async (req = request, res = response) => {
     try {
         let { descripcion } = req.body
         const mail = await entradaService.conclude(req.params.id, req.id_funcionario, descripcion)

@@ -3,7 +3,8 @@ const { Schema, model } = require('mongoose')
 const RolScheme = Schema({
     role: {
         type: String,
-        required: true
+        required: true,
+        uppercase: true
     },
     privileges: [
         {
@@ -27,7 +28,8 @@ const RolScheme = Schema({
             create: { type: Boolean },
             update: { type: Boolean },
             read: { type: Boolean },
-            delete: { type: Boolean }
+            delete: { type: Boolean },
+            _id: false
         }
     ]
 })

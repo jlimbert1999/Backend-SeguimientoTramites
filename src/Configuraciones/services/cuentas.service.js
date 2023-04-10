@@ -1,6 +1,7 @@
-
-const { default: mongoose } = require("mongoose");
 const bcrypt = require('bcrypt');
+require('dotenv').config()
+const { default: mongoose } = require("mongoose");
+
 const CuentaModel = require('../models/cuentas.model')
 const FuncionarioModel = require('../../Configuraciones/models/funcionarios.model')
 const DependenciaModel = require('../models/dependencias.model')
@@ -8,8 +9,13 @@ const { ExternoModel } = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const EntradaModel = require('../../Bandejas/models/entrada.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
+const RolModel = require('../models/roles.model')
 
 class CuentaService {
+    async getRoles() {
+        const roles = RolModel.find({}).select('role')
+        return roles
+    }
     async getDependencias(id_institucion) {
         const dependencias = DependenciaModel.find({ institucion: id_institucion, activo: true })
         return dependencias
@@ -20,7 +26,7 @@ class CuentaService {
         offset = offset * limit
         const [cuentas, length] = await Promise.all(
             [
-                CuentaModel.find({ rol: { $ne: 'admin' } }).select('login rol activo').sort({ _id: -1 }).skip(offset).limit(limit).populate({
+                CuentaModel.find({ _id: { $ne: process.env.ID_ROOT } }).select('login rol activo').sort({ _id: -1 }).skip(offset).limit(limit).populate({
                     path: 'dependencia',
                     select: 'nombre -_id',
                     populate: {
@@ -28,11 +34,10 @@ class CuentaService {
                         select: 'sigla -_id'
                     }
                 }).populate('funcionario'),
-                CuentaModel.count({ rol: { $ne: 'admin' } })
+                CuentaModel.count({ _id: { $ne: process.env.ID_ROOT } })
             ]
         )
         return { cuentas, length }
-
     }
     async add(cuenta, funcionario) {
         const existeDni = await FuncionarioModel.findOne({ dni: funcionario.dni })
@@ -85,7 +90,6 @@ class CuentaService {
         //     data.password = data.password.toString()
         //     data.password = bcrypt.hashSync(data.password, salt)
         // }
-        console.log(data);
         let cuenta = await CuentaModel.findByIdAndUpdate(id_cuenta, data, { new: true })
             .populate({
                 path: 'dependencia',
@@ -217,25 +221,27 @@ class CuentaService {
     }
 
     async getDetails(id_cuenta) {
-        let externos, internos, salida, entrada
-        const account = await CuentaModel.findById(id_cuenta).select('rol')
-        if (account.rol.includes('EXTERNOS')) {
-            externos = await ExternoModel.count({ cuenta: id_cuenta })
+        let details = {}
+        let account = await CuentaModel.findById(id_cuenta).select('rol').populate('rol', 'privileges')
+        account = account.rol.privileges.map(privilege => privilege.resource)
+        if (account.includes('externos')) {
+            const externos = await ExternoModel.count({ cuenta: id_cuenta })
+            Object.assign(details, { externos })
         }
-        if (account.rol.includes('INTERNOS')) {
-            internos = await InternoModel.count({ cuenta: id_cuenta })
+        if (account.includes('internos')) {
+            const internos = await InternoModel.count({ cuenta: id_cuenta })
+            Object.assign(details, { internos })
         }
-        if (account.rol.includes('BANDEJAS')) {
-            entrada = await EntradaModel.count({ 'receptor.cuenta': id_cuenta })
-            salida = await SalidaModel.count({ 'emisor.cuenta': id_cuenta })
+        if (account.includes('entradas')) {
+            const entradas = await EntradaModel.count({ 'receptor.cuenta': id_cuenta })
+            Object.assign(details, { entradas })
         }
+        if (account.includes('salidas')) {
+            const salidas = await SalidaModel.count({ 'emisor.cuenta': id_cuenta })
+            Object.assign(details, {salidas})
+        }
+        return details
 
-        return {
-            externos,
-            internos,
-            entrada,
-            salida
-        }
     }
     async getUserAssign(text) {
         const regex = new RegExp(text, 'i')
