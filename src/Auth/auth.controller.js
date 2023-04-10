@@ -22,7 +22,6 @@ router.post('/', async (req = request, res = response) => {
 router.get('/verify', verifyToken, async (req = request, res = response) => {
     try {
         const { token, Menu } = await authService.renewToken(req.id_cuenta)
-        console.log(Menu)
         return res.status(200).json({
             token,
             Menu

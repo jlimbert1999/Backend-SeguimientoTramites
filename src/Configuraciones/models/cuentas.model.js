@@ -14,6 +14,10 @@ const CuentasScheme = Schema({
         type: String,
         required: true
     },
+    oldrol: [{
+        type: String,
+        required: true
+    }],
     rol: {
         type: Schema.Types.ObjectId,
         ref: 'roles'

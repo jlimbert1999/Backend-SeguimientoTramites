@@ -68,6 +68,41 @@ const getMenuFrontend = (resources) => {
             routerLink: "configuraciones/tipos",
           },
         )
+      case 'externos':
+        Menu.push(
+          {
+            text: "Externos",
+            icon: "folder",
+            routerLink: "tramites/externos",
+          }
+        )
+        break;
+      case 'internos':
+        Menu.push(
+          {
+            text: "Internos",
+            icon: "description",
+            routerLink: "tramites/internos"
+          }
+        )
+        break;
+      case 'entradas':
+        Menu.push(
+          {
+            text: "Bandeja entrada",
+            icon: "drafts",
+            routerLink: "bandejas/entrada",
+          },
+        )
+        break;
+      case 'salidas':
+        Menu.push(
+          {
+            text: "Bandeja salida",
+            icon: "mail",
+            routerLink: "bandejas/salida",
+          },
+        )
         break;
       default:
         break;

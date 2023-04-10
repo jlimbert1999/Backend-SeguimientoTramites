@@ -2,7 +2,7 @@ require('dotenv').config()
 const { ServerErrorResponde, BadRequestResponse, ExceptionResponse } = require('../../../helpers/responses')
 const { ExternoModel, SolicitanteModel, RepresentanteModel } = require('../models/externo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
-const TiposModel = require('../../Configuraciones/tipos-tramites/tipoTramite.model')
+const TiposModel = require('../../Configuraciones/models/tipos.model')
 const { default: mongoose } = require('mongoose')
 
 class ExternoService {
@@ -19,7 +19,7 @@ class ExternoService {
                 .populate('representante')
                 .populate('tipo_tramite', 'nombre'),
             await ExternoModel.count({ cuenta: id_cuenta })
-        ]);
+        ]);     
         return { tramites, total }
     }
 
@@ -151,12 +151,8 @@ class ExternoService {
     }
 
     async getGroupsTypes() {
-        try {
-            const groups = await TiposModel.distinct('segmento', { tipo: 'EXTERNO', activo: true })
-            return groups
-        } catch (error) {
-            throw ServerErrorResponde('Ha ocurrido un error en el servidor', error)
-        }
+        const groups = await TiposModel.distinct('segmento', { tipo: 'EXTERNO', activo: true })
+        return groups
     }
 
     async add(id_cuenta, tramite, solicitante, representante) {

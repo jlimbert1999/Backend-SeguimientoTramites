@@ -14,21 +14,6 @@ class FuncionarioService {
         )
         return { funcionarios, length }
     }
-    async getOrganization(id) {
-        const funcionarios = FuncionarioModel.aggregate([
-            { $match: { _id: mongoose.Types.ObjectId(id) } },
-            {
-                $graphLookup: {
-                    from: "funcionarios",
-                    startWith: "$superior",
-                    connectFromField: "superior",
-                    connectToField: "_id",
-                    as: "reportingHierarchy"
-                }
-            }
-        ])
-        return funcionarios
-    }
     async add(funcionario) {
         const { dni } = funcionario
         const existeDni = await FuncionarioModel.findOne({ dni })

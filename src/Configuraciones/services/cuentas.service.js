@@ -10,12 +10,17 @@ const InternoModel = require('../../Tramites/models/interno.model')
 const EntradaModel = require('../../Bandejas/models/entrada.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const RolModel = require('../models/roles.model')
+const InstitucionModel = require('../models/instituciones.model')
 
 class CuentaService {
     async getRoles() {
         const roles = RolModel.find({}).select('role')
         return roles
     }
+    async getInstituciones() {
+        const instituciones = await InstitucionModel.find({ activo: true }, "nombre sigla");
+        return instituciones
+    };
     async getDependencias(id_institucion) {
         const dependencias = DependenciaModel.find({ institucion: id_institucion, activo: true })
         return dependencias
@@ -85,11 +90,11 @@ class CuentaService {
                 throw ({ status: 400, message: 'El login introducido ya existe' });
             }
         }
-        // if (data.password) {
-        //     const salt = bcrypt.genSaltSync()
-        //     data.password = data.password.toString()
-        //     data.password = bcrypt.hashSync(data.password, salt)
-        // }
+        if (data.password) {
+            const salt = bcrypt.genSaltSync()
+            data.password = data.password.toString()
+            data.password = bcrypt.hashSync(data.password, salt)
+        }
         let cuenta = await CuentaModel.findByIdAndUpdate(id_cuenta, data, { new: true })
             .populate({
                 path: 'dependencia',
@@ -105,7 +110,14 @@ class CuentaService {
         delete cuenta.__v
         return cuenta
     }
-
+    async delete(id_cuenta) {
+        const cuentaDB = await CuentaModel.findById(id_cuenta)
+        if (!cuentaDB.funcionario) {
+            throw ({ status: 400, message: 'La cuenta esta desabilitada hasta una nueva asignacion' });
+        }
+        await CuentaModel.findByIdAndUpdate(id_cuenta, { activo: !cuentaDB.activo })
+        return !cuentaDB.activo
+    }
     async search(limit, offset, text, institucion, dependencia) {
         limit = parseInt(limit) || 10
         offset = parseInt(offset) || 0
@@ -219,7 +231,6 @@ class CuentaService {
         const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
         return { cuentas, length }
     }
-
     async getDetails(id_cuenta) {
         let details = {}
         let account = await CuentaModel.findById(id_cuenta).select('rol').populate('rol', 'privileges')
@@ -238,7 +249,7 @@ class CuentaService {
         }
         if (account.includes('salidas')) {
             const salidas = await SalidaModel.count({ 'emisor.cuenta': id_cuenta })
-            Object.assign(details, {salidas})
+            Object.assign(details, { salidas })
         }
         return details
 
@@ -269,6 +280,59 @@ class CuentaService {
         ]);
         return funcionarios
     }
+    async assignUser(id_cuenta, id_oldUser, id_newUser) {
+        await Promise.all([
+            CuentaModel.findByIdAndUpdate(id_cuenta, { funcionario: id_newUser, activo: true }),
+            FuncionarioModel.findByIdAndUpdate(id_newUser, { cuenta: true })
+        ])
+        if (id_oldUser) {
+            await FuncionarioModel.findByIdAndUpdate(id_oldUser, { cuenta: false })
+        }
+        return 'Cuenta asignada correctamente'
+
+    }
+    async unlinkUser(id_cuenta) {
+        let cuenta = await CuentaModel.findById(id_cuenta)
+        if (!cuenta.funcionario) {
+            throw ({ status: 400, message: 'La cuenta ya fue desvinculada' });
+        }
+        // unlink user and disable account
+        await CuentaModel.findByIdAndUpdate(id_cuenta, { activo: false, $unset: { funcionario: 1 } })
+
+        // mark user free
+        await FuncionarioModel.findByIdAndUpdate(cuenta.funcionario, { cuenta: false })
+        return 'La cuenta fue desvinculada'
+    }
+    async addAccountLink(cuenta, id_funcionario) {
+        const existeLogin = await CuentaModel.findOne({ login: cuenta.login })
+        if (existeLogin) {
+            throw ({ status: 400, message: 'El login introducido ya existe' });
+        }
+        await FuncionarioModel.findByIdAndUpdate(id_funcionario, { cuenta: true })
+        const salt = bcrypt.genSaltSync();
+        cuenta.password = bcrypt.hashSync(cuenta.password.toString(), salt)
+        cuenta['funcionario'] = id_funcionario
+        const newCuenta = new CuentaModel(cuenta)
+        let accountdb = await newCuenta.save()
+        await CuentaModel.populate(accountdb, [
+            {
+                path: 'dependencia',
+                select: 'nombre -_id',
+                populate: {
+                    path: 'institucion',
+                    select: 'sigla -_id'
+                }
+            },
+            { path: 'funcionario' }
+        ])
+        accountdb = accountdb.toObject()
+        delete accountdb.password
+        delete accountdb.__v
+        return accountdb
+
+
+    }
+
 
 };
 

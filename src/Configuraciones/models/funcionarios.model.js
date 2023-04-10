@@ -38,10 +38,6 @@ const UserScheme = Schema({
     cuenta: {
         type: Boolean,
         default: false
-    },
-    superior: {
-        type: Schema.Types.ObjectId,
-        ref: 'funcionarios'
     }
 })
 UserScheme.method('toJSON', function () {

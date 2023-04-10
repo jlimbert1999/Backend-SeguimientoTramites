@@ -30,7 +30,7 @@ class CuentaService {
                     nombre_completo: 'ADMINISTRADOR',
                     cargo: "Configuraciones"
                 },
-                rol: cuentaDB.rol.privileges.map(privilege => privilege.resource)
+                resources: cuentaDB.rol.privileges.map(privilege => privilege.resource)
             }, process.env.JWT_SECRET, {
                 expiresIn: '8h'
             })
@@ -46,12 +46,13 @@ class CuentaService {
                     nombre_completo: `${cuentaDB.funcionario.nombre} ${cuentaDB.funcionario.paterno} ${cuentaDB.funcionario.materno}`,
                     cargo: cuentaDB.funcionario.cargo
                 },
-                rol: cuentaDB.rol.privileges.map(privilege => privilege.resource)
+                resources: cuentaDB.rol.privileges.map(privilege => privilege.resource)
             }, process.env.JWT_SECRET, {
                 expiresIn: '8h'
             })
             return { token, mails }
         }
+
     }
 
     async renewToken(id_cuenta) {
@@ -74,7 +75,7 @@ class CuentaService {
                     nombre_completo: 'ADMINISTRADOR',
                     cargo: "Configuraciones"
                 },
-                rol: cuentaDB.rol.privileges.map(privilege => privilege.resource)
+                resources: cuentaDB.rol.privileges.map(privilege => privilege.resource)
             }, process.env.JWT_SECRET, {
                 expiresIn: '8h'
             })
@@ -88,7 +89,7 @@ class CuentaService {
                     nombre_completo: `${cuentaDB.funcionario.nombre} ${cuentaDB.funcionario.paterno} ${cuentaDB.funcionario.materno}`,
                     cargo: cuentaDB.funcionario.cargo
                 },
-                rol: cuentaDB.rol.privileges.map(privilege => privilege.resource)
+                resources: cuentaDB.rol.privileges.map(privilege => privilege.resource)
             }, process.env.JWT_SECRET, {
                 expiresIn: '8h'
             })
