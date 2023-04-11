@@ -1,5 +1,5 @@
-const getMenuFrontend = (resources) => {
-  let Menu = [
+const getmenuFrontend = (resources) => {
+  let menu = [
     {
       text: "Usuarios",
       icon: "groups",
@@ -16,7 +16,7 @@ const getMenuFrontend = (resources) => {
   resources.forEach(resource => {
     switch (resource) {
       case 'cuentas':
-        Menu[0].children.push(
+        menu[0].children.push(
           {
             text: "Cuentas",
             icon: "account_circle",
@@ -25,7 +25,7 @@ const getMenuFrontend = (resources) => {
         )
         break;
       case 'usuarios':
-        Menu[0].children.push(
+        menu[0].children.push(
           {
             text: "Funcionarios",
             icon: "person",
@@ -34,7 +34,7 @@ const getMenuFrontend = (resources) => {
         )
         break;
       case 'roles':
-        Menu[0].children.push(
+        menu[0].children.push(
           {
             text: "Roles",
             icon: "badge",
@@ -43,7 +43,7 @@ const getMenuFrontend = (resources) => {
         )
         break
       case 'instituciones':
-        Menu[1].children.push(
+        menu[1].children.push(
           {
             text: "Instituciones",
             icon: "apartment",
@@ -52,7 +52,7 @@ const getMenuFrontend = (resources) => {
         )
         break
       case 'dependencias':
-        Menu[1].children.push(
+        menu[1].children.push(
           {
             text: "Dependencias",
             icon: "holiday_village",
@@ -61,15 +61,16 @@ const getMenuFrontend = (resources) => {
         )
         break
       case 'tipos':
-        Menu.push(
+        menu.push(
           {
             text: "Tipos",
             icon: "folder_copy",
             routerLink: "configuraciones/tipos",
           },
         )
+        break;
       case 'externos':
-        Menu.push(
+        menu.push(
           {
             text: "Externos",
             icon: "folder",
@@ -78,7 +79,7 @@ const getMenuFrontend = (resources) => {
         )
         break;
       case 'internos':
-        Menu.push(
+        menu.push(
           {
             text: "Internos",
             icon: "description",
@@ -87,7 +88,7 @@ const getMenuFrontend = (resources) => {
         )
         break;
       case 'entradas':
-        Menu.push(
+        menu.push(
           {
             text: "Bandeja entrada",
             icon: "drafts",
@@ -96,7 +97,7 @@ const getMenuFrontend = (resources) => {
         )
         break;
       case 'salidas':
-        Menu.push(
+        menu.push(
           {
             text: "Bandeja salida",
             icon: "mail",
@@ -104,12 +105,63 @@ const getMenuFrontend = (resources) => {
           },
         )
         break;
+      case 'reportes':
+        menu.push(
+
+          {
+            text: "Reportes",
+            icon: "analytics",
+            children: [
+              {
+                text: "Ficha de tramite",
+                icon: "description",
+                routerLink: "ficha",
+              },
+              {
+                text: "Estado",
+                icon: "document_scanner",
+                routerLink: "reporte-estado",
+              },
+              {
+                text: "Tipo",
+                icon: "folder_open",
+                routerLink: "reporte-tipo",
+              },
+              {
+                text: "Solicitante",
+                icon: "contact_page",
+                routerLink: "reportes/solicitante",
+              },
+              {
+                text: "Busqueda",
+                icon: "person_search",
+                routerLink: "reporte-solicitante",
+              },
+              {
+                text: "Busqueda",
+                icon: "find_in_page",
+                routerLink: "reportes/busqueda",
+              },
+              {
+                text: "Estadistico",
+                icon: "find_in_page",
+                routerLink: "reportes/estadistico",
+              },
+              {
+                text: "Unidad",
+                icon: "find_in_page",
+                routerLink: "reportes/unidad",
+              },
+            ]
+          }
+        )
+        break;
       default:
         break;
     }
   });
   //   if (rol.includes('ADMINISTRADOR')) {
-  //     Menu = [
+  //     menu = [
   //       {
   //         text: "Configuraciones",
   //         icon: "settings",
@@ -165,7 +217,7 @@ const getMenuFrontend = (resources) => {
   //     ]
   //   }
   //   else if (rol == 'EVALUACION') {
-  //     Menu = [
+  //     menu = [
   //       {
   //         text: "Internos",
   //         icon: "description",
@@ -236,7 +288,7 @@ const getMenuFrontend = (resources) => {
   //     ]
   //   }
   //   else {
-  //     Menu = [
+  //     menu = [
   //       {
   //         text: "Externos",
   //         icon: "folder",
@@ -315,6 +367,6 @@ const getMenuFrontend = (resources) => {
   //   }
 
 
-  return Menu
+  return menu
 }
-module.exports = getMenuFrontend
+module.exports = getmenuFrontend

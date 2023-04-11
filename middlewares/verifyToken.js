@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 require('dotenv').config()
-
 const CuentaModel = require("../src/Configuraciones/models/cuentas.model");
 const verifyToken = async (req, res, next) => {
     try {
