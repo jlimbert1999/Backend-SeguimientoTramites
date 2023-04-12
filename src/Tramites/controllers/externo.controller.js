@@ -2,8 +2,7 @@ const router = require('express').Router()
 const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
-const ExternoService = require('../services/externo.service')
-const externoService = new ExternoService();
+const externoService = require('../services/externo.service')
 
 
 router.get('/segmentos', async (req = request, res = response) => {

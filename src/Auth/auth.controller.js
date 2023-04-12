@@ -11,6 +11,7 @@ router.post('/', async (req = request, res = response) => {
         const { login, password } = req.body
         const { token, imbox } = await authService.login(login, password)
         return res.status(200).json({
+            ok: true,
             token,
             imbox
         })
@@ -22,6 +23,7 @@ router.get('/verify', verifyToken, async (req = request, res = response) => {
     try {
         const { token, menu } = await authService.renewToken(req.id_cuenta)
         return res.status(200).json({
+            ok: true,
             token,
             menu
         })

@@ -11,20 +11,21 @@ function startSocketServer(server) {
     io.use((socket, next) => {
         if (socket.handshake.auth.token) {
             Group.addUser(socket.id, socket.handshake.auth.token)
+            next();
         }
-        next();
     });
 
     io.on('connection', (client) => {
-        // Send list of users online when new user conected
         io.emit("listar", Group.getUsers())
-
         client.on('notification', data => {
-            let { id_cuenta, ...info } = data
-            const socketIds = Group.getUser(id_cuenta)
-            socketIds.forEach(id => {
-                client.to(id.toString()).emit('notify', info)
-            });
+            const { id_cuenta, message } = data
+            const user = Group.getUser(id_cuenta)
+            if (user) {
+                user.socketIds.forEach(id => {
+                    client.to(id.toString()).emit('notify', message)
+                });
+            }
+
         })
         client.on('mail', data => {
             data.forEach(mail => {
@@ -34,21 +35,17 @@ function startSocketServer(server) {
                 });
             })
         })
-        client.on('expel', id_cuenta => {
-            const socketIds = Group.getUser(id_cuenta)
-            socketIds.forEach(id => {
-                client.to(id.toString()).emit('kick', "eliminado")
-            });
+        client.on('expel', data => {
+            const { id_cuenta, message } = data
+            const user = Group.getUser(id_cuenta)
+            if (user) {
+                user.socketIds.forEach(id => {
+                    client.to(id.toString()).emit('kick', message)
+                });
+            }
         })
 
-        // client.on('unirse', (user, callback) => {
-        //     Grupo.add_funcionario(client.id, user.id_cuenta, user.funcionario, user.cargo)
-        //     callback(Grupo.get_funcionarios())
-        //     client.broadcast.emit('listar', Grupo.get_funcionarios())
-        // })
-
         client.on('disconnect', () => {
-            console.log(client.handshake.time);
             Group.deleteUser(client.id, client.handshake.auth.token)
             client.broadcast.emit('listar', Group.getUsers())
         })

@@ -2,9 +2,7 @@ const router = require('express').Router()
 const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
-
-const InternoService = require('../services/interno.service')
-const internoService = new InternoService()
+const internoService = require('../services/interno.service')
 
 router.get('/tipos',  async (req = request, res = response) => {
     try {
