@@ -1,17 +1,28 @@
 const router = require('express').Router()
-const { request, response, json } = require('express');
+const { request, response } = require('express');
 const { ServerErrorResponde } = require('../../helpers/responses')
 
-const ReporteService = require('./services/reporte.service')
-const reporteService = new ReporteService()
+const reporteService = require('./services/reporte.service')
+
+const DependenciaService = require('../Configuraciones/services/dependencias.service')
+const dependenciaService = new DependenciaService()
+
+const CuentasService = require('../Configuraciones/services/cuentas.service')
+const cuentasService = new CuentasService()
 
 router.get('/ficha/:alterno', async (req = request, res = response) => {
     try {
-        const { tramite, workflow, tipo } = await reporteService.reporteFicha(req.params.alterno)
+        const { group } = req.query
+        if (!group) {
+            return res.status(200).json({
+                ok: false,
+                message: 'No se ha seleccionado el grupo del tramite: Externo o Interno'
+            })
+        }
+        const tramites = await reporteService.getReportFicha(req.params.alterno, group)
         return res.status(200).json({
-            tramite,
-            workflow,
-            tipo
+            ok: true,
+            tramites
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -29,7 +40,7 @@ router.get('/busqueda/:tipo', async (req = request, res = response) => {
                 message: 'Parametros para la busqueda incorrectos.'
             })
         }
-        const { tramites, length } = await reporteService.reporteBusqueda(params, type)
+        const { tramites, length } = await reporteService.getReportSearch(params, type)
         return res.status(200).json({
             tramites,
             length
@@ -41,13 +52,7 @@ router.get('/busqueda/:tipo', async (req = request, res = response) => {
 
 router.post('/solicitante', async (req = request, res = response) => {
     try {
-        if (!req.body) {
-            return res.status(400).json({
-                ok: false,
-                message: 'Debe seleccionar los parametros para la busqueda'
-            })
-        }
-        const tramites = await reporteService.reporteSolicitante(req.body)
+        const tramites = await reporteService.reportSolicitante(req.body)
         return res.status(200).json({
             ok: true,
             tramites
@@ -58,14 +63,7 @@ router.post('/solicitante', async (req = request, res = response) => {
 })
 router.post('/representante', async (req = request, res = response) => {
     try {
-        co
-        if (!req.body) {
-            return res.status(400).json({
-                ok: false,
-                message: 'Debe seleccionar los parametros para la busqueda'
-            })
-        }
-        const tramites = await reporteService.reporteRepresentante(req.body)
+        const tramites = await reporteService.reportRepresentante(req.body)
         return res.status(200).json({
             ok: true,
             tramites
@@ -75,16 +73,31 @@ router.post('/representante', async (req = request, res = response) => {
     }
 })
 
-router.get('/estadistico/instituciones', async (req = request, res = response) => {
+router.get('/instituciones', async (req = request, res = response) => {
     try {
-        const data = await reporteService.estadisticoInstitucion()
-        return res.json({
+        const instituciones = await dependenciaService.getInstituciones()
+        return res.status(200).json({
             ok: true,
-            data
+            instituciones
         })
     } catch (error) {
         ServerErrorResponde(error, res)
     }
 })
+router.get('/dependencias/:id_institucion', async (req = request, res = response) => {
+    try {
+        const dependencias = await cuentasService.getDependencias(req.params.id_institucion)
+        return res.status(200).json({
+            ok: true,
+            dependencias
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+
+
+
 
 module.exports = router

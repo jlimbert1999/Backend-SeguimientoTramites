@@ -111,48 +111,7 @@ const getmenuFrontend = (resources) => {
           {
             text: "Reportes",
             icon: "analytics",
-            children: [
-              {
-                text: "Ficha de tramite",
-                icon: "description",
-                routerLink: "ficha",
-              },
-              {
-                text: "Estado",
-                icon: "document_scanner",
-                routerLink: "reporte-estado",
-              },
-              {
-                text: "Tipo",
-                icon: "folder_open",
-                routerLink: "reporte-tipo",
-              },
-              {
-                text: "Solicitante",
-                icon: "contact_page",
-                routerLink: "reportes/solicitante",
-              },
-              {
-                text: "Busqueda",
-                icon: "person_search",
-                routerLink: "reporte-solicitante",
-              },
-              {
-                text: "Busqueda",
-                icon: "find_in_page",
-                routerLink: "reportes/busqueda",
-              },
-              {
-                text: "Estadistico",
-                icon: "find_in_page",
-                routerLink: "reportes/estadistico",
-              },
-              {
-                text: "Unidad",
-                icon: "find_in_page",
-                routerLink: "reportes/unidad",
-              },
-            ]
+            routerLink: "reportes"
           }
         )
         break;

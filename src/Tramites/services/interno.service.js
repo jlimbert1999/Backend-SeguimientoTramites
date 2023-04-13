@@ -1,7 +1,7 @@
 require('dotenv').config()
 const InternoModel = require('../models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
-const TiposModel = require('../../Configuraciones/tipos-tramites/tipoTramite.model')
+const TiposModel = require('../../Configuraciones/models/tipos.model')
 const UsersModel = require('../../Configuraciones/usuarios/usuarios.model')
 
 exports.get = async (id_cuenta, limit, offset) => {
