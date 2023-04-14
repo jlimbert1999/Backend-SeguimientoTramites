@@ -2,6 +2,7 @@ const { ExternoModel } = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const InstitucionesModel = require('../../Configuraciones/instituciones/instituciones.model')
+const CuentaModel = require('../../Configuraciones/models/cuentas.model')
 
 exports.getAllDataOfTramiteExterno = async (id_tramite) => {
     const tramite = await ExternoModel.findById(id_tramite)
@@ -133,6 +134,43 @@ exports.getAllDataOfTramiteInterno = async (id_tramite) => {
     }
 }
 
+exports.reportSolicitante = async (params, dateInit, dateEnd) => {
+    let fecha_registro = {}
+    let query = Object.keys(params).map(k => {
+        if (k == 'dni') return ({ [`solicitante.${k}`]: params[k] })
+        else return ({ [`solicitante.${k}`]: new RegExp(params[k], 'i') })
+    }
+    );
+    dateInit ? Object.assign(fecha_registro, { $gte: new Date(dateInit) }) : null;
+    dateEnd ? Object.assign(fecha_registro, { $lt: new Date(dateEnd) }) : null;
+    Object.keys(fecha_registro).length > 0 ? query.push({ fecha_registro }) : null
+    const tramites = await ExternoModel.aggregate([
+        {
+            $lookup: {
+                from: "solicitantes",
+                localField: "solicitante",
+                foreignField: "_id",
+                as: "solicitante",
+            },
+        },
+        {
+            $unwind: {
+                path: "$solicitante",
+            },
+        },
+        {
+            $match: {
+                $and: query
+            },
+        },
+    ]);
+
+    if (tramites.length === 0) {
+        throw ({ status: 400, message: `No existen tramites con los parametros del solicitante ingresados` });
+    }
+    return tramites
+}
+
 exports.getReportFicha = async (alterno, group) => {
     let tramites = []
     if (group === 'externo') {
@@ -185,46 +223,17 @@ exports.getReportSearch = async (params, type) => {
     }
     return { tramites, length }
 }
-exports.reportSolicitante = async (parametros) => {
-    parametros = Object.keys(parametros).map(k => {
-        if (k == 'dni') return ({ [`solicitante.${k}`]: parametros[k] })
-        else return ({ [`solicitante.${k}`]: new RegExp(parametros[k], 'i') })
-    }
-    );
-    const tramites = await ExternoModel.aggregate([
-        {
-            $lookup: {
-                from: "solicitantes",
-                localField: "solicitante",
-                foreignField: "_id",
-                as: "solicitante",
-            },
-        },
-        {
-            $unwind: {
-                path: "$solicitante",
-            },
-        },
-        {
-            $match: {
-                $and: parametros
-            },
-        },
-    ]);
-    if (tramites.length === 0) {
-        throw ({ status: 400, message: `No existen tramites con los parametros del solicitante ingresados` });
-    }
-    return tramites
-}
+
+
 exports.reportRepresentante = async (parametros) => {
-    // convert object in array of objects for key
+
     parametros = Object
         .keys(parametros)
         .map(k => {
             if (k == 'dni') return ({ [`representante.${k}`]: parametros[k] })
             else return ({ [`representante.${k}`]: new RegExp(parametros[k], 'i') })
         });
-        console.log(parametros)
+    console.log(parametros)
     const tramites = await ExternoModel.aggregate([
         {
             $lookup: {
@@ -249,4 +258,11 @@ exports.reportRepresentante = async (parametros) => {
         throw ({ status: 404, message: `El representante con los parametros ingresados no existe` });
     }
     return tramites
+}
+
+exports.getUsersForReport = async (id_dependencia) => {
+    const users = await CuentaModel.find({ dependencia: id_dependencia, activo: true, funcionario: { $ne: null } })
+        .select('_id')
+        .populate('funcionario', 'nombre paterno materno cargo ')
+    return users
 }

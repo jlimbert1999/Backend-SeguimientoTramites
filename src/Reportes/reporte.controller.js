@@ -50,9 +50,10 @@ router.get('/busqueda/:tipo', async (req = request, res = response) => {
     }
 })
 
-router.post('/solicitante', async (req = request, res = response) => {
+router.get('/solicitante', async (req = request, res = response) => {
     try {
-        const tramites = await reporteService.reportSolicitante(req.body)
+        let { start, end, ...params } = req.query
+        const tramites = await reporteService.reportSolicitante(params, start, end)
         return res.status(200).json({
             ok: true,
             tramites
@@ -95,6 +96,18 @@ router.get('/dependencias/:id_institucion', async (req = request, res = response
         ServerErrorResponde(error, res)
     }
 })
+router.get('/users/:id_dependencia', async (req = request, res = response) => {
+    try {
+        const users = await reporteService.getUsersForReport(req.params.id_dependencia)
+        return res.status(200).json({
+            ok: true,
+            users
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 
 
 
