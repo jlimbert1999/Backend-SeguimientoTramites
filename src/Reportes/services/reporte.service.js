@@ -3,6 +3,10 @@ const InternoModel = require('../../Tramites/models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const InstitucionesModel = require('../../Configuraciones/instituciones/instituciones.model')
 const CuentaModel = require('../../Configuraciones/models/cuentas.model')
+const TypesModel = require('../../Configuraciones/models/tipos.model')
+
+
+const ObjectId = require('mongoose').Types.ObjectId
 
 exports.getAllDataOfTramiteExterno = async (id_tramite) => {
     const tramite = await ExternoModel.findById(id_tramite)
@@ -260,9 +264,107 @@ exports.reportRepresentante = async (parametros) => {
     return tramites
 }
 
+exports.getReportByUnit = async (paramsForSearch, group) => {
+    const { id_institucion, id_dependencia, id_cuenta } = paramsForSearch
+    let query = [{ 'tramite.cuenta.dependencia.institucion': ObjectId(id_institucion) }]
+    if (id_dependencia) query.unshift({ 'tramite.cuenta.dependencia._id': ObjectId(id_dependencia) })
+    if (id_cuenta) query.unshift({ 'tramite.cuenta._id': ObjectId(id_cuenta) })
+    const tramites = await SalidaModel.aggregate([
+        {
+            $project: {
+                tramite: 1,
+            }
+        },
+        {
+            $lookup: {
+                from: `${group}`,
+                localField: "tramite",
+                foreignField: "_id",
+                as: "tramite",
+            },
+        },
+        {
+            $unwind: {
+                path: "$tramite",
+            },
+        },
+        {
+            $project: {
+                'tramite.observaciones': 0,
+            }
+        },
+        {
+            $lookup: {
+                from: "cuentas",
+                localField: "tramite.cuenta",
+                foreignField: "_id",
+                as: "tramite.cuenta",
+            },
+        },
+        {
+            $unwind: {
+                path: "$tramite.cuenta",
+            },
+        },
+        {
+            $project: {
+                'tramite.cuenta.password': 0,
+                'tramite.cuenta.login': 0,
+                'tramite.cuenta.activo': 0,
+                'tramite.cuenta.rol': 0,
+                'tramite.cuenta.__v': 0,
+            }
+        },
+        {
+            $lookup: {
+                from: "dependencias",
+                localField: "tramite.cuenta.dependencia",
+                foreignField: "_id",
+                as: "tramite.cuenta.dependencia",
+            },
+        },
+        {
+            $unwind: {
+                path: "$tramite.cuenta.dependencia",
+            },
+        },
+        {
+            $project: {
+                'tramite.cuenta.dependencia.activo': 0,
+                'tramite.cuenta.dependencia.codigo': 0,
+                'tramite.cuenta.dependencia.sigla': 0,
+                'tramite.cuenta.dependencia.__v': 0,
+            }
+        },
+        {
+            $match: {
+                $and: query
+            },
+        },
+        {
+            $group: {
+                _id: "$tramite"
+            }
+        },
+        {
+            $project: {
+                tramite: "$_id",
+                _id: false
+            }
+        }
+    ])
+    return tramites
+
+}
+
 exports.getUsersForReport = async (id_dependencia) => {
     const users = await CuentaModel.find({ dependencia: id_dependencia, activo: true, funcionario: { $ne: null } })
         .select('_id')
         .populate('funcionario', 'nombre paterno materno cargo ')
     return users
+}
+exports.getTypesProceduresForReport = async (type) => {
+    const types = await TypesModel.find({ activo: true, tipo: type })
+        .select('_id nombre')
+    return types
 }

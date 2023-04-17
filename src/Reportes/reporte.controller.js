@@ -74,6 +74,21 @@ router.post('/representante', async (req = request, res = response) => {
     }
 })
 
+
+router.get('/unit/:group', async (req = request, res = response) => {
+    try {
+        const tramites = await reporteService.getReportByUnit(req.query, req.params.group)
+        return res.status(200).json({
+            ok: true,
+            tramites
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+
+// GET DATA FOR PARAMS SEARCH 
 router.get('/instituciones', async (req = request, res = response) => {
     try {
         const instituciones = await dependenciaService.getInstituciones()
@@ -102,6 +117,17 @@ router.get('/users/:id_dependencia', async (req = request, res = response) => {
         return res.status(200).json({
             ok: true,
             users
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.get('/types/:type', async (req = request, res = response) => {
+    try {
+        const types = await reporteService.getTypesProceduresForReport(req.params.type)
+        return res.status(200).json({
+            ok: true,
+            types
         })
     } catch (error) {
         ServerErrorResponde(error, res)
