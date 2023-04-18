@@ -122,6 +122,17 @@ router.get('/users/:id_dependencia', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
+router.get('/accounts/:text', async (req = request, res = response) => {
+    try {
+        const accounts = await reporteService.getAccountsByTextForReport(req.params.text)
+        return res.status(200).json({
+            ok: true,
+            accounts
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
 router.get('/types/:type', async (req = request, res = response) => {
     try {
         const types = await reporteService.getTypesProceduresForReport(req.params.type)
@@ -133,6 +144,18 @@ router.get('/types/:type', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
+router.get('/account/procedures/:id', async (req = request, res = response) => {
+    try {
+        const procedures = await reporteService.getProceduresOfAccount(req.params.id, req.query)
+        return res.status(200).json({
+            ok: true,
+            procedures
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 
 
 

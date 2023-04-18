@@ -6,10 +6,9 @@ const { ServerErrorResponde } = require('../../helpers/responses')
 
 const EntradaService = require('./services/entrada.service')
 const SalidaService = require('./services/salida.service');
-const ArchivoService = require('../Archivos/services/archivo.service')
+const archivoService = require('../Archivos/services/archivo.service')
 const entradaService = new EntradaService();
 const salidaService = new SalidaService();
-const archivoService = new ArchivoService();
 
 var fs = require("fs");
 

@@ -25,6 +25,7 @@ const RolScheme = Schema({
                     'reporte-solicitante',
                     'reporte-tipo',
                     'reporte-unidad',
+                    'reporte-usuario',
                     'busquedas',
                 ]
             },

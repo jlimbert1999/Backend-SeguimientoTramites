@@ -1,8 +1,7 @@
 const router = require('express').Router()
 const { ServerErrorResponde } = require('../../helpers/responses')
 const verifyToken = require('../../middlewares/verifyToken')
-const ArchivoService = require('./services/archivo.service')
-const archivoService = new ArchivoService()
+const archivoService = require('./services/archivo.service')
 
 
 router.get('', verifyToken, async (req = request, res = response) => {

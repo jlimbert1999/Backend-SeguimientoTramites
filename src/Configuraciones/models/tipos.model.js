@@ -7,7 +7,8 @@ const TipoTramiteScheme = Schema({
     },
     segmento: {
         type: String,
-        required: true
+        required: true,
+        uppercase: true
     },
     requerimientos: [
         {

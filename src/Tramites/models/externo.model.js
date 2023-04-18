@@ -82,7 +82,9 @@ const TramiteExternoScheme = Schema({
     },
     estado: {
         type: String,
-        required: true
+        required: true,
+        enum: ['INSCRITO', 'EN REVISION', 'OBSERVADO', 'CONCLUIDO', 'ANULADO'],
+        default: 'INSCRITO'
     },
     alterno: {
         type: String,
@@ -142,6 +144,10 @@ const TramiteExternoScheme = Schema({
             descripcion: {
                 type: String,
                 required: true
+            },
+            fecha: {
+                type: Date,
+                default: Date.now()
             }
 
         }

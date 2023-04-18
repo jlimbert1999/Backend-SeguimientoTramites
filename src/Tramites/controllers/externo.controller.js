@@ -3,13 +3,14 @@ const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
 const externoService = require('../services/externo.service')
+const archiveService = require('../../Archivos/services/archivo.service')
 
-
-router.get('/segmentos', async (req = request, res = response) => {
+router.get('/types', async (req = request, res = response) => {
     try {
-        const groups = await externoService.getGroupsTypes(req.params.segmento)
+        const types = await externoService.getTypesProcedures()
         return res.status(200).json({
-            groups
+            ok: true,
+            types
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -49,21 +50,12 @@ router.get('/search/:text', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.get('/tipos/:segmento', async (req = request, res = response) => {
-    try {
-        const tipos = await externoService.getTypes(req.params.segmento)
-        return res.status(200).json({
-            tipos
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
+
 router.post('/', async (req = request, res = response) => {
     try {
         const tramite = await externoService.add(req.id_cuenta, req.body.tramite, req.body.solicitante, req.body.representante)
         return res.status(200).json({
-            tramite
+            tramite: {}
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -71,8 +63,9 @@ router.post('/', async (req = request, res = response) => {
 })
 router.put('/:id', async (req = request, res = response) => {
     try {
-        const tramite = await externoService.edit(req.params.id, req.body.tramite, req.body.solicitante, req.body.representante)
+        const tramite = await externoService.edit(req.params.id, req.body)
         return res.status(200).json({
+            ok: true,
             tramite
         })
     } catch (error) {
@@ -98,16 +91,31 @@ router.put('/observacion/:id', async (req = request, res = response) => {
     }
 })
 
-router.put('/concluir/:id', async (req = request, res = response) => {
+
+router.put('/conclude/:id', async (req = request, res = response) => {
     try {
         let { descripcion } = req.body
-        const message = await externoService.concludeInit(req.params.id, descripcion, req.id_funcionario)
+        await externoService.concludeProcedure(req.params.id, descripcion, req.id_funcionario, req.id_dependencia)
         return res.status(200).json({
+            ok: true,
+            message: 'Tramite concluido y archivado'
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.put('/cancel/:id', async (req = request, res = response) => {
+    try {
+        const { descripcion } = req.body
+        const message = await externoService.cancelProcedure(req.params.id, req.id_funcionario, descripcion)
+        return res.status(200).json({
+            ok: true,
             message
         })
     } catch (error) {
         ServerErrorResponde(error, res)
     }
 })
+
 
 module.exports = router

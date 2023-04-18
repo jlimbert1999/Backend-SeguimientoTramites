@@ -368,3 +368,81 @@ exports.getTypesProceduresForReport = async (type) => {
         .select('_id nombre')
     return types
 }
+exports.getAccountsByTextForReport = async (text) => {
+    const regex = new RegExp(text, "i");
+    const accounts = await CuentaModel.aggregate([
+        {
+            $lookup: {
+                from: "funcionarios",
+                localField: "funcionario",
+                foreignField: "_id",
+                as: "funcionario",
+            },
+        },
+        {
+            $unwind: {
+                path: "$funcionario",
+            },
+        },
+        {
+            $project: {
+                "funcionario.nombre": 1,
+                "funcionario.paterno": 1,
+                "funcionario.materno": 1,
+                "funcionario.cargo": 1,
+                "funcionario._id": 1,
+                _id: 1,
+                activo: 1,
+            },
+        },
+        {
+            $addFields: {
+                "funcionario.fullname": {
+                    $concat: [
+                        "$funcionario.nombre",
+                        " ",
+                        { $ifNull: ["$funcionario.paterno", ""] },
+                        " ",
+                        { $ifNull: ["$funcionario.materno", ""] },
+                    ],
+                },
+            },
+        },
+        {
+            $match: {
+                $or: [
+                    { "funcionario.fullname": regex },
+                    { "funcionario.cargo": regex },
+                    { "funcionario.dni": regex },
+                ],
+                activo: true,
+            },
+        },
+        {
+            $project: {
+                activo: 0,
+            },
+        },
+        { $limit: 4 },
+    ]);
+    return accounts
+}
+exports.getProceduresOfAccount = async (id_account, params) => {
+    const { group, start, end, ...info } = params
+    let fecha_registro = {}
+    let query = { cuenta: id_account }
+
+    start ? Object.assign(fecha_registro, { $gte: new Date(start) }) : null;
+    end ? Object.assign(fecha_registro, { $lt: new Date(end) }) : null;
+    if (Object.keys(fecha_registro).length > 0) Object.assign(query, { fecha_registro })
+    Object.assign(query, info)
+    if (group === 'tramites_externos') {
+        return await ExternoModel.find(query)
+    }
+    else if (group === 'tramites_internos') {
+        return await InternoModel.find(query)
+    }
+
+    return []
+}
+
