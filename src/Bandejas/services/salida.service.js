@@ -6,59 +6,137 @@ const { default: mongoose } = require("mongoose");
 
 class SalidaService {
     async get(id_cuenta, limit, offset) {
-        offset = offset ? offset : 0;
-        limit = limit ? limit : 10;
+        offset = offset ? parseInt(offset) : 0;
+        limit = limit ? parseInt(limit) : 10;
         offset = offset * limit;
-        // const [mails, length] = await Promise.all([
-        //     SalidaModel.find({ "emisor.cuenta": id_cuenta })
-        //         .sort({ _id: -1 })
-        //         .skip(offset)
-        //         .limit(limit)
-        //         .populate({
-        //             path: "tramite",
-        //             select: "alterno estado detalle",
-        //         })
-        //         .populate({
-        //             path: "receptor.cuenta",
-        //             select: "_id",
-        //             populate: [
-        //                 {
-        //                     path: "dependencia",
-        //                     select: "nombre -_id",
-        //                     populate: {
-        //                         path: "institucion",
-        //                         select: "sigla -_id",
-        //                     },
-        //                 },
-        //             ],
-        //         })
-        //         .populate({
-        //             path: "receptor.funcionario",
-        //             select: "nombre paterno materno cargo -_id",
-        //         }),
-
-        //     SalidaModel.count({ "emisor.cuenta": id_cuenta }),
-        // ]);
-        const aux = await SalidaModel.aggregate([
+        const dataPaginated = await SalidaModel.aggregate([
             {
                 $match: {
                     "emisor.cuenta": id_cuenta
                 }
             },
             {
+                $lookup: {
+                    from: "cuentas",
+                    localField: "receptor.cuenta",
+                    foreignField: "_id",
+                    as: "receptor.cuenta",
+                },
+            },
+            {
+                $unwind: "$receptor.cuenta"
+            },
+            {
+                $project: {
+                    'receptor.cuenta.funcionario': 0,
+                    'receptor.cuenta.login': 0,
+                    'receptor.cuenta.password': 0,
+                    'receptor.cuenta.rol': 0,
+                    'receptor.cuenta.activo': 0,
+                    'receptor.cuenta.__v': 0,
+                }
+            },
+            {
+                $lookup: {
+                    from: "funcionarios",
+                    localField: "receptor.funcionario",
+                    foreignField: "_id",
+                    as: "receptor.funcionario",
+                },
+            },
+            {
+                $unwind: "$receptor.funcionario"
+            },
+            {
+                $project: {
+                    'receptor.funcionario.activo': 0,
+                    'receptor.funcionario._id': 0,
+                    'receptor.funcionario.__v': 0,
+                    'receptor.funcionario.cuenta': 0,
+                    'receptor.funcionario.direccion': 0,
+                    'receptor.funcionario.dni': 0,
+                    'receptor.funcionario.telefono': 0,
+                }
+            },
+            {
+                $lookup: {
+                    from: "dependencias",
+                    localField: "receptor.cuenta.dependencia",
+                    foreignField: "_id",
+                    as: "receptor.cuenta.dependencia",
+                },
+            },
+            {
+                $unwind: "$receptor.cuenta.dependencia"
+            },
+            {
+                $project: {
+                    'receptor.cuenta.dependencia.activo': 0,
+                    'receptor.cuenta.dependencia.sigla': 0,
+                    'receptor.cuenta.dependencia.codigo': 0,
+                    'receptor.cuenta.dependencia._id': 0,
+                    'receptor.cuenta.dependencia.__v': 0,
+                }
+            },
+            {
+                $lookup: {
+                    from: "instituciones",
+                    localField: "receptor.cuenta.dependencia.institucion",
+                    foreignField: "_id",
+                    as: "receptor.cuenta.dependencia.institucion",
+                },
+            },
+            {
+                $unwind: "$receptor.cuenta.dependencia.institucion"
+            },
+            {
+                $project: {
+                    'receptor.cuenta.dependencia.institucion.sigla': 0,
+                    'receptor.cuenta.dependencia.institucion.activo': 0,
+                    'receptor.cuenta.dependencia.institucion._id': 0,
+                    'receptor.cuenta.dependencia.institucion.__v': 0,
+                }
+            },
+            {
                 $group: {
-                    _id:{
-                        'tramite':'$tramite',
-                        'fecha_envio':'$fecha_envio'
+                    _id: {
+                        'cuenta': '$emisor.cuenta',
+                        'tramite': '$tramite',
+                        'tipo': '$tipo',
+                        'fecha_envio': '$fecha_envio'
                     },
                     envios: { $push: "$$ROOT" }
                 }
             },
+            { $sort: { _id: -1 } },
+            {
+                $facet: {
+                    paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                    totalCount: [
+                        {
+                            $count: 'count'
+                        }
+                    ]
+                }
+            },
         ])
-        await SalidaModel.populate(aux, 'emisor.funcionario')
-        console.log(aux)
-
-        return { mails: [], length: 0 }
+        let mails = dataPaginated[0].paginatedResults
+        for (const [i, mail] of Object.entries(mails)) {
+            let procedure
+            if (mail._id.tipo === 'tramites_externos') {
+                procedure = await ExternoModel.findById(mail._id.tramite)
+                    .select('alterno estado')
+                    .populate('tipo_tramite', 'nombre -_id')
+            }
+            else if (mail._id.tipo === 'tramites_internos') {
+                procedure = await InternoModel.findById(mail._id.tramite)
+                    .select('alterno estado')
+                    .populate('tipo_tramite', 'nombre -_id')
+            }
+            mails[i]._id.tramite = procedure
+        }
+        const length = dataPaginated[0].totalCount[0] ? dataPaginated[0].totalCount[0].count : 0
+        return { mails, length }
     }
 
 

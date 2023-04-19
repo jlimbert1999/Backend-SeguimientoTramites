@@ -1,7 +1,7 @@
 const router = require('express').Router()
 const { request, response } = require('express');
 
-const  verifyToken  = require('../../middlewares/verifyToken');
+const verifyToken = require('../../middlewares/verifyToken');
 const { ServerErrorResponde } = require('../../helpers/responses')
 
 const EntradaService = require('./services/entrada.service')
@@ -130,15 +130,9 @@ router.get('/salida/search/:type', verifyToken, async (req = request, res = resp
 // CONTROL DE FLUJO
 router.put('/aceptar/:id', verifyToken, async (req = request, res = response) => {
     try {
-        const { image } = req.body
-        var base64Data = image.replace(/^data:image\/png;base64,/, "");
-
-        fs.writeFile("firma.png", base64Data, 'base64', function (err) {
-            console.log(err);
-        });
-
+        await entradaService.acept(req.params.id)
         return res.status(200).json({
-            message: 'se subio'
+            message: 'Tramite aceptado'
         })
     } catch (error) {
         ServerErrorResponde(error, res)

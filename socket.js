@@ -29,10 +29,12 @@ function startSocketServer(server) {
         })
         client.on('mail', data => {
             data.forEach(mail => {
-                const socketIds = Group.getUser(mail.receptor.cuenta)
-                socketIds.forEach(id_socket => {
-                    client.to(id_socket.toString()).emit('newmail', mail)
-                });
+                const user = Group.getUser(mail.receptor.cuenta)
+                if (user) {
+                    user.socketIds.forEach(id_socket => {
+                        client.to(id_socket.toString()).emit('newmail', mail)
+                    });
+                }
             })
         })
         client.on('expel', data => {

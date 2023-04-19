@@ -105,6 +105,25 @@ const getmenuFrontend = (resources) => {
           },
         )
         break;
+      case 'archivos':
+        menu.push(
+          {
+            text: "Archivos",
+            icon: "file_copy",
+            routerLink: "archivos",
+          },
+        )
+        break;
+      case 'busquedas':
+        menu.push(
+          {
+            text: "Busquedas",
+            icon: "search",
+            routerLink: "reportes/busquedas",
+          },
+        )
+        break;
+       
       default:
         break;
     }
@@ -116,6 +135,8 @@ const getmenuFrontend = (resources) => {
       routerLink: "reportes",
     })
     : ''
+
+  menu = menu.filter(resource => !resource.children || resource.children.length > 0)
   return menu
 }
 module.exports = getmenuFrontend

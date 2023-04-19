@@ -58,7 +58,6 @@ class EntradaService {
             },
             { recibido: true, fecha_recibido: new Date() }
         );
-        return 'Tramite aceptado'
     }
 
     async decline(id_bandeja, motivo_rechazo) {
@@ -297,23 +296,22 @@ class EntradaService {
     async conclude(id_bandeja, funcionario, descripcion) {
         const mail = await EntradaModel.findByIdAndDelete(id_bandeja)
         let processActive = await EntradaModel.findOne({ tramite: mail.tramite })
-        let extraUpdate
-        if (!processActive) {
-            extraUpdate = {
-                estado: 'CONCLUIDO', fecha_finalizacion: new Date()
+        let query = {
+            $push: {
+                eventos: {
+                    funcionario, descripcion: `Ha concluido el tramite por: ${descripcion}`
+                }
             }
+        }
+        if (!processActive) {
+            Object.assign(query, {
+                estado: 'CONCLUIDO', fecha_finalizacion: new Date()
+            })
         }
         switch (mail.tipo) {
             case 'tramites_externos':
                 await ExternoModel.findByIdAndUpdate(mail.tramite,
-                    {
-                        extraUpdate,
-                        $push: {
-                            eventos: {
-                                funcionario, descripcion: `Ha concluido el tramite por: ${descripcion}`
-                            }
-                        }
-                    }
+                    query
                 )
                 break;
             case 'tramites_internos':
@@ -331,18 +329,16 @@ class EntradaService {
         let data
         if (type === 'EXTERNO') {
             data = await EntradaModel.aggregate([
-                // {
-                //     $match: {
-                //         tipo: 'tramites_externos'
-                //     },
-                // },
+                {
+                    $match: {
+                        tipo: 'tramites_externos'
+                    },
+                },
                 {
                     $lookup: {
-                        from: 'placeholder',
-                        // from: "tramites_externos",
+                        from: 'tramites_externos',
                         localField: "tramite",
                         foreignField: "_id",
-                        refPath: "tipo",
                         as: "tramite",
                     },
                 },

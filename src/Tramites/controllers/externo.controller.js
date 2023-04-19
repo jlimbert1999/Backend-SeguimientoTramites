@@ -30,9 +30,10 @@ router.get('/', async (req = request, res = response) => {
 })
 router.get('/:id', async (req = request, res = response) => {
     try {
-        const { tramite, workflow } = await externoService.getOne(req.params.id)
+        const { tramite, workflow, location } = await externoService.getOne(req.params.id)
         return res.status(200).json({
             tramite,
+            location,
             workflow
         })
     } catch (error) {

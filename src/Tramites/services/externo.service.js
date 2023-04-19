@@ -4,6 +4,7 @@ const SalidaModel = require('../../Bandejas/models/salida.model')
 const TiposModel = require('../../Configuraciones/models/tipos.model')
 const { default: mongoose } = require('mongoose')
 const archivoService = require('../../Archivos/services/archivo.service')
+const EntradaModel = require('../../Bandejas/models/entrada.model')
 
 
 exports.getTypesProcedures = async () => {
@@ -31,11 +32,12 @@ exports.get = async (id_cuenta, limit, offset) => {
     return { tramites, total }
 }
 exports.getOne = async (id_tramite) => {
-    const [tramite, workflow] = await Promise.all([
+    const [tramite, location, workflow] = await Promise.all([
         getProcedure(id_tramite),
+        getLocation(id_tramite),
         getWorkflow(id_tramite)
     ])
-    return { tramite, workflow }
+    return { tramite, workflow, location }
 }
 exports.search = async (text, limit, offset, id_cuenta) => {
     const regex = new RegExp(text, 'i')
@@ -212,48 +214,40 @@ const addLeadingZeros = (num, totalLength) => {
     return String(num).padStart(totalLength, '0');
 }
 const getWorkflow = async (id_tramite) => {
-    // return await SalidaModel.find({ tramite: id_tramite }).select('-_id -__v')
-    //     .populate({
-    //         path: 'emisor.cuenta',
-    //         select: '_id',
-    //         populate: {
-    //             path: 'dependencia',
-    //             select: 'nombre',
-    //             populate: {
-    //                 path: 'institucion',
-    //                 select: 'sigla'
-    //             }
-    //         }
-    //     })
-    //     .populate({
-    //         path: 'emisor.funcionario',
-    //         select: '-_id nombre paterno materno cargo',
-    //     })
-    //     .populate({
-    //         path: 'receptor.cuenta',
-    //         select: '_id',
-    //         populate: {
-    //             path: 'dependencia',
-    //             select: 'nombre',
-    //             populate: {
-    //                 path: 'institucion',
-    //                 select: 'sigla'
-    //             }
-    //         }
-    //     })
-    //     .populate({
-    //         path: 'receptor.funcionario',
-    //         select: '-_id nombre paterno materno cargo',
-    //     })
-    const aux = await SalidaModel.aggregate([
-        {
-            $match: {
-                tramite: id_tramite
+    return await SalidaModel.find({ tramite: id_tramite }).select('-_id -__v')
+        .populate({
+            path: 'emisor.cuenta',
+            select: '_id',
+            populate: {
+                path: 'dependencia',
+                select: 'nombre',
+                populate: {
+                    path: 'institucion',
+                    select: 'sigla'
+                }
             }
-        }
-    ])
-
-    return []
+        })
+        .populate({
+            path: 'emisor.funcionario',
+            select: '-_id nombre paterno materno cargo',
+        })
+        .populate({
+            path: 'receptor.cuenta',
+            select: '_id',
+            populate: {
+                path: 'dependencia',
+                select: 'nombre',
+                populate: {
+                    path: 'institucion',
+                    select: 'sigla'
+                }
+            }
+        })
+        .populate({
+            path: 'receptor.funcionario',
+            select: '-_id nombre paterno materno cargo',
+        })
+  
 }
 const getProcedure = async (id_tramite) => {
     const procedure = await ExternoModel.findById(id_tramite)
@@ -261,6 +255,54 @@ const getProcedure = async (id_tramite) => {
         .populate('representante', '-_id -__v')
         .populate('tipo_tramite', 'nombre -_id')
         .populate('eventos.funcionario', 'nombre paterno materno -_id')
+        .populate({
+            path: 'cuenta',
+            select: '_id',
+            populate: {
+                path: 'funcionario',
+                select: 'nombre paterno materno cargo -_id',
+            }
+        })
     if (!procedure) throw ({ status: 400, message: 'El tramite no existe' });
     return procedure
+}
+
+const getLocation = async (id_tramite) => {
+    let location = await EntradaModel.find({ tramite: id_tramite })
+        .select('receptor.cuenta -_id')
+        .populate({
+            path: 'receptor.cuenta',
+            select: 'dependencia funcionario -_id',
+            populate: [
+                {
+                    path: 'funcionario',
+                    select: 'nombre paterno materno cargo -_id'
+                },
+                {
+                    path: 'dependencia',
+                    select: 'nombre -_id'
+                }
+            ]
+        })
+    if (location.length === 0) {
+        location = await ExternoModel.findById(id_tramite)
+            .select('cuenta -_id').populate({
+                path: 'cuenta',
+                select: 'funcionario dependencia -_id',
+                populate: [
+                    {
+                        path: 'funcionario',
+                        select: 'nombre paterno materno cargo -_id'
+                    },
+                    {
+                        path: 'dependencia',
+                        select: 'nombre -_id'
+                    }
+                ]
+            })
+        return [location]
+    }
+    location = location.map(element => element.receptor)
+    return location
+
 }
