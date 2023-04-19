@@ -107,10 +107,10 @@ router.put('/conclude/:id', async (req = request, res = response) => {
 router.put('/cancel/:id', async (req = request, res = response) => {
     try {
         const { descripcion } = req.body
-        const message = await externoService.cancelProcedure(req.params.id, req.id_funcionario, descripcion)
+        await externoService.cancelProcedure(req.params.id, req.id_funcionario, descripcion)
         return res.status(200).json({
             ok: true,
-            message
+            message:'Tramite anulado'
         })
     } catch (error) {
         ServerErrorResponde(error, res)

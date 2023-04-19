@@ -9,37 +9,56 @@ class SalidaService {
         offset = offset ? offset : 0;
         limit = limit ? limit : 10;
         offset = offset * limit;
-        const [mails, length] = await Promise.all([
-            SalidaModel.find({ "emisor.cuenta": id_cuenta })
-                .sort({ _id: -1 })
-                .skip(offset)
-                .limit(limit)
-                .populate({
-                    path: "tramite",
-                    select: "alterno estado detalle",
-                })
-                .populate({
-                    path: "receptor.cuenta",
-                    select: "_id",
-                    populate: [
-                        {
-                            path: "dependencia",
-                            select: "nombre -_id",
-                            populate: {
-                                path: "institucion",
-                                select: "sigla -_id",
-                            },
-                        },
-                    ],
-                })
-                .populate({
-                    path: "receptor.funcionario",
-                    select: "nombre paterno materno cargo -_id",
-                }),
+        // const [mails, length] = await Promise.all([
+        //     SalidaModel.find({ "emisor.cuenta": id_cuenta })
+        //         .sort({ _id: -1 })
+        //         .skip(offset)
+        //         .limit(limit)
+        //         .populate({
+        //             path: "tramite",
+        //             select: "alterno estado detalle",
+        //         })
+        //         .populate({
+        //             path: "receptor.cuenta",
+        //             select: "_id",
+        //             populate: [
+        //                 {
+        //                     path: "dependencia",
+        //                     select: "nombre -_id",
+        //                     populate: {
+        //                         path: "institucion",
+        //                         select: "sigla -_id",
+        //                     },
+        //                 },
+        //             ],
+        //         })
+        //         .populate({
+        //             path: "receptor.funcionario",
+        //             select: "nombre paterno materno cargo -_id",
+        //         }),
 
-            SalidaModel.count({ "emisor.cuenta": id_cuenta }),
-        ]);
-        return { mails, length }
+        //     SalidaModel.count({ "emisor.cuenta": id_cuenta }),
+        // ]);
+        const aux = await SalidaModel.aggregate([
+            {
+                $match: {
+                    "emisor.cuenta": id_cuenta
+                }
+            },
+            {
+                $group: {
+                    _id:{
+                        'tramite':'$tramite',
+                        'fecha_envio':'$fecha_envio'
+                    },
+                    envios: { $push: "$$ROOT" }
+                }
+            },
+        ])
+        await SalidaModel.populate(aux, 'emisor.funcionario')
+        console.log(aux)
+
+        return { mails: [], length: 0 }
     }
 
 
