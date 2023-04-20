@@ -247,7 +247,7 @@ const getWorkflow = async (id_tramite) => {
             path: 'receptor.funcionario',
             select: '-_id nombre paterno materno cargo',
         })
-  
+
 }
 const getProcedure = async (id_tramite) => {
     const procedure = await ExternoModel.findById(id_tramite)

@@ -25,6 +25,9 @@ const RolController = require('./src/Configuraciones/controllers/roles.controlle
 const ExternoController = require('./src/Tramites/controllers/externo.controller')
 const InternoController = require('./src/Tramites/controllers/interno.controller')
 
+const EntradaController = require('./src/Bandejas/controllers/entrada.controller')
+const SalidaController = require('./src/Bandejas/controllers/salida.controller')
+
 const verifyRole = require('./middlewares/verifyRole')
 const verifyToken = require('./middlewares/verifyToken')
 
@@ -47,6 +50,8 @@ router.use('/configuraciones', [verifyToken, verifyRole('roles')], RolController
 router.use('/externos', [verifyToken], ExternoController)
 router.use('/internos', [verifyToken, verifyRole('internos')], InternoController)
 
+router.use('/entradas', [verifyToken], EntradaController)
+router.use('/salidas', [verifyToken], SalidaController)
 // router.use('/tramites', ExternoController)
 router.use('/bandejas', BandejaController)
 router.use('/archivos', ArchivoController)
