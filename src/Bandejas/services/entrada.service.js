@@ -4,6 +4,8 @@ const { ExternoModel } = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const CuentaModel = require("../../Configuraciones/models/cuentas.model");
 const { default: mongoose } = require("mongoose");
+const { getOne: getProcedureExternal } = require('../../Tramites/services/externo.service')
+const { getOne: getProcedureInternal } = require('../../Tramites/services/interno.service')
 
 exports.get = async (id_cuenta, limit, offset) => {
     offset = offset ? parseInt(offset) : 0;
@@ -108,94 +110,53 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
     ])
     return MailsDB
 }
-exports.search = async (id_cuenta, text, type, offset, limit) => {
+exports.search = async (id_cuenta, text, group, offset, limit) => {
     offset = offset ? parseInt(offset) : 0;
     limit = limit ? parseInt(limit) : 10;
     offset = offset * limit;
     const regex = new RegExp(text, "i");
     let data
-    if (type === 'EXTERNO') {
-        data = await EntradaModel.aggregate([
-            {
-                $match: {
-                    tipo: 'tramites_externos'
-                },
+    group = group === 'EXTERNO' ? 'tramites_externos' : 'tramites_internos'
+    data = await EntradaModel.aggregate([
+        {
+            $match: {
+                tipo: group
             },
-            {
-                $lookup: {
-                    from: 'tramites_externos',
-                    localField: "tramite",
-                    foreignField: "_id",
-                    as: "tramite",
-                },
+        },
+        {
+            $lookup: {
+                from: group,
+                localField: "tramite",
+                foreignField: "_id",
+                as: "tramite",
             },
-            {
-                $unwind: "$tramite"
+        },
+        {
+            $unwind: "$tramite"
+        },
+        {
+            $match: {
+                'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
+                $or: [
+                    { "tramite.alterno": regex },
+                    { "tramite.detalle": regex },
+                    { motivo: regex },
+                    { numero_interno: regex },
+                ]
             },
-            {
-                $match: {
-                    'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
-                    $or: [
-                        { "tramite.alterno": regex },
-                        { "tramite.detalle": regex },
-                        { motivo: regex },
-                        { numero_interno: regex },
-                    ]
-                },
-            },
-            {
-                $facet: {
-                    paginatedResults: [{ $skip: offset }, { $limit: limit }],
-                    totalCount: [
-                        {
-                            $count: 'count'
-                        }
-                    ]
-                }
+        },
+        {
+            $facet: {
+                paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                totalCount: [
+                    {
+                        $count: 'count'
+                    }
+                ]
             }
-        ]);
-    }
-    else if (type === 'INTERNO') {
-        data = await EntradaModel.aggregate([
-            {
-                $match: {
-                    tipo: 'tramites_internos'
-                },
-            },
-            {
-                $lookup: {
-                    from: "tramites_internos",
-                    localField: "tramite",
-                    foreignField: "_id",
-                    as: "tramite",
-                },
-            },
-            {
-                $unwind: "$tramite"
-            },
-            {
-                $match: {
-                    'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
-                    $or: [
-                        { "tramite.alterno": regex },
-                        { "tramite.detalle": regex },
-                        { motivo: regex },
-                        { numero_interno: regex },
-                    ]
-                },
-            },
-            {
-                $facet: {
-                    paginatedResults: [{ $skip: offset }, { $limit: limit }],
-                    totalCount: [
-                        {
-                            $count: 'count'
-                        }
-                    ]
-                }
-            }
-        ]);
-    }
+        }
+    ]);
+
     await EntradaModel.populate(data[0].paginatedResults, [
         {
             path: "emisor.cuenta",
@@ -307,7 +268,7 @@ exports.concludeProcedure = async (id_bandeja, funcionario, descripcion) => {
 exports.aceptProcedure = async (id_bandeja) => {
     const mail = await EntradaModel.findByIdAndUpdate(id_bandeja, {
         recibido: true,
-    });
+    }, { new: true });
     if (!mail) throw ({ status: 400, message: `El envio de este tramite ha sido cancelado` });
     await SalidaModel.findOneAndUpdate(
         {
@@ -388,8 +349,16 @@ exports.declineProcedure = async (id_bandeja, motivo_rechazo) => {
     }
     return 'Tramite rechazado'
 }
-const getDetailsOfMail = async (id_bandeja) => {
-    const details = await EntradaModel.findById(id_bandeja)
+exports.getDetailsOfMail = async (id_bandeja) => {
+    const imbox = await getOne(id_bandeja)
+    const allDataProcedure = imbox.tipo === 'tramites_externos'
+        ? await getProcedureExternal(imbox.tramite)
+        : await getProcedureInternal(imbox.tramite)
+    return { imbox, allDataProcedure }
+}
+
+const getOne = async (id_bandeja) => {
+    const imbox = await EntradaModel.findById(id_bandeja)
         .select("cantidad fecha_envio motivo recibido tramite tipo")
         .populate({
             path: "emisor.cuenta",
@@ -412,5 +381,7 @@ const getDetailsOfMail = async (id_bandeja) => {
             path: "emisor.funcionario",
             select: "nombre paterno materno cargo -_id",
         });
-    return details
+    if (!imbox) throw ({ status: 404, message: `El envio de este tramite ha sido cancelado` });
+    return imbox
 }
+

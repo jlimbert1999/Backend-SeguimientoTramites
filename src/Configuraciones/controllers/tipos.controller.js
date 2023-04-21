@@ -3,8 +3,7 @@ const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
 
-const TipoService = require('../services/tipos.service')
-const tipoService = new TipoService()
+const tipoService = require('../services/tipos.service')
 
 
 router.post('/tipos',  async (req = request, res = response) => {

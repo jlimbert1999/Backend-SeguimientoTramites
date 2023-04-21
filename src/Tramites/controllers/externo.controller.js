@@ -3,11 +3,11 @@ const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
 const externoService = require('../services/externo.service')
-const archiveService = require('../../Archivos/services/archivo.service')
+const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
 
 router.get('/types', async (req = request, res = response) => {
     try {
-        const types = await externoService.getTypesProcedures()
+        const types = await getProceduresTypesForRegister('EXTERNO')
         return res.status(200).json({
             ok: true,
             types
@@ -75,17 +75,11 @@ router.put('/:id', async (req = request, res = response) => {
 })
 router.put('/observacion/:id', async (req = request, res = response) => {
     try {
-        if (!req.params.id) {
-            return res.status(400).json({
-                ok: false,
-                message: 'Parametro incorrecto para el registro de observacion'
-            })
-        }
-        let { descripcion, funcionario } = req.body
-        const observaciones = await externoService.addObservacion(req.params.id, descripcion, funcionario, req.id_cuenta)
+        const data = req.body
+        const observations = await externoService.addObservacion(req.params.id, { cuenta: req.id_cuenta, ...data })
         return res.status(200).json({
             ok: true,
-            observaciones
+            observations
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -111,7 +105,7 @@ router.put('/cancel/:id', async (req = request, res = response) => {
         await externoService.cancelProcedure(req.params.id, req.id_funcionario, descripcion)
         return res.status(200).json({
             ok: true,
-            message:'Tramite anulado'
+            message: 'Tramite anulado'
         })
     } catch (error) {
         ServerErrorResponde(error, res)

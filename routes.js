@@ -10,7 +10,6 @@ const ConsultaRouter = require('./src/Consulta/consulta.router')
 
 const PerfilRouter = require('./src/Configuraciones/perfil/perfil.router')
 
-const BandejaController = require('./src/Bandejas/bandejas.controller')
 const ArchivoController = require('./src/Archivos/archivo.controller')
 const ReporteController = require('./src/Reportes/reporte.controller')
 const AuthController = require('./src/Auth/auth.controller')
@@ -47,13 +46,11 @@ router.use('/dependencias', [verifyToken, verifyRole('dependencias')], Dependenc
 router.use('/funcionarios', [verifyToken, verifyRole('usuarios')], FuncionarioController)
 router.use('/configuraciones', [verifyToken, verifyRole('tipos')], TipoController)
 router.use('/configuraciones', [verifyToken, verifyRole('roles')], RolController)
-router.use('/externos', [verifyToken], ExternoController)
+router.use('/externos', [verifyToken, verifyRole('externos')], ExternoController)
 router.use('/internos', [verifyToken, verifyRole('internos')], InternoController)
 
-router.use('/entradas', [verifyToken], EntradaController)
-router.use('/salidas', [verifyToken], SalidaController)
-// router.use('/tramites', ExternoController)
-router.use('/bandejas', BandejaController)
+router.use('/entradas', [verifyToken, verifyRole('entradas')], EntradaController)
+router.use('/salidas', [verifyToken], verifyRole('salidas'), SalidaController)
 router.use('/archivos', ArchivoController)
 router.use('/reportes', ReporteController)
 

@@ -3,13 +3,14 @@ const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
 const internoService = require('../services/interno.service')
+const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
 
-router.get('/tipos',  async (req = request, res = response) => {
+router.get('/tipos', async (req = request, res = response) => {
     try {
-        const tipos = await internoService.getTypes()
+        const typesProcedures = await getProceduresTypesForRegister('INTERNO')
         return res.status(200).json({
             ok: true,
-            tipos
+            typesProcedures
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -28,19 +29,20 @@ router.get('/', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.get('/:id',  async (req = request, res = response) => {
+router.get('/:id', async (req = request, res = response) => {
     try {
-        const { tramite, workflow } = await internoService.getOne(req.params.id)
+        const { tramite, workflow, location } = await internoService.getOne(req.params.id)
         return res.status(200).json({
             tramite,
-            workflow
+            workflow,
+            location
         })
     } catch (error) {
         ServerErrorResponde(error, res)
     }
 })
 
-router.post('/',  async (req = request, res = response) => {
+router.post('/', async (req = request, res = response) => {
     try {
         const tramite = await internoService.add(req.body, req.id_cuenta)
         return res.status(200).json({
@@ -50,7 +52,7 @@ router.post('/',  async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.put('/:id',  async (req = request, res = response) => {
+router.put('/:id', async (req = request, res = response) => {
     try {
         const tramite = await internoService.edit(req.params.id, req.body)
         return res.status(200).json({
@@ -61,7 +63,7 @@ router.put('/:id',  async (req = request, res = response) => {
     }
 })
 
-router.get('/usuarios/:text',  async (req = request, res = response) => {
+router.get('/usuarios/:text', async (req = request, res = response) => {
     try {
         const users = await internoService.getUsers(req.params.text)
         return res.status(200).json({
@@ -72,7 +74,7 @@ router.get('/usuarios/:text',  async (req = request, res = response) => {
     }
 })
 
-router.get('/search/:text',  async (req = request, res = response) => {
+router.get('/search/:text', async (req = request, res = response) => {
     try {
         const { tramites, length } = await internoService.search(req.id_cuenta, req.query.limit, req.query.offset, req.params.text)
         return res.status(200).json({

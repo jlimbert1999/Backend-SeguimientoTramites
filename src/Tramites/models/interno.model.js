@@ -11,7 +11,9 @@ const TramiteInternoScheme = Schema({
     },
     estado: {
         type: String,
-        required: true
+        required: true,
+        enum: ['INSCRITO', 'EN REVISION', 'OBSERVADO', 'CONCLUIDO', 'ANULADO'],
+        default: 'INSCRITO'
     },
     cuenta: {
         type: Schema.Types.ObjectId,

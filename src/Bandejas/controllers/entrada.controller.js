@@ -7,7 +7,7 @@ const archivoService = require('../../Archivos/services/archivo.service')
 
 
 // ENTRADAS
-router.get('/',  async (req = request, res = response) => {
+router.get('/', async (req = request, res = response) => {
     try {
         const { limit, offset } = req.query
         const { mails, length } = await entradaService.get(req.id_cuenta, limit, offset)
@@ -19,7 +19,7 @@ router.get('/',  async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.post('/',  async (req = request, res = response) => {
+router.post('/', async (req = request, res = response) => {
     try {
         let { receptores, ...data } = req.body
         const MailsDB = await entradaService.add(receptores, data, req.id_cuenta, req.id_funcionario)
@@ -30,7 +30,7 @@ router.post('/',  async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.get('/users/:text',  async (req = request, res = response) => {
+router.get('/users/:text', async (req = request, res = response) => {
     try {
         const cuentas = await entradaService.searchAccountsForSend(req.params.text, req.id_cuenta)
         return res.status(200).json({
@@ -41,24 +41,19 @@ router.get('/users/:text',  async (req = request, res = response) => {
     }
 })
 
-router.get('/detalles/:id',  async (req = request, res = response) => {
+router.get('/:id', async (req = request, res = response) => {
     try {
-        if (!req.params.id) {
-            return res.status(400).json({
-                ok: false,
-                message: 'Parametro para la bandeja de entrada incorrecto'
-            })
-        }
-        const details = await entradaService.getDatails(req.params.id)
+        const { imbox, allDataProcedure } = await entradaService.getDetailsOfMail(req.params.id)
         return res.status(200).json({
             ok: true,
-            details
+            imbox,
+            allDataProcedure
         })
     } catch (error) {
         ServerErrorResponde(error, res)
     }
 })
-router.get('/search/:type',  async (req = request, res = response) => {
+router.get('/search/:type', async (req = request, res = response) => {
     try {
         if (!req.params.type) {
             return res.status(400).json({
@@ -80,7 +75,7 @@ router.get('/search/:type',  async (req = request, res = response) => {
 
 
 // CONTROL DE FLUJO
-router.put('/aceptar/:id',  async (req = request, res = response) => {
+router.put('/aceptar/:id', async (req = request, res = response) => {
     try {
         await entradaService.acept(req.params.id)
         return res.status(200).json({
@@ -90,7 +85,7 @@ router.put('/aceptar/:id',  async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.put('/rechazar/:id',  async (req = request, res = response) => {
+router.put('/rechazar/:id', async (req = request, res = response) => {
     try {
         let { motivo_rechazo } = req.body
         const message = await entradaService.decline(req.params.id, motivo_rechazo)
@@ -102,7 +97,7 @@ router.put('/rechazar/:id',  async (req = request, res = response) => {
     }
 })
 
-router.put('/concluir/:id',  async (req = request, res = response) => {
+router.put('/concluir/:id', async (req = request, res = response) => {
     try {
         let { descripcion } = req.body
         const mail = await entradaService.conclude(req.params.id, req.id_funcionario, descripcion)

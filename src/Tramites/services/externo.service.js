@@ -1,19 +1,10 @@
 require('dotenv').config()
 const { ExternoModel, SolicitanteModel, RepresentanteModel } = require('../models/externo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
-const TiposModel = require('../../Configuraciones/models/tipos.model')
 const { default: mongoose } = require('mongoose')
 const archivoService = require('../../Archivos/services/archivo.service')
 const EntradaModel = require('../../Bandejas/models/entrada.model')
 
-
-exports.getTypesProcedures = async () => {
-    let types = await TiposModel.find({ activo: true, tipo: 'EXTERNO' }).select('nombre segmento requerimientos')
-    types.forEach((element, i) => {
-        types[i].requerimientos = element.requerimientos.filter(requerimiento => requerimiento.activo === true)
-    })
-    return types
-}
 
 exports.get = async (id_cuenta, limit, offset) => {
     offset = parseInt(offset) ? offset : 0
@@ -166,26 +157,15 @@ exports.edit = async (id_tramite, updateData) => {
 
 }
 
-exports.addObservacion = async (id_tramite, descripcion, funcionario, id_cuenta) => {
-    const tramitedb = await ExternoModel.findById(id_tramite)
-    if (!tramitedb) {
-        throw ({ status: 400, message: 'El tramite para observar no existe' });
-    }
-    if (tramitedb.estado === 'CONCLUIDO') {
-        throw ({ status: 400, message: 'El tramite ya ha sido concluido' });
-    }
-    let observacion = {
-        id_cuenta,
-        funcionario,
-        descripcion
-    }
-    const data = await ExternoModel.findByIdAndUpdate(id_tramite, {
+exports.addObservacion = async (id_tramite, observation) => {
+    const procedure = await getProcedure(id_tramite)
+    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ha sido ${procedure.estado}` });
+    return await ExternoModel.findByIdAndUpdate(id_tramite, {
         $push: {
-            observaciones: observacion
+            observaciones: observation
         },
         estado: 'OBSERVADO'
-    }, { new: true }).select('observaciones estado -_id')
-    return data
+    }, { new: true }).select('observaciones -_id')
 }
 exports.concludeProcedure = async (id_tramite, descripcion, id_funcionario, id_dependencia) => {
     const procedure = await getProcedure(id_tramite)
