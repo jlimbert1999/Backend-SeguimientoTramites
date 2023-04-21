@@ -90,7 +90,7 @@ router.put('/observacion/:id', async (req = request, res = response) => {
 router.put('/conclude/:id', async (req = request, res = response) => {
     try {
         let { descripcion } = req.body
-        await externoService.concludeProcedure(req.params.id, descripcion, req.id_funcionario, req.id_dependencia)
+        await externoService.concludeProcedure(req.params.id, descripcion, req.id_funcionario)
         return res.status(200).json({
             ok: true,
             message: 'Tramite concluido y archivado'

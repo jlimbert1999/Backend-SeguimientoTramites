@@ -71,15 +71,12 @@ router.get('/search/:type', async (req = request, res = response) => {
     }
 })
 
-
-
-
-// CONTROL DE FLUJO
 router.put('/aceptar/:id', async (req = request, res = response) => {
     try {
-        await entradaService.acept(req.params.id)
+        await entradaService.aceptProcedure(req.params.id)
         return res.status(200).json({
-            message: 'Tramite aceptado'
+            ok: true,
+            message: 'Tramite aceptado correctamente'
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -88,9 +85,10 @@ router.put('/aceptar/:id', async (req = request, res = response) => {
 router.put('/rechazar/:id', async (req = request, res = response) => {
     try {
         let { motivo_rechazo } = req.body
-        const message = await entradaService.decline(req.params.id, motivo_rechazo)
+        await entradaService.declineProcedure(req.params.id, motivo_rechazo)
         return res.status(200).json({
-            message
+            ok: true,
+            message: 'El tramite ha sido rechazado'
         })
     } catch (error) {
         ServerErrorResponde(error, res)

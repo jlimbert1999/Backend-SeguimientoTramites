@@ -1,34 +1,34 @@
 const { Schema, model } = require('mongoose')
 
 const ArchivoScheme = Schema({
-    dependencia: {
-        type: Schema.Types.ObjectId,
-        ref: 'dependencias'
-    },
     location: {
         type: String
     },
-    tramite: {
+    procedure: {
         type: Schema.Types.ObjectId,
         required: true,
-        refPath: 'tipo'
+        refPath: 'group'
     },
-    tipo: {
+    group: {
         type: String,
         required: true,
         enum: ['tramites_externos', 'tramites_internos']
     },
-    fecha: {
-        type: Date,
-        default: Date.now(),
+    account: {
+        type: Schema.Types.ObjectId,
+        ref: 'cuentas'
     },
-    funcionario: {
+    officer: {
         type: Schema.Types.ObjectId,
         ref: 'funcionarios'
     },
-    descripcion: {
+    description: {
         type: String,
         required: true
+    },
+    date: {
+        type: Date,
+        default: Date.now(),
     },
 })
 ArchivoScheme.method('toJSON', function () {

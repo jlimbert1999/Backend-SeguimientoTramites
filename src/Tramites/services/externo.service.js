@@ -2,7 +2,7 @@ require('dotenv').config()
 const { ExternoModel, SolicitanteModel, RepresentanteModel } = require('../models/externo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const { default: mongoose } = require('mongoose')
-const archivoService = require('../../Archivos/services/archivo.service')
+const { archiveProcedure } = require('../../Archivos/services/archivo.service')
 const EntradaModel = require('../../Bandejas/models/entrada.model')
 
 
@@ -167,15 +167,15 @@ exports.addObservacion = async (id_tramite, observation) => {
         estado: 'OBSERVADO'
     }, { new: true }).select('observaciones -_id')
 }
-exports.concludeProcedure = async (id_tramite, descripcion, id_funcionario, id_dependencia) => {
-    const procedure = await getProcedure(id_tramite)
+exports.concludeProcedure = async (id_tramite, descripcion, id_funcionario) => {
+    const procedure = await ExternoModel.findById(id_tramite)
     if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
     const workflow = await SalidaModel.findOne({ tramite: id_tramite })
     if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
     const event = `Tramite concluido debido a: ${descripcion}`
     await Promise.all([
         ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', $push: { eventos: { funcionario: id_funcionario, descripcion: event } } }),
-        archivoService.archiveProcedure('tramites_externos', id_tramite, id_funcionario, id_dependencia, descripcion)
+        archiveProcedure(procedure, 'tramites_externos', id_funcionario, descripcion)
     ])
 }
 

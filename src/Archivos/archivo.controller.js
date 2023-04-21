@@ -1,28 +1,27 @@
 const router = require('express').Router()
 const { ServerErrorResponde } = require('../../helpers/responses')
-const verifyToken = require('../../middlewares/verifyToken')
 const archivoService = require('./services/archivo.service')
 
 
-router.get('', verifyToken, async (req = request, res = response) => {
+router.get('/', async (req = request, res = response) => {
     try {
-        const tramites = await archivoService.get(req.id_dependencia)
+        const archives = await archivoService.get(req.id_cuenta)
         return res.status(200).json({
             ok: true,
-            tramites
+            archives
         })
     } catch (error) {
         ServerErrorResponde(error, res)
     }
 })
 
-router.put('/:id', verifyToken, async (req = request, res = response) => {
+router.put('/:id', async (req = request, res = response) => {
     try {
-        let { descripcion } = req.body
-        const message = await archivoService.unarchive(req.params.id, req.id_funcionario, descripcion)
+        let { description } = req.body
+        await archivoService.unarchive(req.params.id, req.id_funcionario, description)
         return res.status(200).json({
             ok: true,
-            message
+            message: 'Tramite desarchivado'
         })
     } catch (error) {
         ServerErrorResponde(error, res)

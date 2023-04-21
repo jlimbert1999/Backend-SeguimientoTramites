@@ -239,8 +239,8 @@ exports.searchAccountsForSend = async (text, id_cuenta) => {
     return cuentas
 }
 exports.concludeProcedure = async (id_bandeja, funcionario, descripcion) => {
-    const mail = await EntradaModel.findByIdAndDelete(id_bandeja)
-    let processActive = await EntradaModel.findOne({ tramite: mail.tramite })
+    const mailArchived = await EntradaModel.findByIdAndDelete(id_bandeja)
+    let isProcessActive = await EntradaModel.findOne({ tramite: mailArchived.tramite })
     let query = {
         $push: {
             eventos: {
@@ -248,7 +248,7 @@ exports.concludeProcedure = async (id_bandeja, funcionario, descripcion) => {
             }
         }
     }
-    if (!processActive) {
+    if (!isProcessActive) {
         Object.assign(query, {
             estado: 'CONCLUIDO', fecha_finalizacion: new Date()
         })
@@ -281,12 +281,8 @@ exports.aceptProcedure = async (id_bandeja) => {
     );
 }
 exports.declineProcedure = async (id_bandeja, motivo_rechazo) => {
-    // delete mail of MailsIn and update MailsOut
     const mail = await EntradaModel.findByIdAndDelete(id_bandeja)
-    if (!mail) {
-        // if mail no exist, mail is canceled
-        throw ({ status: 400, message: `El envio de este tramite ha sido cancelado` });
-    }
+    if (!mail) throw ({ status: 400, message: `El envio de este tramite ha sido cancelado` });
     await SalidaModel.findOneAndUpdate(
         {
             tramite: mail.tramite,
@@ -296,59 +292,18 @@ exports.declineProcedure = async (id_bandeja, motivo_rechazo) => {
         },
         { fecha_recibido: new Date(), motivo_rechazo, recibido: false }
     );
-
-    // verify if all send for update state
-    // const processActive = await EntradaModel.findOne({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta })
-    // if (!processActive) {
-    //     let mailOld = await SalidaModel.findOne({ tramite: mail.tramite, 'receptor.cuenta': mail.emisor.cuenta, recibido: true }).sort({ _id: -1 })
-    //     if (mailOld) {
-    //         mailOld = mailOld.toObject()
-    //         delete mailOld._id
-    //         delete mailOld.__v
-    //         const newMailOld = new EntradaModel(mailOld)
-    //         await newMailOld.save()
-    //     }
-    //     else {
-    //         switch (mail.tipo) {
-    //             // case "tramites_internos":
-    //             //     tramiteDB = await E.findByIdAndUpdate(mailDelete.tramite, {
-    //             //         estado: "INSCRITO",
-    //             //     });
-    //             //     break;
-    //             case "tramites_externos":
-    //                 await ExternoModel.findByIdAndUpdate(mail.tramite, {
-    //                     estado: "INSCRITO",
-    //                 });
-    //                 break;
-    //         }
-    //     }
-    // }
-
     let mailOld = await SalidaModel.findOne({ tramite: mail.tramite, 'receptor.cuenta': mail.emisor.cuenta, recibido: true }).sort({ _id: -1 })
     if (mailOld) {
         const newMailOld = new EntradaModel(mailOld)
-        // mailOld = mailOld.toObject()
-        // delete mailOld._id
-        // delete mailOld.__v
-        // delete mailOld.fecha_recibido
         await EntradaModel.updateOne(newMailOld, { $setOnInsert: newMailOld }, { upsert: true })
     }
     else {
-        switch (mail.tipo) {
-            // case "tramites_internos":
-            //     tramiteDB = await E.findByIdAndUpdate(mailDelete.tramite, {
-            //         estado: "INSCRITO",
-            //     });
-            //     break;
-            case "tramites_externos":
-                await ExternoModel.findByIdAndUpdate(mail.tramite, {
-                    estado: "INSCRITO",
-                });
-                break;
-        }
+        mail.tipo === 'tramites_externos'
+            ? await ExternoModel.findByIdAndUpdate(mail.tramite, { estado: "INSCRITO" })
+            : await InternoModel.findByIdAndUpdate(mail.tramite, { estado: "INSCRITO" });
     }
-    return 'Tramite rechazado'
 }
+
 exports.getDetailsOfMail = async (id_bandeja) => {
     const imbox = await getOne(id_bandeja)
     const allDataProcedure = imbox.tipo === 'tramites_externos'

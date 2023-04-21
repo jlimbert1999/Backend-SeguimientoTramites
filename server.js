@@ -43,6 +43,6 @@ app.use(allroutes)
 // app.get('*', (req, res) => { res.sendFile(path.join(__dirname + '/public/index.html')) })
 
 
-server.listen(process.env.PORT, () => {
+server.listen(process.env.PORT, '192.168.30.34',() => {
     console.log('Server listen in port', process.env.PORT)
 })
