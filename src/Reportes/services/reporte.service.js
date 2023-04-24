@@ -1,4 +1,4 @@
-const { ExternoModel } = require('../../Tramites/models/externo.model')
+const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const InstitucionesModel = require('../../Configuraciones/instituciones/instituciones.model')
@@ -137,7 +137,6 @@ exports.getAllDataOfTramiteInterno = async (id_tramite) => {
         workflow
     }
 }
-
 exports.reportSolicitante = async (params, dateInit, dateEnd) => {
     let fecha_registro = {}
     let query = Object.keys(params).map(k => {
@@ -175,16 +174,16 @@ exports.reportSolicitante = async (params, dateInit, dateEnd) => {
     return tramites
 }
 
-exports.getReportFicha = async (alterno, group) => {
-    let tramites = []
-    if (group === 'externo') {
-        tramites = await ExternoModel.find({ alterno: RegExp(alterno) })
-    }
-    else if (group === 'interno') {
-        tramites = await InternoModel.find({ alterno: RegExp(alterno) })
-    }
-    return tramites
-
+exports.getReportFicha = async (group, params) => {
+    let { start, end, estado, ...info } = params
+    let query = Object.keys(info).map(k => ({ [k]: new RegExp(info[k], 'i') }))
+    let fecha_registro = {}
+    start ? Object.assign(fecha_registro, { $gte: new Date(start) }) : null
+    end ? Object.assign(fecha_registro, { $lt: new Date(end) }) : null
+    Object.keys(fecha_registro).length > 0 ? query.push({ fecha_registro }) : null
+    return tramites = group === 'tramites_externos'
+        ? await ExternoModel.find({ $or: query })
+        : await InternoModel.find({ $or: query })
 }
 exports.getReportSearch = async (params, type) => {
     let { limit, offset, alterno, cite, detalle, start, end, ...info } = params

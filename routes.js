@@ -1,8 +1,6 @@
 const router = require('express').Router()
 
 
-const ReportesExternosRouter = require('./src/Reportes/reporte-externo/reportes.router')
-const ReportesInternosRouter = require('./src/Reportes/reporte-interno/reportes.router')
 
 const ConsultaRouter = require('./src/Consulta/consulta.router')
 
@@ -31,9 +29,6 @@ const verifyRole = require('./middlewares/verifyRole')
 const verifyToken = require('./middlewares/verifyToken')
 
 
-router.use('/reportes-externos', ReportesExternosRouter)
-router.use('/reportes-internos', ReportesInternosRouter)
-
 router.use('/consulta', ConsultaRouter)
 
 router.use('/perfil', PerfilRouter)
@@ -46,8 +41,8 @@ router.use('/dependencias', [verifyToken, verifyRole('dependencias')], Dependenc
 router.use('/funcionarios', [verifyToken, verifyRole('usuarios')], FuncionarioController)
 router.use('/configuraciones', [verifyToken, verifyRole('tipos')], TipoController)
 router.use('/configuraciones', [verifyToken, verifyRole('roles')], RolController)
-router.use('/externos', [verifyToken], ExternoController)
-router.use('/internos', [verifyToken], InternoController)
+router.use('/externos', [verifyToken, verifyRole('externos')], ExternoController)
+router.use('/internos', [verifyToken, verifyRole('internos')], InternoController)
 
 router.use('/entradas', [verifyToken, verifyRole('entradas')], EntradaController)
 router.use('/salidas', [verifyToken, verifyRole('salidas')], SalidaController)

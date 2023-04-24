@@ -1,6 +1,6 @@
 const EntradaModel = require('../models/entrada.model')
 const SalidaModel = require('../models/salida.model')
-const { ExternoModel } = require('../../Tramites/models/externo.model')
+const  ExternoModel  = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const CuentaModel = require("../../Configuraciones/models/cuentas.model");
 const { default: mongoose } = require("mongoose");
@@ -238,13 +238,13 @@ exports.searchAccountsForSend = async (text, id_cuenta) => {
     ]);
     return cuentas
 }
-exports.concludeProcedure = async (id_bandeja, funcionario, descripcion) => {
-    const mailArchived = await EntradaModel.findByIdAndDelete(id_bandeja)
-    let isProcessActive = await EntradaModel.findOne({ tramite: mailArchived.tramite })
+exports.concludeProcedure = async (id_bandeja, id_funcionario, descripcion) => {
+    const mail = await EntradaModel.findByIdAndDelete(id_bandeja)
+    let isProcessActive = await EntradaModel.findOne({ tramite: mail.tramite })
     let query = {
         $push: {
             eventos: {
-                funcionario, descripcion: `Ha concluido el tramite por: ${descripcion}`
+                funcionario: id_funcionario, descripcion: `Tramite concluido debido a: ${descripcion}`
             }
         }
     }
@@ -253,16 +253,9 @@ exports.concludeProcedure = async (id_bandeja, funcionario, descripcion) => {
             estado: 'CONCLUIDO', fecha_finalizacion: new Date()
         })
     }
-    switch (mail.tipo) {
-        case 'tramites_externos':
-            await ExternoModel.findByIdAndUpdate(mail.tramite,
-                query
-            )
-            break;
-        case 'tramites_internos':
-
-            break;
-    }
+    mail.tipo === 'tramites_externos'
+        ? await ExternoModel.findByIdAndUpdate(mail.tramite, query)
+        : await InternoModel.findByIdAndUpdate(mail.tramite, query)
     return mail
 }
 exports.aceptProcedure = async (id_bandeja) => {

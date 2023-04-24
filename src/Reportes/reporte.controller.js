@@ -10,16 +10,9 @@ const dependenciaService = new DependenciaService()
 const CuentasService = require('../Configuraciones/services/cuentas.service')
 const cuentasService = new CuentasService()
 
-router.get('/ficha/:alterno', async (req = request, res = response) => {
+router.get('/ficha/:group', async (req = request, res = response) => {
     try {
-        const { group } = req.query
-        if (!group) {
-            return res.status(200).json({
-                ok: false,
-                message: 'No se ha seleccionado el grupo del tramite: Externo o Interno'
-            })
-        }
-        const tramites = await reporteService.getReportFicha(req.params.alterno, group)
+        const tramites = await reporteService.getReportFicha(req.params.group, req.query)
         return res.status(200).json({
             ok: true,
             tramites

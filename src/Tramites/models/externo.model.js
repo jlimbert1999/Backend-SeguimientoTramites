@@ -1,6 +1,35 @@
 const { Schema, model } = require('mongoose')
 
-const SolicitanteScheme = Schema({
+
+const RepresentanteSchema = new Schema({
+    nombre: {
+        type: String,
+        required: true,
+        uppercase: true
+    },
+    paterno: {
+        type: String,
+        required: true,
+        uppercase: true
+    },
+    materno: {
+        type: String,
+        uppercase: true
+    },
+    telefono: {
+        type: String
+    },
+    dni: {
+        type: String,
+        required: true
+    },
+    documento: {
+        type: String,
+        required: true
+    }
+}, { _id: false });
+
+const SolicitanteSchema = new Schema({
     nombre: {
         type: String,
         required: true,
@@ -25,36 +54,11 @@ const SolicitanteScheme = Schema({
     },
     tipo: {
         type: String,
-        required: true
-    }
-})
-const RepresentanteScheme = Schema({
-    nombre: {
-        type: String,
         required: true,
-        uppercase: true
-    },
-    paterno: {
-        type: String,
-        required: true,
-        uppercase: true
-    },
-    materno: {
-        type: String,
-        uppercase: true
-    },
-    telefono: {
-        type: String
-    },
-    dni: {
-        type: String,
-        required: true
-    },
-    documento: {
-        type: String,
-        required: true
+        enum: ['JURIDICO', 'NATURAL']
     }
-})
+}, { _id: false });
+
 
 
 const TramiteExternoScheme = Schema({
@@ -63,13 +67,12 @@ const TramiteExternoScheme = Schema({
         ref: 'tipos_tramites'
     },
     representante: {
-        type: Schema.Types.ObjectId,
-        ref: 'representantes'
+        type: RepresentanteSchema,
+        required: false
+
     },
     solicitante: {
-        type: Schema.Types.ObjectId,
-        ref: 'solicitantes',
-        required: true
+        type: SolicitanteSchema
     },
     cuenta: {
         type: Schema.Types.ObjectId,
@@ -147,32 +150,15 @@ const TramiteExternoScheme = Schema({
             },
             fecha: {
                 type: Date,
-                default: Date.now()
+                default: Date.now
             }
 
         }
     ]
 })
 
-SolicitanteScheme.method('toJSON', function () {
-    const { __v, ...object } = this.toObject()
-    return object
-})
-RepresentanteScheme.method('toJSON', function () {
-    const { __v, ...object } = this.toObject()
-    return object
-})
 TramiteExternoScheme.method('toJSON', function () {
     const { __v, ...object } = this.toObject()
     return object
 })
-
-const SolicitanteModel = model('solicitantes', SolicitanteScheme)
-const RepresentanteModel = model('representantes', RepresentanteScheme)
-const ExternoModel = model('tramites_externos', TramiteExternoScheme)
-
-module.exports = {
-    SolicitanteModel,
-    RepresentanteModel,
-    ExternoModel
-}
+module.exports = model('tramites_externos', TramiteExternoScheme)

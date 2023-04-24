@@ -98,10 +98,10 @@ router.put('/rechazar/:id', async (req = request, res = response) => {
 router.put('/concluir/:id', async (req = request, res = response) => {
     try {
         let { descripcion } = req.body
-        const mail = await entradaService.conclude(req.params.id, req.id_funcionario, descripcion)
-        await archivoService.archiveMail(mail, req.id_funcionario, req.id_dependencia, descripcion)
+        const mail = await entradaService.concludeProcedure(req.params.id, req.id_funcionario, descripcion)
+        await archivoService.archiveMail(mail, descripcion)
         return res.status(200).json({
-            message: 'Tramite cocluido'
+            message: 'Tramite concluido y archivado'
         })
     } catch (error) {
         ServerErrorResponde(error, res)

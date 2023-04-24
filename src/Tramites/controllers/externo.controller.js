@@ -42,10 +42,10 @@ router.get('/:id', async (req = request, res = response) => {
 })
 router.get('/search/:text', async (req = request, res = response) => {
     try {
-        const { tramites, total } = await externoService.search(req.params.text, req.query.limit, req.query.offset, req.id_cuenta)
+        const { tramites, length } = await externoService.search(req.params.text, req.query.limit, req.query.offset, req.id_cuenta)
         return res.status(200).json({
             tramites,
-            total
+            length
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -56,7 +56,7 @@ router.post('/', async (req = request, res = response) => {
     try {
         const tramite = await externoService.add(req.id_cuenta, req.body.tramite, req.body.solicitante, req.body.representante)
         return res.status(200).json({
-            tramite: {}
+            tramite
         })
     } catch (error) {
         ServerErrorResponde(error, res)

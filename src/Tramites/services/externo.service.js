@@ -1,5 +1,5 @@
 require('dotenv').config()
-const { ExternoModel, SolicitanteModel, RepresentanteModel } = require('../models/externo.model')
+const ExternoModel = require('../models/externo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const { default: mongoose } = require('mongoose')
 const { archiveProcedure } = require('../../Archivos/services/archivo.service')
@@ -36,19 +36,6 @@ exports.search = async (text, limit, offset, id_cuenta) => {
     limit = parseInt(limit) || 10;
     offset = offset * limit
     const data = await ExternoModel.aggregate([
-        {
-            $lookup: {
-                from: "solicitantes",
-                localField: "solicitante",
-                foreignField: "_id",
-                as: "solicitante",
-            },
-        },
-        {
-            $unwind: {
-                path: "$solicitante",
-            },
-        },
         {
             $addFields: {
                 "solicitante.fullname": {
@@ -95,34 +82,24 @@ exports.search = async (text, limit, offset, id_cuenta) => {
         { path: 'representante' }
     ])
     let tramites = data[0].paginatedResults
-    const total = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
-    return { tramites, total }
+    const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
+    return { tramites, length }
 }
 
 
 
 exports.add = async (id_cuenta, tramite, solicitante, representante) => {
     tramite.cuenta = id_cuenta
-    tramite.ubicacion = id_cuenta
     tramite.alterno = `${tramite.alterno}-${process.env.CONFIG_YEAR}`
-    if (representante) {
-        const newRepresentante = new RepresentanteModel(representante)
-        const representanteDB = await newRepresentante.save()
-        tramite.representante = representanteDB._id
-    }
-    const newSolicitante = new SolicitanteModel(solicitante)
-    const solicitanteDB = await newSolicitante.save()
-    tramite.solicitante = solicitanteDB._id
-
+    if (representante) Object.assign(tramite, { representante })
+    Object.assign(tramite, { solicitante })
     const regex = new RegExp(tramite.alterno, 'i')
     let correlativo = await ExternoModel.find({ alterno: regex }).count()
     correlativo += 1
     tramite.alterno = `${tramite.alterno}-${addLeadingZeros(correlativo, 6)}`
     tramite.pin = Math.floor(100000 + Math.random() * 900000)
-
     const newTramite = new ExternoModel(tramite)
     const tramiteDB = await newTramite.save()
-
     await ExternoModel.populate(tramiteDB, [
         { path: 'solicitante' },
         { path: 'representante' },
@@ -135,26 +112,18 @@ exports.add = async (id_cuenta, tramite, solicitante, representante) => {
 exports.edit = async (id_tramite, updateData) => {
     let { tramite, solicitante, representante } = updateData
     const tramitedb = await getProcedure(id_tramite)
+    if (tramitedb.estado === 'ANULADO', tramitedb.estado === 'CONCLUIDO') throw ({ status: 400, message: `El tramite no puede editarse. El estado es ${tramitedb.estado}` });
     const isSend = await SalidaModel.findOne({ tramite: id_tramite, recibido: true, tipo: 'tramites_externos' })
     if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido aceptado para la evaluacion' });
     if (representante) {
-        if (tramitedb.representante) {
-            const newRepresentante = new RepresentanteModel(representante)
-            const representanteDB = await newRepresentante.save()
-            tramite.representante = representanteDB._id
-        }
-        else {
-            await RepresentanteModel.findByIdAndUpdate(tramitedb.representante, representante)
-        }
+        Object.assign(tramite, { representante })
     }
-    await SolicitanteModel.findByIdAndUpdate(tramitedb.solicitante, solicitante)
+    Object.assign(tramite, { solicitante })
     const newTramite = await ExternoModel.findByIdAndUpdate(id_tramite, tramite, { new: true })
         .populate('tipo_tramite', 'nombre -_id')
         .populate('solicitante')
         .populate('representante')
-
     return newTramite
-
 }
 
 exports.addObservacion = async (id_tramite, observation) => {
@@ -172,9 +141,8 @@ exports.concludeProcedure = async (id_tramite, descripcion, id_funcionario) => {
     if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
     const workflow = await SalidaModel.findOne({ tramite: id_tramite })
     if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
-    const event = `Tramite concluido debido a: ${descripcion}`
     await Promise.all([
-        ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', $push: { eventos: { funcionario: id_funcionario, descripcion: event } } }),
+        ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', $push: { eventos: { funcionario: id_funcionario, descripcion: `Tramite concluido debido a: ${descripcion}` } } }),
         archiveProcedure(procedure, 'tramites_externos', id_funcionario, descripcion)
     ])
 }

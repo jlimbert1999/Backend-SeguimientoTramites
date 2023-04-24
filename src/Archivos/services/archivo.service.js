@@ -1,7 +1,7 @@
 const ArchivosModel = require('../models/archivo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const EntradaModel = require('../../Bandejas/models/entrada.model')
-const { ExternoModel } = require('../../Tramites/models/externo.model')
+const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 
 exports.archiveMail = async (mailIn, description) => {

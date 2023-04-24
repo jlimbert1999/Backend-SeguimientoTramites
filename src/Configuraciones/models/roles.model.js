@@ -22,12 +22,15 @@ const RolScheme = Schema({
                     'instituciones',
                     'dependencias',
                     'reportes',
+                    'archivos',
+                    'busquedas',
+
                     'reporte-solicitante',
                     'reporte-tipo',
                     'reporte-unidad',
                     'reporte-usuario',
-                    'archivos',
-                    'busquedas',
+                    'reporte-ficha',
+
                 ]
             },
             create: { type: Boolean },
