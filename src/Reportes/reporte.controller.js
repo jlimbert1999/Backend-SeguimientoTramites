@@ -12,6 +12,8 @@ const cuentasService = new CuentasService()
 
 router.get('/ficha/:group', async (req = request, res = response) => {
     try {
+        const isEmpty = Object.values(req.query).every(x => x === null || x === '');
+        if (isEmpty) return res.status(400).json({  ok: false, message:'No se selecciono ningun patametro para generar el reporte'})
         const tramites = await reporteService.getReportFicha(req.params.group, req.query)
         return res.status(200).json({
             ok: true,
