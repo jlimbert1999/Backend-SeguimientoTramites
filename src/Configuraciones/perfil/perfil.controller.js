@@ -1,10 +1,10 @@
-const Cuenta = require('../cuentas/cuenta.model')
+const Cuenta = require('../../Configuraciones/models/cuentas.model')
 const { request, response } = require('express')
 const bcrypt = require('bcrypt');
-const { TramiteExterno } = require('../../Seguimiento/externos/externo.model')
-const TramiteInterno = require('../../Seguimiento/internos/interno.model')
-const BandejaEntrada = require('../../Seguimiento/bandejas/bandeja-entrada.model')
-const BandejaSalida = require('../../Seguimiento/bandejas/bandeja-salida.model')
+const TramiteExterno = require('../../Tramites/models/externo.model')
+const TramiteInterno = require('../../Tramites/models/interno.model')
+const BandejaEntrada = require('../../Bandejas/models/entrada.model')
+const BandejaSalida = require('../../Bandejas/models/salida.model')
 const { ErrorResponse } = require('../../../helpers/responses')
 
 const getAccount = async (req = request, res = response) => {

@@ -2,9 +2,9 @@ const router = require('express').Router()
 const { request, response } = require('express');
 const { ServerErrorResponde } = require('../../../helpers/responses')
 
-const CuentaService = require('../services/cuentas.service')
-const cuentaService = new CuentaService()
-
+const cuentaService = require('../services/cuentas.service')
+const institutionService = require('../services/instituciones.service')
+const dependencieService = require('../services/dependencias.service')
 
 router.get('/roles', async (req = request, res = response) => {
     try {
@@ -18,7 +18,7 @@ router.get('/roles', async (req = request, res = response) => {
 })
 router.get('/instituciones', async (req = request, res = response) => {
     try {
-        const instituciones = await cuentaService.getInstituciones()
+        const instituciones = await institutionService.getActiveIntituciones()
         return res.status(200).json({
             instituciones
         })
@@ -29,7 +29,7 @@ router.get('/instituciones', async (req = request, res = response) => {
 
 router.get('/dependencias/:id_institucion', async (req = request, res = response) => {
     try {
-        const dependencias = await cuentaService.getDependencias(req.params.id_institucion)
+        const dependencias = await dependencieService.getDependenciesOfInstitucion(req.params.id_institucion)
         return res.status(200).json({
             dependencias
         })

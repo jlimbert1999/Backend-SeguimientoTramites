@@ -4,16 +4,15 @@ const { ServerErrorResponde } = require('../../helpers/responses')
 
 const reporteService = require('./services/reporte.service')
 
-const DependenciaService = require('../Configuraciones/services/dependencias.service')
-const dependenciaService = new DependenciaService()
-
-const CuentasService = require('../Configuraciones/services/cuentas.service')
-const cuentasService = new CuentasService()
+const dependenciaService = require('../Configuraciones/services/dependencias.service')
+const institutionService = require('../Configuraciones/services/instituciones.service')
+const accountService = require('../Configuraciones/services/cuentas.service')
+const typeProcedureService = require('../Configuraciones/services/tipos.service')
 
 router.get('/ficha/:group', async (req = request, res = response) => {
     try {
         const isEmpty = Object.values(req.query).every(x => x === null || x === '');
-        if (isEmpty) return res.status(400).json({  ok: false, message:'No se selecciono ningun patametro para generar el reporte'})
+        if (isEmpty) return res.status(400).json({ ok: false, message: 'No se selecciono ningun parametro para generar el reporte' })
         const tramites = await reporteService.getReportFicha(req.params.group, req.query)
         return res.status(200).json({
             ok: true,
@@ -72,7 +71,9 @@ router.post('/representante', async (req = request, res = response) => {
 
 router.get('/unit/:group', async (req = request, res = response) => {
     try {
-        const tramites = await reporteService.getReportByUnit(req.query, req.params.group)
+        const isEmpty = Object.values(req.query).every(x => x === null || x === '');
+        if (isEmpty) return res.status(400).json({ ok: false, message: 'No se selecciono ningun parametro para generar el reporte' })
+        const tramites = await reporteService.getReportByUnit(req.params.group, req.query)
         return res.status(200).json({
             ok: true,
             tramites
@@ -86,7 +87,7 @@ router.get('/unit/:group', async (req = request, res = response) => {
 // GET DATA FOR PARAMS SEARCH 
 router.get('/instituciones', async (req = request, res = response) => {
     try {
-        const instituciones = await dependenciaService.getInstituciones()
+        const instituciones = await institutionService.getActiveIntituciones()
         return res.status(200).json({
             ok: true,
             instituciones
@@ -97,7 +98,7 @@ router.get('/instituciones', async (req = request, res = response) => {
 })
 router.get('/dependencias/:id_institucion', async (req = request, res = response) => {
     try {
-        const dependencias = await cuentasService.getDependencias(req.params.id_institucion)
+        const dependencias = await dependenciaService.getDependenciesOfInstitucion(req.params.id_institucion)
         return res.status(200).json({
             ok: true,
             dependencias
@@ -108,7 +109,7 @@ router.get('/dependencias/:id_institucion', async (req = request, res = response
 })
 router.get('/users/:id_dependencia', async (req = request, res = response) => {
     try {
-        const users = await reporteService.getUsersForReport(req.params.id_dependencia)
+        const users = await accountService.getAccountByDependencie(req.params.id_dependencia)
         return res.status(200).json({
             ok: true,
             users
@@ -119,7 +120,7 @@ router.get('/users/:id_dependencia', async (req = request, res = response) => {
 })
 router.get('/accounts/:text', async (req = request, res = response) => {
     try {
-        const accounts = await reporteService.getAccountsByTextForReport(req.params.text)
+        const accounts = await accountService.getAccountsByText(req.params.text)
         return res.status(200).json({
             ok: true,
             accounts
@@ -128,9 +129,9 @@ router.get('/accounts/:text', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.get('/types/:type', async (req = request, res = response) => {
+router.get('/types/:group', async (req = request, res = response) => {
     try {
-        const types = await reporteService.getTypesProceduresForReport(req.params.type)
+        const types = await typeProcedureService.getNameOfTypesProcedures(req.params.group)
         return res.status(200).json({
             ok: true,
             types
@@ -139,9 +140,12 @@ router.get('/types/:type', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.get('/account/procedures/:id', async (req = request, res = response) => {
+router.get('/account/procedures/:group', async (req = request, res = response) => {
     try {
-        const procedures = await reporteService.getProceduresOfAccount(req.params.id, req.query)
+        const isEmpty = Object.values(req.query).every(x => x === null || x === '');
+        if (isEmpty) return res.status(400).json({ ok: false, message: 'No se selecciono ningun patametro para generar el reporte' })
+        const procedures = await reporteService.getReportByAccount(req.params.group, req.query)
+        console.log(procedures)
         return res.status(200).json({
             ok: true,
             procedures

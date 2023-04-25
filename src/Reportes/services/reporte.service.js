@@ -1,8 +1,7 @@
 const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
-const InstitucionesModel = require('../../Configuraciones/instituciones/instituciones.model')
-const CuentaModel = require('../../Configuraciones/models/cuentas.model')
+
 const TypesModel = require('../../Configuraciones/models/tipos.model')
 
 
@@ -185,6 +184,121 @@ exports.getReportFicha = async (group, params) => {
         ? await ExternoModel.find({ $or: query })
         : await InternoModel.find({ $or: query })
 }
+exports.getReportByAccount = async (group, params) => {
+    const { start, end, estado, id_cuenta } = params
+    let query = { cuenta: id_cuenta }
+    let fecha_registro = {}
+    start ? Object.assign(fecha_registro, { $gte: new Date(start) }) : null
+    end ? Object.assign(fecha_registro, { $lt: new Date(end) }) : null
+    Object.keys(fecha_registro).length > 0 ? query['fecha_registro'] = fecha_registro : null
+    estado ? query['estado'] = estado : null
+    return tramites = group === 'tramites_externos'
+        ? await ExternoModel.find(query)
+        : await InternoModel.find(query)
+}
+exports.getReportByUnit = async (group, params) => {
+    const { estado, start, end, ...info } = params
+    let query = Object.keys(info).map(k => {
+        if (k === 'institucion') return ({ 'receptor.cuenta.dependencia.institucion': ObjectId(info[k]) })
+        else if (k === 'dependencia') return ({ 'receptor.cuenta.dependencia._id': ObjectId(info[k]) })
+        else if (k === 'cuenta') return ({ 'receptor.cuenta._id': ObjectId(info[k]) })
+        else if (k === 'tipo_tramite') return ({ 'tramite.tipo_tamite': ObjectId(info[k]) })
+        return ({ [k]: info[k] })
+    })
+    let fecha_envio = {}
+    start ? Object.assign(fecha_envio, { $gte: new Date(start) }) : null
+    end ? Object.assign(fecha_envio, { $lt: new Date(end) }) : null
+    Object.keys(fecha_envio).length > 0 ? query.push({ fecha_envio }) : null
+    estado ? query.push({ 'tramite.estado': estado }) : null
+    const procedures = await SalidaModel.aggregate([
+        {
+            $project: {
+                'receptor.cuenta': 1,
+                tramite: 1,
+            }
+        },
+        {
+            $lookup: {
+                from: "cuentas",
+                localField: "receptor.cuenta",
+                foreignField: "_id",
+                as: "receptor.cuenta",
+            },
+        },
+        {
+            $unwind: {
+                path: "$receptor.cuenta",
+            },
+        },
+        {
+            $lookup: {
+                from: "dependencias",
+                localField: "receptor.cuenta.dependencia",
+                foreignField: "_id",
+                as: "receptor.cuenta.dependencia",
+            },
+        },
+        {
+            $unwind: {
+                path: "$receptor.cuenta.dependencia",
+            },
+        },
+        {
+            $project: {
+                'receptor.cuenta.password': 0,
+                'receptor.cuenta.login': 0,
+                'receptor.cuenta.activo': 0,
+                'receptor.cuenta.rol': 0,
+                'receptor.cuenta.__v': 0,
+                'receptor.cuenta.dependencia.sigla': 0,
+                'receptor.cuenta.dependencia.__v': 0,
+                'receptor.cuenta.dependencia.codigo': 0,
+                'receptor.cuenta.dependencia.activo': 0,
+                'receptor.cuenta.dependencia.nombre': 0,
+                'receptor.cuenta.funcionario': 0,
+            }
+        },
+        {
+            $lookup: {
+                from: `${group}`,
+                localField: "tramite",
+                foreignField: "_id",
+                as: "tramite",
+            },
+        },
+        {
+            $unwind: {
+                path: "$tramite",
+            },
+        },
+        {
+            $project: {
+                'tramite.observaciones': 0,
+                'tramite.eventos': 0,
+                'tramite.requerimientos': 0
+            }
+        },
+        {
+            $match: {
+                $and: query
+            }
+        },
+        {
+            $group: {
+                _id: "$tramite"
+            }
+        },
+        {
+            $project: {
+                'tramite': "$_id",
+                _id: false
+            }
+        },
+    ])
+    return procedures
+}
+
+
 exports.getReportSearch = async (params, type) => {
     let { limit, offset, alterno, cite, detalle, start, end, ...info } = params
     info = Object
@@ -262,186 +376,3 @@ exports.reportRepresentante = async (parametros) => {
     }
     return tramites
 }
-
-exports.getReportByUnit = async (paramsForSearch, group) => {
-    const { id_institucion, id_dependencia, id_cuenta } = paramsForSearch
-    let query = [{ 'tramite.cuenta.dependencia.institucion': ObjectId(id_institucion) }]
-    if (id_dependencia) query.unshift({ 'tramite.cuenta.dependencia._id': ObjectId(id_dependencia) })
-    if (id_cuenta) query.unshift({ 'tramite.cuenta._id': ObjectId(id_cuenta) })
-    const tramites = await SalidaModel.aggregate([
-        {
-            $project: {
-                tramite: 1,
-            }
-        },
-        {
-            $lookup: {
-                from: `${group}`,
-                localField: "tramite",
-                foreignField: "_id",
-                as: "tramite",
-            },
-        },
-        {
-            $unwind: {
-                path: "$tramite",
-            },
-        },
-        {
-            $project: {
-                'tramite.observaciones': 0,
-            }
-        },
-        {
-            $lookup: {
-                from: "cuentas",
-                localField: "tramite.cuenta",
-                foreignField: "_id",
-                as: "tramite.cuenta",
-            },
-        },
-        {
-            $unwind: {
-                path: "$tramite.cuenta",
-            },
-        },
-        {
-            $project: {
-                'tramite.cuenta.password': 0,
-                'tramite.cuenta.login': 0,
-                'tramite.cuenta.activo': 0,
-                'tramite.cuenta.rol': 0,
-                'tramite.cuenta.__v': 0,
-            }
-        },
-        {
-            $lookup: {
-                from: "dependencias",
-                localField: "tramite.cuenta.dependencia",
-                foreignField: "_id",
-                as: "tramite.cuenta.dependencia",
-            },
-        },
-        {
-            $unwind: {
-                path: "$tramite.cuenta.dependencia",
-            },
-        },
-        {
-            $project: {
-                'tramite.cuenta.dependencia.activo': 0,
-                'tramite.cuenta.dependencia.codigo': 0,
-                'tramite.cuenta.dependencia.sigla': 0,
-                'tramite.cuenta.dependencia.__v': 0,
-            }
-        },
-        {
-            $match: {
-                $and: query
-            },
-        },
-        {
-            $group: {
-                _id: "$tramite"
-            }
-        },
-        {
-            $project: {
-                tramite: "$_id",
-                _id: false
-            }
-        }
-    ])
-    return tramites
-
-}
-
-exports.getUsersForReport = async (id_dependencia) => {
-    const users = await CuentaModel.find({ dependencia: id_dependencia, activo: true, funcionario: { $ne: null } })
-        .select('_id')
-        .populate('funcionario', 'nombre paterno materno cargo ')
-    return users
-}
-exports.getTypesProceduresForReport = async (type) => {
-    const types = await TypesModel.find({ activo: true, tipo: type })
-        .select('_id nombre')
-    return types
-}
-exports.getAccountsByTextForReport = async (text) => {
-    const regex = new RegExp(text, "i");
-    const accounts = await CuentaModel.aggregate([
-        {
-            $lookup: {
-                from: "funcionarios",
-                localField: "funcionario",
-                foreignField: "_id",
-                as: "funcionario",
-            },
-        },
-        {
-            $unwind: {
-                path: "$funcionario",
-            },
-        },
-        {
-            $project: {
-                "funcionario.nombre": 1,
-                "funcionario.paterno": 1,
-                "funcionario.materno": 1,
-                "funcionario.cargo": 1,
-                "funcionario._id": 1,
-                _id: 1,
-                activo: 1,
-            },
-        },
-        {
-            $addFields: {
-                "funcionario.fullname": {
-                    $concat: [
-                        "$funcionario.nombre",
-                        " ",
-                        { $ifNull: ["$funcionario.paterno", ""] },
-                        " ",
-                        { $ifNull: ["$funcionario.materno", ""] },
-                    ],
-                },
-            },
-        },
-        {
-            $match: {
-                $or: [
-                    { "funcionario.fullname": regex },
-                    { "funcionario.cargo": regex },
-                    { "funcionario.dni": regex },
-                ],
-                activo: true,
-            },
-        },
-        {
-            $project: {
-                activo: 0,
-            },
-        },
-        { $limit: 4 },
-    ]);
-    return accounts
-}
-exports.getProceduresOfAccount = async (id_account, params) => {
-    const { group, start, end, ...info } = params
-    let fecha_registro = {}
-    let query = { cuenta: id_account }
-
-    start ? Object.assign(fecha_registro, { $gte: new Date(start) }) : null;
-    end ? Object.assign(fecha_registro, { $lt: new Date(end) }) : null;
-    if (Object.keys(fecha_registro).length > 0) Object.assign(query, { fecha_registro })
-    Object.assign(query, info)
-    if (group === 'tramites_externos') {
-        return await ExternoModel.find(query)
-    }
-    else if (group === 'tramites_internos') {
-        return await InternoModel.find(query)
-    }
-
-    return []
-}
-

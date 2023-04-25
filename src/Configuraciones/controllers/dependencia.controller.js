@@ -3,8 +3,8 @@ const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
 
-const DependenciaService = require('../services/dependencias.service')
-const dependenciaService = new DependenciaService()
+const dependenciaService = require('../services/dependencias.service')
+const institutionService = require('../services/instituciones.service')
 
 router.post('', async (req = request, res = response) => {
     try {
@@ -18,7 +18,7 @@ router.post('', async (req = request, res = response) => {
 })
 router.get('/instituciones', async (req = request, res = response) => {
     try {
-        const instituciones = await dependenciaService.getInstituciones()
+        const instituciones = await institutionService.getActiveIntituciones()
         return res.status(200).json({
             instituciones
         })

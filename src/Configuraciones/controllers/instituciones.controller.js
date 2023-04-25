@@ -2,11 +2,7 @@ const router = require('express').Router()
 const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
-const InstitucionService = require('../services/instituciones.service')
-
-
-const institucionService = new InstitucionService()
-
+const institucionService = require('../services/instituciones.service')
 
 router.post('', async (req = request, res = response) => {
     try {
