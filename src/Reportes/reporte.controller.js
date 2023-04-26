@@ -24,41 +24,11 @@ router.get('/ficha/:group', async (req = request, res = response) => {
 })
 
 
-router.get('/busqueda/:tipo', async (req = request, res = response) => {
-    try {
-        let params = req.query
-        let type = req.params.tipo
-        if (type === undefined || params === undefined) {
-            return res.status(400).json({
-                ok: false,
-                message: 'Parametros para la busqueda incorrectos.'
-            })
-        }
-        const { tramites, length } = await reporteService.getReportSearch(params, type)
-        return res.status(200).json({
-            tramites,
-            length
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
-
 router.get('/solicitante', async (req = request, res = response) => {
     try {
-        let { start, end, ...params } = req.query
-        const tramites = await reporteService.reportSolicitante(params, start, end)
-        return res.status(200).json({
-            ok: true,
-            tramites
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
-router.post('/representante', async (req = request, res = response) => {
-    try {
-        const tramites = await reporteService.reportRepresentante(req.body)
+        const isEmpty = Object.values(req.query).every(x => x === null || x === '');
+        if (isEmpty) return res.status(400).json({ ok: false, message: 'No se selecciono ningun parametro para generar el reporte' })
+        const tramites = await reporteService.getReportPetitioner(req.query)
         return res.status(200).json({
             ok: true,
             tramites
@@ -82,6 +52,35 @@ router.get('/unit/:group', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
+router.get('/tipos/:group', async (req = request, res = response) => {
+    try {
+        const isEmpty = Object.values(req.query).every(x => x === null || x === '');
+        if (isEmpty) return res.status(400).json({ ok: false, message: 'No se selecciono ningun parametro para generar el reporte' })
+        const procedures = await reporteService.getReportByTypeProcedure(req.params.group, req.query)
+        return res.status(200).json({
+            ok: true,
+            procedures
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+
+router.get('/busqueda/:group', async (req = request, res = response) => {
+    try {
+        const isEmpty = Object.values(req.query).every(x => x === null || x === '');
+        if (isEmpty) return res.status(400).json({ ok: false, message: 'No se selecciono ningun parametro para realizar la busqueda' })
+        const { procedures, length } = await reporteService.getReportSearch(req.params.group, req.query)
+        return res.status(200).json({
+            procedures,
+            length
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 
 
 // GET DATA FOR PARAMS SEARCH 

@@ -4,8 +4,8 @@ const SalidaModel = require('../../Bandejas/models/salida.model')
 const UsersModel = require('../../Configuraciones/models/funcionarios.model')
 
 exports.get = async (id_cuenta, limit, offset) => {
-    offset = offset ? offset : 0
-    limit = limit ? limit : 10
+    offset = parseInt(offset) ? offset : 0
+    limit = parseInt(limit) ? limit : 10
     offset = offset * limit
     const [tramites, length] = await Promise.all([
         InternoModel.find({ cuenta: id_cuenta }).sort({ _id: -1 })

@@ -9,14 +9,13 @@ const EntradaModel = require('../../Bandejas/models/entrada.model')
 exports.get = async (id_cuenta, limit, offset) => {
     offset = parseInt(offset) ? offset : 0
     limit = parseInt(limit) ? limit : 10
+    
     offset = offset * limit
     const [tramites, total] = await Promise.all([
         await ExternoModel.find({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } })
             .sort({ _id: -1 })
             .skip(offset)
             .limit(limit)
-            .populate('solicitante')
-            .populate('representante')
             .populate('tipo_tramite', 'nombre'),
         await ExternoModel.count({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } })
     ]);
@@ -32,8 +31,8 @@ exports.getOne = async (id_tramite) => {
 }
 exports.search = async (text, limit, offset, id_cuenta) => {
     const regex = new RegExp(text, 'i')
-    offset = parseInt(offset) || 0;
-    limit = parseInt(limit) || 10;
+    offset = parseInt(offset) ? offset : 0
+    limit = parseInt(limit) ? limit : 10
     offset = offset * limit
     const data = await ExternoModel.aggregate([
         {
@@ -199,8 +198,6 @@ const getWorkflow = async (id_tramite) => {
 }
 const getProcedure = async (id_tramite) => {
     const procedure = await ExternoModel.findById(id_tramite)
-        .populate('solicitante', '-_id -__v')
-        .populate('representante', '-_id -__v')
         .populate('tipo_tramite', 'nombre -_id')
         .populate('eventos.funcionario', 'nombre paterno materno -_id')
         .populate({

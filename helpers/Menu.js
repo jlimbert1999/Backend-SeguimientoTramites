@@ -119,7 +119,7 @@ const getmenuFrontend = (resources) => {
           {
             text: "Busquedas",
             icon: "search",
-            routerLink: "reportes/busquedas",
+            routerLink: "busquedas",
           },
         )
         break;
