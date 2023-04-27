@@ -4,8 +4,10 @@ const { request, response } = require('express');
 const { ServerErrorResponde } = require('../../../helpers/responses')
 const externoService = require('../services/externo.service')
 const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
+const { archiveProcedure } = require('../../Archivos/services/archivo.service');
+const { getPaginationParms } = require('../../../helpers/Pagintation');
 
-router.get('/types', async (req = request, res = response) => {
+router.get('/tipos', async (req = request, res = response) => {
     try {
         const types = await getProceduresTypesForRegister('EXTERNO')
         return res.status(200).json({
@@ -32,6 +34,7 @@ router.get('/:id', async (req = request, res = response) => {
     try {
         const { tramite, workflow, location } = await externoService.getOne(req.params.id)
         return res.status(200).json({
+            ok:true,
             tramite,
             location,
             workflow
@@ -40,10 +43,12 @@ router.get('/:id', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.get('/search/:text', async (req = request, res = response) => {
+router.get('/buscar/:text', async (req = request, res = response) => {
     try {
-        const { tramites, length } = await externoService.search(req.params.text, req.query.limit, req.query.offset, req.id_cuenta)
+        const { limit, offset } = getPaginationParms(req.query)
+        const { tramites, length } = await externoService.search(req.params.text, limit, offset, req.id_cuenta)
         return res.status(200).json({
+            ok: true,
             tramites,
             length
         })
@@ -87,10 +92,11 @@ router.put('/observacion/:id', async (req = request, res = response) => {
 })
 
 
-router.put('/conclude/:id', async (req = request, res = response) => {
+router.put('/concluir/:id', async (req = request, res = response) => {
     try {
         let { descripcion } = req.body
-        await externoService.concludeProcedure(req.params.id, descripcion, req.id_funcionario)
+        const procedure = await externoService.concludeProcedure(req.params.id, descripcion, req.id_funcionario)
+        await archiveProcedure(procedure, 'tramites_externos', req.id_funcionario, descripcion)
         return res.status(200).json({
             ok: true,
             message: 'Tramite concluido y archivado'

@@ -1,6 +1,6 @@
 const EntradaModel = require('../models/entrada.model')
 const SalidaModel = require('../models/salida.model')
-const  ExternoModel  = require('../../Tramites/models/externo.model')
+const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const CuentaModel = require("../../Configuraciones/models/cuentas.model");
 const { default: mongoose } = require("mongoose");
@@ -74,18 +74,10 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
     });
     await SalidaModel.insertMany(mails);
     let MailsDB = await EntradaModel.insertMany(mails)
-    switch (data.tipo) {
-        case "tramites_internos":
-            await InternoModel.findByIdAndUpdate(data.tramite, {
-                estado: "EN REVISION",
-            });
-            break;
-        case "tramites_externos":
-            await ExternoModel.findByIdAndUpdate(data.tramite, {
-                estado: "EN REVISION",
-            });
-            break;
-    }
+    data.tipo === 'tramites_externos'
+        ? await ExternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
+        : await InternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
+        
     await EntradaModel.populate(MailsDB, [
         {
             path: "tramite",
