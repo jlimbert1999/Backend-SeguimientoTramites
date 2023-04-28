@@ -78,19 +78,6 @@ router.put('/:id', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.put('/observacion/:id', async (req = request, res = response) => {
-    try {
-        const data = req.body
-        const observations = await externoService.addObservacion(req.params.id, { cuenta: req.id_cuenta, ...data })
-        return res.status(200).json({
-            ok: true,
-            observations
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
-
 
 router.put('/concluir/:id', async (req = request, res = response) => {
     try {

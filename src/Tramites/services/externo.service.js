@@ -4,7 +4,6 @@ const SalidaModel = require('../../Bandejas/models/salida.model')
 const { default: mongoose } = require('mongoose')
 const EntradaModel = require('../../Bandejas/models/entrada.model')
 
-
 exports.get = async (id_cuenta, limit, offset) => {
     offset = parseInt(offset) ? offset : 0
     limit = parseInt(limit) ? limit : 10
@@ -77,8 +76,6 @@ exports.search = async (text, limit, offset, id_cuenta) => {
     return { tramites, length }
 }
 
-
-
 exports.add = async (id_cuenta, tramite, solicitante, representante) => {
     tramite.cuenta = id_cuenta
     tramite.alterno = `${tramite.alterno}-${process.env.CONFIG_YEAR}`
@@ -94,7 +91,6 @@ exports.add = async (id_cuenta, tramite, solicitante, representante) => {
     await ExternoModel.populate(tramiteDB, { path: 'tipo_tramite', select: 'nombre -_id' })
     return tramiteDB
 }
-
 exports.edit = async (id_tramite, updateData) => {
     let { tramite, solicitante, representante } = updateData
     const tramitedb = await ExternoModel.findById(id_tramite).select('estado')
@@ -108,15 +104,17 @@ exports.edit = async (id_tramite, updateData) => {
     return newTramite
 }
 
-exports.addObservacion = async (id_tramite, observation) => {
-    const procedure = await getProcedure(id_tramite)
+exports.addObservation = async (id_procedure, observation) => {
+    const procedure = await ExternoModel.findById(id_procedure)
+    if (!procedure) throw ({ status: 400, message: `El tramite para observar no existe` });
     if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ha sido ${procedure.estado}` });
-    return await ExternoModel.findByIdAndUpdate(id_tramite, {
+    const newProcedure = await ExternoModel.findByIdAndUpdate(id_procedure, {
         $push: {
             observaciones: observation
         },
         estado: 'OBSERVADO'
     }, { new: true }).select('observaciones -_id')
+    return newProcedure.observaciones
 }
 
 exports.concludeProcedure = async (id_tramite, descripcion, id_funcionario) => {
@@ -191,7 +189,6 @@ const getProcedure = async (id_tramite) => {
     if (!procedure) throw ({ status: 400, message: 'El tramite no existe' });
     return procedure
 }
-
 const getLocation = async (id_tramite) => {
     let location = await EntradaModel.find({ tramite: id_tramite })
         .select('receptor.cuenta -_id')

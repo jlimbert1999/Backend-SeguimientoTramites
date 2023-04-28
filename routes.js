@@ -41,8 +41,8 @@ router.use('/dependencias', [verifyToken, verifyRole('dependencias')], Dependenc
 router.use('/funcionarios', [verifyToken, verifyRole('usuarios')], FuncionarioController)
 router.use('/configuraciones', [verifyToken, verifyRole('tipos')], TipoController)
 router.use('/configuraciones', [verifyToken, verifyRole('roles')], RolController)
-router.use('/externos', [verifyToken, verifyRole('externos')], ExternoController)
-router.use('/internos', [verifyToken, verifyRole('internos')], InternoController)
+router.use('/externos', [verifyToken], ExternoController)
+router.use('/internos', [verifyToken], InternoController)
 
 router.use('/entradas', [verifyToken, verifyRole('entradas')], EntradaController)
 router.use('/salidas', [verifyToken, verifyRole('salidas')], SalidaController)

@@ -3,7 +3,8 @@ const SalidaModel = require('../../Bandejas/models/salida.model')
 const EntradaModel = require('../../Bandejas/models/entrada.model')
 const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
-
+const AccountModel = require('../../Configuraciones/models/cuentas.model')
+const { default: mongoose } = require("mongoose");
 exports.archiveMail = async (mailIn, description) => {
     const lastSendMail = await SalidaModel.findOne({ tramite: mailIn.tramite, 'emisor.cuenta': mailIn.emisor.cuenta, 'receptor.cuenta': mailIn.receptor.cuenta, recibido: true }).sort({ _id: -1 })
     if (!lastSendMail) throw ({ status: 404, message: `El tramite no se ha podido archivar. No se encontro un flujo de trabajo` });
@@ -31,9 +32,39 @@ exports.archiveProcedure = async (procedure, groupProcedure, id_officer, descrip
 }
 
 exports.get = async (id_account) => {
-    return await ArchivosModel.find({ account: id_account })
-        .populate('procedure', 'alterno estado')
-        .populate('officer', 'nombre paterno materno cargo')
+    const account = await AccountModel.findById(id_account).select('dependencia')
+    const archives = await ArchivosModel.aggregate([
+        {
+            $lookup: {
+                from: 'cuentas',
+                localField: "account",
+                foreignField: "_id",
+                as: "account",
+            },
+        },
+        {
+            $unwind: "$account"
+        },
+        {
+            $lookup: {
+                from: 'funcionarios',
+                localField: "officer",
+                foreignField: "_id",
+                as: "officer",
+            },
+        },
+        {
+            $unwind: "$officer"
+        },
+    ]);
+    await ArchivosModel.populate(archives, 
+        {
+            path: 'procedure',
+            select: 'alterno estado'
+        }
+    )
+    console.log(archives);
+    return archives
 }
 
 exports.unarchive = async (id_archive, id_officer, description) => {

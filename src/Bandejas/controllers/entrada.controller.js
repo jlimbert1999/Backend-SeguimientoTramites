@@ -4,6 +4,7 @@ const { ServerErrorResponde } = require('../../../helpers/responses')
 
 const entradaService = require('../services/entrada.service')
 const archivoService = require('../../Archivos/services/archivo.service')
+const externoService = require('../../Tramites/services/externo.service')
 
 
 // ENTRADAS
@@ -43,10 +44,10 @@ router.get('/users/:text', async (req = request, res = response) => {
 
 router.get('/:id', async (req = request, res = response) => {
     try {
-        const { imbox, allDataProcedure } = await entradaService.getDetailsOfMail(req.params.id)
+        const { mail, allDataProcedure } = await entradaService.getDetailsOfMail(req.params.id)
         return res.status(200).json({
             ok: true,
-            imbox,
+            mail,
             allDataProcedure
         })
     } catch (error) {
@@ -76,7 +77,7 @@ router.put('/aceptar/:id', async (req = request, res = response) => {
         await entradaService.aceptProcedure(req.params.id)
         return res.status(200).json({
             ok: true,
-            message: 'Tramite aceptado correctamente'
+            message: 'Tramite aceptado!'
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -88,12 +89,27 @@ router.put('/rechazar/:id', async (req = request, res = response) => {
         await entradaService.declineProcedure(req.params.id, motivo_rechazo)
         return res.status(200).json({
             ok: true,
-            message: 'El tramite ha sido rechazado'
+            message: 'Tramite rechazado'
         })
     } catch (error) {
         ServerErrorResponde(error, res)
     }
 })
+router.put('/observar/:id_procedure', async (req = request, res = response) => {
+    try {
+        const mail = await entradaService.checkMailManager(req.params.id_procedure, req.id_cuenta)
+        const observations = mail.tipo === 'tramites_externos'
+            ? await externoService.addObservation(mail.tramite, req.body)
+            : ''
+        return res.status(200).json({
+            ok: true,
+            observations
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
 
 router.put('/concluir/:id', async (req = request, res = response) => {
     try {

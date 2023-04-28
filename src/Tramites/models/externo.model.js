@@ -130,7 +130,7 @@ const TramiteExternoScheme = Schema({
         },
         fecha: {
             type: Date,
-            default: Date.now()
+            default: Date.now
         }
     }],
     detalle_conclusion: {

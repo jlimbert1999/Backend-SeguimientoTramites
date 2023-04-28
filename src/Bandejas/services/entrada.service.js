@@ -77,7 +77,7 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
     data.tipo === 'tramites_externos'
         ? await ExternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
         : await InternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
-        
+
     await EntradaModel.populate(MailsDB, [
         {
             path: "tramite",
@@ -288,14 +288,20 @@ exports.declineProcedure = async (id_bandeja, motivo_rechazo) => {
             : await InternoModel.findByIdAndUpdate(mail.tramite, { estado: "INSCRITO" });
     }
 }
+exports.checkMailManager = async (id_procedure, id_account) => {
+    const mail = await EntradaModel.findOne({ tramite: id_procedure, 'receptor.cuenta': id_account, recibido: true })
+    if (!mail) throw ({ status: 400, message: `Usted aun no ha aceptado el tramite` });
+    return mail
+}
 
 exports.getDetailsOfMail = async (id_bandeja) => {
-    const imbox = await getOne(id_bandeja)
-    const allDataProcedure = imbox.tipo === 'tramites_externos'
-        ? await getProcedureExternal(imbox.tramite)
-        : await getProcedureInternal(imbox.tramite)
-    return { imbox, allDataProcedure }
+    const mail = await getOne(id_bandeja)
+    const allDataProcedure = mail.tipo === 'tramites_externos'
+        ? await getProcedureExternal(mail.tramite)
+        : await getProcedureInternal(mail.tramite)
+    return { mail, allDataProcedure }
 }
+
 
 const getOne = async (id_bandeja) => {
     const imbox = await EntradaModel.findById(id_bandeja)
@@ -303,20 +309,14 @@ const getOne = async (id_bandeja) => {
         .populate({
             path: "emisor.cuenta",
             select: "_id",
-            populate: [
-                {
-                    path: "funcionario",
-                    select: "nombre paterno materno cargo -_id",
+            populate: {
+                path: "dependencia",
+                select: "nombre -_id",
+                populate: {
+                    path: "institucion",
+                    select: "sigla -_id",
                 },
-                {
-                    path: "dependencia",
-                    select: "nombre -_id",
-                    populate: {
-                        path: "institucion",
-                        select: "sigla -_id",
-                    },
-                },
-            ],
+            },
         }).populate({
             path: "emisor.funcionario",
             select: "nombre paterno materno cargo -_id",
@@ -324,4 +324,5 @@ const getOne = async (id_bandeja) => {
     if (!imbox) throw ({ status: 404, message: `El envio de este tramite ha sido cancelado` });
     return imbox
 }
+
 
