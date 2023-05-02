@@ -343,8 +343,8 @@ exports.cancelAllSend = async (id_cuenta, id_tramite, fecha_envio) => {
     return `El tramite ahora se ecuentra en su bandeja de entrada`
 }
 
-exports.getWorkflowProcedure = async (id_tramite) => {
-    return await SalidaModel.find({ tramite: id_tramite }).select('-_id -__v')
+exports.getWorkflowProcedure = async (id_procedure) => {
+    return await SalidaModel.find({ tramite: id_procedure }).select('-_id -__v')
         .populate({
             path: 'emisor.cuenta',
             select: '_id',

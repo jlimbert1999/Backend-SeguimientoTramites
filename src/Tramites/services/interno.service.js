@@ -74,7 +74,28 @@ exports.search = async (id_cuenta, limit, offset, text) => {
 
 exports.getUsers = async (text) => {
     const regex = new RegExp(text, 'i')
-    const usuarios = await UsersModel.find({ $or: [{ nombre: regex }, { paterno: regex }, { materno: regex }] }).select('-_id nombre paterno materno cargo').limit(5)
+    const usuarios = await UsersModel.aggregate([
+        {
+            $addFields: {
+                fullname: {
+                    $concat: ["$nombre", " ", { $ifNull: ["$paterno", ""] }, " ", { $ifNull: ["$materno", ""] }]
+                }
+            },
+        },
+        {
+            $match: {
+                activo: true,
+                $or: [
+                    { fullname: regex },
+                    { dni: regex },
+                    { cargo: regex }
+                ]
+            }
+        },
+        { $project: { __v: 0 } },
+        { $limit: 5 }
+    ]);
+    // const usuarios = await UsersModel.find({  $or: [{ nombre: regex }, { paterno: regex }, { materno: regex }] }).select('-_id nombre paterno materno cargo').limit(5)
     return usuarios
 }
 

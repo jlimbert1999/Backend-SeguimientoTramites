@@ -73,11 +73,17 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
     });
     await SalidaModel.insertMany(mails);
     let MailsDB = await EntradaModel.insertMany(mails)
-    const updatedProcedure = await ExternoModel.findById(data.tramite).select('estado')
-    if (updatedProcedure.estado !== 'OBSERVADO') {
-        data.tipo === 'tramites_externos'
+    if (data.tipo === 'tramites_externos') {
+        const updatedProcedure = await ExternoModel.findById(data.tramite).select('estado')
+        updatedProcedure.estado !== 'OBSERVADO'
             ? await ExternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
-            : await InternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
+            : null
+    }
+    else {
+        const updatedProcedure = await InternoModel.findById(data.tramite).select('estado')
+        updatedProcedure.estado !== 'OBSERVADO'
+            ? await InternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
+            : null
     }
     await EntradaModel.populate(MailsDB, [
         {

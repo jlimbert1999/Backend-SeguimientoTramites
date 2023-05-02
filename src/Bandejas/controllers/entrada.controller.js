@@ -2,12 +2,13 @@ const router = require('express').Router()
 const { request, response } = require('express');
 const { ServerErrorResponde } = require('../../../helpers/responses')
 
-const entradaService = require('../services/entrada.service')
-const archivoService = require('../../Archivos/services/archivo.service')
-const salidaService = require('../services/salida.service')
-const observationService = require('../../Tramites/services/observations.sevice')
 const { getOne: getProcedureExternal } = require('../../Tramites/services/externo.service')
 const { getOne: getProcedureInternal } = require('../../Tramites/services/interno.service')
+const observationService = require('../../Tramites/services/observations.sevice')
+const archivoService = require('../../Archivos/services/archivo.service')
+const eventService = require('../../Tramites/services/events.service')
+const entradaService = require('../services/entrada.service')
+const salidaService = require('../services/salida.service')
 // ENTRADAS
 router.get('/', async (req = request, res = response) => {
     try {
@@ -49,19 +50,21 @@ router.get('/:id', async (req = request, res = response) => {
         const promises = [
             observationService.getObservationsOfProcedure(mail.tramite),
             entradaService.getLocationProcedure(mail.tramite),
-            salidaService.getWorkflowProcedure(mail.tramite)
+            salidaService.getWorkflowProcedure(mail.tramite),
+            eventService.getEventsOfProcedure(mail.tramite)
         ]
         mail.tipo === 'tramites_externos'
             ? promises.unshift(getProcedureExternal(mail.tramite))
             : promises.unshift(getProcedureInternal(mail.tramite))
-        const [procedure, observations, location, workflow] = await Promise.all(promises)
+        const [procedure, observations, location, workflow, events] = await Promise.all(promises)
         return res.status(200).json({
             ok: true,
             mail,
             procedure,
             observations,
             location,
-            workflow
+            workflow,
+            events
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -143,9 +146,8 @@ router.put('/corregir/:id_observacion', async (req = request, res = response) =>
 
 router.put('/concluir/:id', async (req = request, res = response) => {
     try {
-        let { descripcion } = req.body
-        const mail = await entradaService.concludeProcedure(req.params.id, req.id_funcionario, descripcion)
-        await archivoService.archiveMail(mail, descripcion)
+        let { description } = req.body
+        await archivoService.archiveMail(req.params.id, req.id_cuenta, req.id_funcionario, description)
         return res.status(200).json({
             message: 'Tramite concluido y archivado'
         })

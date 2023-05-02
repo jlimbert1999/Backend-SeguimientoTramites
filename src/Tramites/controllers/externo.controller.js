@@ -6,11 +6,11 @@ const externoService = require('../services/externo.service')
 
 const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
 const { archiveProcedure } = require('../../Archivos/services/archivo.service');
-const { getPaginationParms } = require('../../../helpers/Pagintation');
+const entradaService = require('../../Bandejas/services/entrada.service')
 const observationService = require('./../services/observations.sevice')
 const salidaService = require('../../Bandejas/services/salida.service')
-const entradaService = require('../../Bandejas/services/entrada.service')
-const eventService = require('../models/events.model')
+const { getPaginationParms } = require('../../../helpers/Pagintation');
+const eventService = require('../services/events.service')
 
 
 router.get('/tipos', async (req = request, res = response) => {
@@ -43,14 +43,15 @@ router.get('/:id', async (req = request, res = response) => {
             observationService.getObservationsOfProcedure(req.params.id),
             entradaService.getLocationProcedure(req.params.id),
             salidaService.getWorkflowProcedure(req.params.id),
-
+            eventService.getEventsOfProcedure(req.params.id)
         ])
         return res.status(200).json({
             ok: true,
             tramite,
             location,
             workflow,
-            observations
+            observations,
+            events
         })
     } catch (error) {
         ServerErrorResponde(error, res)

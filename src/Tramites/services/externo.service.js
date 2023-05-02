@@ -121,7 +121,6 @@ const addLeadingZeros = (num, totalLength) => {
 exports.getOne = async (id_tramite) => {
     const procedure = await ExternoModel.findById(id_tramite)
         .populate('tipo_tramite', 'nombre -_id')
-        .populate('eventos.funcionario', 'nombre paterno materno -_id')
         .populate({
             path: 'cuenta',
             select: '_id',

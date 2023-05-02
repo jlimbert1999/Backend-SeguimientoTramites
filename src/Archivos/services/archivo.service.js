@@ -5,19 +5,34 @@ const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const AccountModel = require('../../Configuraciones/models/cuentas.model')
 const EventModel = require('../../Tramites/models/events.model')
-exports.archiveMail = async (mailIn, description) => {
-    const lastSendMail = await SalidaModel.findOne({ tramite: mailIn.tramite, 'emisor.cuenta': mailIn.emisor.cuenta, 'receptor.cuenta': mailIn.receptor.cuenta, recibido: true }).sort({ _id: -1 })
-    if (!lastSendMail) throw ({ status: 404, message: `El tramite no se ha podido archivar. No se encontro un flujo de trabajo` });
-    const archive = {
-        location: lastSendMail._id,
-        procedure: lastSendMail.tramite,
-        group: lastSendMail.tipo,
-        account: lastSendMail.receptor.cuenta,
-        officer: lastSendMail.receptor.funcionario,
-        description
+const ObjectId = require('mongoose').Types.ObjectId
+exports.archiveMail = async (id_mailIn, id_account, id_officer, description) => {
+    const mail = await EntradaModel.findById(id_mailIn)
+    if (!mail) throw ({ status: 400, message: `No se encontro el envio para archivar` });
+    const lastSend = await SalidaModel.findOne({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta, 'receptor.cuenta': mail.receptor.cuenta, recibido: true }).sort({ _id: -1 })
+    await Promise.all([
+        ArchivosModel.create({
+            location: lastSend._id,
+            account: id_account,
+            procedure: mail.tramite,
+            officer: id_officer,
+            group: mail.tipo,
+            description
+        }),
+        EventModel.create({
+            procedure: mail.tramite,
+            officer: id_officer,
+            group: mail.tipo,
+            description: `Ha concluido el tramite debido a: ${description}`
+        })
+    ])
+    await EntradaModel.deleteOne({ _id: id_mailIn })
+    const isProcessActive = await EntradaModel.findOne({ tramite: mail.tramite })
+    if (!isProcessActive) {
+        mail.tipo === 'tramites_externos'
+            ? await ExternoModel.findByIdAndUpdate(mail.tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
+            : await InternoModel.findByIdAndUpdate(mail.tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
     }
-    const newArchive = new ArchivosModel(archive)
-    await newArchive.save()
 }
 exports.archiveProcedure = async (id_procedure, id_officer, description, group) => {
     const procedure = group === 'tramites_externos'
@@ -26,23 +41,28 @@ exports.archiveProcedure = async (id_procedure, id_officer, description, group) 
     if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
     const workflow = await SalidaModel.findOne({ tramite: id_procedure })
     if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
-    const event = {
-        procedure: id_procedure,
-        officer: id_officer,
-        group,
-        description
-    }
     await Promise.all([
-        ArchivosModel.create({ account: procedure.cuenta, ...event }),
-        EventModel.create(event)
+        ArchivosModel.create({
+            account: procedure.cuenta,
+            procedure: id_procedure,
+            officer: id_officer,
+            group,
+            description
+        }),
+        EventModel.create({
+            procedure: id_procedure,
+            officer: id_officer,
+            group,
+            description: `Ha concluido el tramite debido a: ${description}`
+        })
     ])
     group === 'tramites_externos'
-        ? await ExternoModel.findByIdAndUpdate(id_procedure, { estado: 'CONCLUIDO' })
-        : await InternoModel.findByIdAndUpdate(id_procedure, { estado: 'CONCLUIDO' })
+        ? await ExternoModel.findByIdAndUpdate(id_procedure, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
+        : await InternoModel.findByIdAndUpdate(id_procedure, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
 }
 
 exports.get = async (id_account) => {
-    const account = await AccountModel.findById(id_account).select('dependencia').sort({ date: -1 })
+    const account = await AccountModel.findById(id_account).select('dependencia')
     const archives = await ArchivosModel.aggregate([
         {
             $lookup: {
@@ -56,6 +76,13 @@ exports.get = async (id_account) => {
             $unwind: "$account"
         },
         {
+            $project: {
+                'account.password': 0,
+                'account.login': 0,
+                'account.activo': 0
+            }
+        },
+        {
             $lookup: {
                 from: 'funcionarios',
                 localField: "officer",
@@ -66,6 +93,16 @@ exports.get = async (id_account) => {
         {
             $unwind: "$officer"
         },
+        {
+            $match: {
+                'account.dependencia': ObjectId(account.dependencia)
+            }
+        },
+        {
+            $sort: {
+                date: -1
+            }
+        }
     ]);
     await ArchivosModel.populate(archives,
         {
@@ -73,12 +110,12 @@ exports.get = async (id_account) => {
             select: 'alterno estado'
         }
     )
-    console.log(archives);
     return archives
 }
 
 exports.unarchive = async (id_archive, id_officer, description) => {
     const archive = await ArchivosModel.findByIdAndDelete(id_archive)
+    console.log(archive);
     if (!archive) throw ({ status: 400, message: `El tramite ya ha sido desarchivado` });
     let newState = 'EN REVISION'
     if (!archive.location) {
@@ -93,9 +130,15 @@ exports.unarchive = async (id_archive, id_officer, description) => {
         const newMail = new EntradaModel(mailOld)
         await newMail.save()
     }
+    await EventModel.create({
+        procedure: archive.procedure,
+        officer: id_officer,
+        group: archive.group,
+        description: `Desarchivo de tramite por: ${description}`
+    })
     archive.group === 'tramites_externos'
-        ? await ExternoModel.findByIdAndUpdate(archive.procedure, { estado: newState, $push: { eventos: { funcionario: id_officer, descripcion: `Desarchivo de tramite por: ${description}` } } })
-        : await InternoModel.findByIdAndUpdate(archive.procedure, { estado: newState, $push: { eventos: { funcionario: id_officer, descripcion: `Desarchivo de tramite por: ${description}` } } })
+        ? await ExternoModel.findByIdAndUpdate(archive.procedure, { estado: newState })
+        : await InternoModel.findByIdAndUpdate(archive.procedure, { estado: newState})
 }
 
 
