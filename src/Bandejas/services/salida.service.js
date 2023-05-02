@@ -316,7 +316,6 @@ exports.cancelOneSend = async (id_bandeja) => {
     await newMailOld.save()
     return `El tramite ahora se ecuentra en su bandeja de entrada`
 }
-
 exports.cancelAllSend = async (id_cuenta, id_tramite, fecha_envio) => {
     const mails = await SalidaModel.find({ tramite: id_tramite, 'emisor.cuenta': id_cuenta, fecha_envio: new Date(fecha_envio) })
     mails.forEach(mail => {
@@ -342,4 +341,41 @@ exports.cancelAllSend = async (id_cuenta, id_tramite, fecha_envio) => {
     const newMailOld = new EntradaModel(mailOld)
     await newMailOld.save()
     return `El tramite ahora se ecuentra en su bandeja de entrada`
+}
+
+exports.getWorkflowProcedure = async (id_tramite) => {
+    return await SalidaModel.find({ tramite: id_tramite }).select('-_id -__v')
+        .populate({
+            path: 'emisor.cuenta',
+            select: '_id',
+            populate: {
+                path: 'dependencia',
+                select: 'nombre',
+                populate: {
+                    path: 'institucion',
+                    select: 'sigla'
+                }
+            }
+        })
+        .populate({
+            path: 'emisor.funcionario',
+            select: '-_id nombre paterno materno cargo',
+        })
+        .populate({
+            path: 'receptor.cuenta',
+            select: '_id',
+            populate: {
+                path: 'dependencia',
+                select: 'nombre',
+                populate: {
+                    path: 'institucion',
+                    select: 'sigla'
+                }
+            }
+        })
+        .populate({
+            path: 'receptor.funcionario',
+            select: '-_id nombre paterno materno cargo',
+        })
+
 }

@@ -4,8 +4,7 @@ const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const CuentaModel = require("../../Configuraciones/models/cuentas.model");
 const { default: mongoose } = require("mongoose");
-const { getOne: getProcedureExternal } = require('../../Tramites/services/externo.service')
-const { getOne: getProcedureInternal } = require('../../Tramites/services/interno.service')
+
 
 exports.get = async (id_cuenta, limit, offset) => {
     offset = offset ? parseInt(offset) : 0;
@@ -46,7 +45,7 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
     for (const account of receptores) {
         const foundDuplicate = await EntradaModel.findOne({
             tramite: data.tramite,
-            'receptor.cuenta': account._id,
+            'receptor.cuenta': account,
             'emisor.cuenta': id_cuenta
         });
         if (foundDuplicate) {
@@ -74,10 +73,12 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
     });
     await SalidaModel.insertMany(mails);
     let MailsDB = await EntradaModel.insertMany(mails)
-    data.tipo === 'tramites_externos'
-        ? await ExternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
-        : await InternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
-
+    const updatedProcedure = await ExternoModel.findById(data.tramite).select('estado')
+    if (updatedProcedure.estado !== 'OBSERVADO') {
+        data.tipo === 'tramites_externos'
+            ? await ExternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
+            : await InternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
+    }
     await EntradaModel.populate(MailsDB, [
         {
             path: "tramite",
@@ -296,10 +297,8 @@ exports.checkMailManager = async (id_procedure, id_account) => {
 
 exports.getDetailsOfMail = async (id_bandeja) => {
     const mail = await getOne(id_bandeja)
-    const allDataProcedure = mail.tipo === 'tramites_externos'
-        ? await getProcedureExternal(mail.tramite)
-        : await getProcedureInternal(mail.tramite)
-    return { mail, allDataProcedure }
+    if (!mail) throw ({ status: 400, message: `El envio del tramite ha sido cancelado` });
+    return mail
 }
 
 
@@ -325,4 +324,23 @@ const getOne = async (id_bandeja) => {
     return imbox
 }
 
+exports.getLocationProcedure = async (id_procedure) => {
+    const receptors = await EntradaModel.find({ tramite: id_procedure })
+        .select('receptor.cuenta -_id')
+        .populate({
+            path: 'receptor.cuenta',
+            select: 'dependencia funcionario -_id',
+            populate: [
+                {
+                    path: 'funcionario',
+                    select: 'nombre paterno materno cargo -_id'
+                },
+                {
+                    path: 'dependencia',
+                    select: 'nombre -_id'
+                }
+            ]
+        })
+    return receptors.map(item => item.receptor)
+}
 

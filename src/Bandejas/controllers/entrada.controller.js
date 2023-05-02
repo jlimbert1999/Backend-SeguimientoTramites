@@ -4,9 +4,10 @@ const { ServerErrorResponde } = require('../../../helpers/responses')
 
 const entradaService = require('../services/entrada.service')
 const archivoService = require('../../Archivos/services/archivo.service')
-const externoService = require('../../Tramites/services/externo.service')
-
-
+const salidaService = require('../services/salida.service')
+const observationService = require('../../Tramites/services/observations.sevice')
+const { getOne: getProcedureExternal } = require('../../Tramites/services/externo.service')
+const { getOne: getProcedureInternal } = require('../../Tramites/services/interno.service')
 // ENTRADAS
 router.get('/', async (req = request, res = response) => {
     try {
@@ -44,11 +45,23 @@ router.get('/users/:text', async (req = request, res = response) => {
 
 router.get('/:id', async (req = request, res = response) => {
     try {
-        const { mail, allDataProcedure } = await entradaService.getDetailsOfMail(req.params.id)
+        const mail = await entradaService.getDetailsOfMail(req.params.id)
+        const promises = [
+            observationService.getObservationsOfProcedure(mail.tramite),
+            entradaService.getLocationProcedure(mail.tramite),
+            salidaService.getWorkflowProcedure(mail.tramite)
+        ]
+        mail.tipo === 'tramites_externos'
+            ? promises.unshift(getProcedureExternal(mail.tramite))
+            : promises.unshift(getProcedureInternal(mail.tramite))
+        const [procedure, observations, location, workflow] = await Promise.all(promises)
         return res.status(200).json({
             ok: true,
             mail,
-            allDataProcedure
+            procedure,
+            observations,
+            location,
+            workflow
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -95,15 +108,32 @@ router.put('/rechazar/:id', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.put('/observar/:id_procedure', async (req = request, res = response) => {
+
+router.put('/observar/:id_tramite', async (req = request, res = response) => {
+    const { description } = req.body
     try {
-        const mail = await entradaService.checkMailManager(req.params.id_procedure, req.id_cuenta)
-        const observations = mail.tipo === 'tramites_externos'
-            ? await externoService.addObservation(mail.tramite, req.body)
-            : ''
+        const mail = await entradaService.checkMailManager(req.params.id_tramite, req.id_cuenta)
+        const observation = await observationService.addObservation(
+            req.params.id_tramite,
+            req.id_cuenta,
+            req.id_funcionario,
+            mail.tipo,
+            description
+        )
         return res.status(200).json({
             ok: true,
-            observations
+            observation
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.put('/corregir/:id_observacion', async (req = request, res = response) => {
+    try {
+        const state = await observationService.markAsSolved(req.params.id_observacion, req.id_cuenta)
+        return res.status(200).json({
+            ok: true,
+            state
         })
     } catch (error) {
         ServerErrorResponde(error, res)

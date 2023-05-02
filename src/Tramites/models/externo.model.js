@@ -111,7 +111,7 @@ const TramiteExternoScheme = Schema({
     },
     fecha_registro: {
         type: Date,
-        default: Date.now()
+        default: Date.now
     },
     fecha_finalizacion: {
         type: Date,

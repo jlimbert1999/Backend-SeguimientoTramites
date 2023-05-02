@@ -4,7 +4,7 @@ const EntradaModel = require('../../Bandejas/models/entrada.model')
 const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const AccountModel = require('../../Configuraciones/models/cuentas.model')
-const { default: mongoose } = require("mongoose");
+const EventModel = require('../../Tramites/models/events.model')
 exports.archiveMail = async (mailIn, description) => {
     const lastSendMail = await SalidaModel.findOne({ tramite: mailIn.tramite, 'emisor.cuenta': mailIn.emisor.cuenta, 'receptor.cuenta': mailIn.receptor.cuenta, recibido: true }).sort({ _id: -1 })
     if (!lastSendMail) throw ({ status: 404, message: `El tramite no se ha podido archivar. No se encontro un flujo de trabajo` });
@@ -19,20 +19,30 @@ exports.archiveMail = async (mailIn, description) => {
     const newArchive = new ArchivosModel(archive)
     await newArchive.save()
 }
-exports.archiveProcedure = async (procedure, groupProcedure, id_officer, description) => {
-    const archive = {
-        procedure: procedure._id,
-        group: groupProcedure,
-        account: procedure.cuenta,
+exports.archiveProcedure = async (id_procedure, id_officer, description, group) => {
+    const procedure = group === 'tramites_externos'
+        ? await ExternoModel.findById(id_procedure)
+        : await InternoModel.findById(id_procedure)
+    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
+    const workflow = await SalidaModel.findOne({ tramite: id_procedure })
+    if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
+    const event = {
+        procedure: id_procedure,
         officer: id_officer,
+        group,
         description
     }
-    const newArchive = new ArchivosModel(archive)
-    await newArchive.save()
+    await Promise.all([
+        ArchivosModel.create({ account: procedure.cuenta, ...event }),
+        EventModel.create(event)
+    ])
+    group === 'tramites_externos'
+        ? await ExternoModel.findByIdAndUpdate(id_procedure, { estado: 'CONCLUIDO' })
+        : await InternoModel.findByIdAndUpdate(id_procedure, { estado: 'CONCLUIDO' })
 }
 
 exports.get = async (id_account) => {
-    const account = await AccountModel.findById(id_account).select('dependencia')
+    const account = await AccountModel.findById(id_account).select('dependencia').sort({ date: -1 })
     const archives = await ArchivosModel.aggregate([
         {
             $lookup: {
@@ -57,7 +67,7 @@ exports.get = async (id_account) => {
             $unwind: "$officer"
         },
     ]);
-    await ArchivosModel.populate(archives, 
+    await ArchivosModel.populate(archives,
         {
             path: 'procedure',
             select: 'alterno estado'

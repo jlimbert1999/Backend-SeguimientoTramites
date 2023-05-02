@@ -1,8 +1,12 @@
 const router = require('express').Router()
 const { request, response } = require('express');
 
-const { ServerErrorResponde } = require('../../../helpers/responses')
 const internoService = require('../services/interno.service')
+const observationService = require('./../services/observations.sevice')
+const salidaService = require('../../Bandejas/services/salida.service')
+const entradaService = require('../../Bandejas/services/entrada.service')
+
+const { ServerErrorResponde } = require('../../../helpers/responses')
 const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
 
 router.get('/tipos', async (req = request, res = response) => {
@@ -31,11 +35,18 @@ router.get('/', async (req = request, res = response) => {
 })
 router.get('/:id', async (req = request, res = response) => {
     try {
-        const { tramite, workflow, location } = await internoService.getOne(req.params.id)
+        const [tramite, observations, location, workflow] = await Promise.all([
+            internoService.getOne(req.params.id),
+            observationService.getObservationsOfProcedure(req.params.id),
+            entradaService.getLocationProcedure(req.params.id),
+            salidaService.getWorkflowProcedure(req.params.id)
+        ])
         return res.status(200).json({
+            ok: true,
             tramite,
+            location,
             workflow,
-            location
+            observations
         })
     } catch (error) {
         ServerErrorResponde(error, res)

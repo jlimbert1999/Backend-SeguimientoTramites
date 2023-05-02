@@ -18,12 +18,18 @@ exports.get = async (id_cuenta, limit, offset) => {
 
 }
 exports.getOne = async (id_procedure) => {
-    const [tramite, location, workflow] = await Promise.all([
-        getProcedure(id_procedure),
-        getLocation(id_procedure),
-        getWorkflow(id_procedure)
-    ])
-    return { tramite, workflow, location }
+    const procedure = await InternoModel.findOne({ _id: id_procedure })
+        .populate('tipo_tramite', '-_id nombre')
+        .populate({
+            path: 'cuenta',
+            select: '_id',
+            populate: {
+                path: 'funcionario',
+                select: 'nombre paterno materno cargo -_id'
+            }
+        })
+    if (!procedure) throw ({ status: 404, message: 'El tramite no existe' });
+    return procedure
 }
 
 exports.add = async (tramite, id_cuenta) => {
@@ -72,20 +78,7 @@ exports.getUsers = async (text) => {
     return usuarios
 }
 
-const getProcedure = async (id_procedure) => {
-    const procedure = await InternoModel.findOne({ _id: id_procedure })
-        .populate('tipo_tramite', '-_id nombre')
-        .populate({
-            path: 'cuenta',
-            select: '_id',
-            populate: {
-                path: 'funcionario',
-                select: 'nombre paterno materno cargo -_id'
-            }
-        })
-    if (!procedure) throw ({ status: 404, message: 'El tramite no existe' });
-    return procedure
-}
+
 const getWorkflow = async (id_procedure) => {
     return await SalidaModel.find({ tramite: id_procedure }).select('-_id -__v')
         .populate({

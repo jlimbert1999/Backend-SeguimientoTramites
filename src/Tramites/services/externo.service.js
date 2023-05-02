@@ -2,7 +2,7 @@ require('dotenv').config()
 const ExternoModel = require('../models/externo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const { default: mongoose } = require('mongoose')
-const EntradaModel = require('../../Bandejas/models/entrada.model')
+
 
 exports.get = async (id_cuenta, limit, offset) => {
     offset = parseInt(offset) ? offset : 0
@@ -17,14 +17,6 @@ exports.get = async (id_cuenta, limit, offset) => {
         await ExternoModel.count({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } })
     ]);
     return { tramites, total }
-}
-exports.getOne = async (id_tramite) => {
-    const [tramite, location, workflow] = await Promise.all([
-        getProcedure(id_tramite),
-        getLocation(id_tramite),
-        getWorkflow(id_tramite)
-    ])
-    return { tramite, workflow, location }
 }
 exports.search = async (text, limit, offset, id_cuenta) => {
     const regex = new RegExp(text, 'i')
@@ -104,25 +96,12 @@ exports.edit = async (id_tramite, updateData) => {
     return newTramite
 }
 
-exports.addObservation = async (id_procedure, observation) => {
-    const procedure = await ExternoModel.findById(id_procedure)
-    if (!procedure) throw ({ status: 400, message: `El tramite para observar no existe` });
-    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ha sido ${procedure.estado}` });
-    const newProcedure = await ExternoModel.findByIdAndUpdate(id_procedure, {
-        $push: {
-            observaciones: observation
-        },
-        estado: 'OBSERVADO'
-    }, { new: true }).select('observaciones -_id')
-    return newProcedure.observaciones
-}
-
 exports.concludeProcedure = async (id_tramite, descripcion, id_funcionario) => {
     const procedure = await ExternoModel.findById(id_tramite)
     if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
     const workflow = await SalidaModel.findOne({ tramite: id_tramite })
     if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
-    await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', $push: { eventos: { funcionario: id_funcionario, descripcion: `Tramite concluido debido a: ${descripcion}` } } })
+    await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO' })
     return procedure
 }
 
@@ -135,46 +114,11 @@ exports.cancelProcedure = async (id_tramite, id_funcionario, descripcion) => {
 }
 
 
+
 const addLeadingZeros = (num, totalLength) => {
     return String(num).padStart(totalLength, '0');
 }
-const getWorkflow = async (id_tramite) => {
-    return await SalidaModel.find({ tramite: id_tramite }).select('-_id -__v')
-        .populate({
-            path: 'emisor.cuenta',
-            select: '_id',
-            populate: {
-                path: 'dependencia',
-                select: 'nombre',
-                populate: {
-                    path: 'institucion',
-                    select: 'sigla'
-                }
-            }
-        })
-        .populate({
-            path: 'emisor.funcionario',
-            select: '-_id nombre paterno materno cargo',
-        })
-        .populate({
-            path: 'receptor.cuenta',
-            select: '_id',
-            populate: {
-                path: 'dependencia',
-                select: 'nombre',
-                populate: {
-                    path: 'institucion',
-                    select: 'sigla'
-                }
-            }
-        })
-        .populate({
-            path: 'receptor.funcionario',
-            select: '-_id nombre paterno materno cargo',
-        })
-
-}
-const getProcedure = async (id_tramite) => {
+exports.getOne = async (id_tramite) => {
     const procedure = await ExternoModel.findById(id_tramite)
         .populate('tipo_tramite', 'nombre -_id')
         .populate('eventos.funcionario', 'nombre paterno materno -_id')
@@ -188,43 +132,4 @@ const getProcedure = async (id_tramite) => {
         })
     if (!procedure) throw ({ status: 400, message: 'El tramite no existe' });
     return procedure
-}
-const getLocation = async (id_tramite) => {
-    let location = await EntradaModel.find({ tramite: id_tramite })
-        .select('receptor.cuenta -_id')
-        .populate({
-            path: 'receptor.cuenta',
-            select: 'dependencia funcionario -_id',
-            populate: [
-                {
-                    path: 'funcionario',
-                    select: 'nombre paterno materno cargo -_id'
-                },
-                {
-                    path: 'dependencia',
-                    select: 'nombre -_id'
-                }
-            ]
-        })
-    if (location.length === 0) {
-        location = await ExternoModel.findById(id_tramite)
-            .select('cuenta -_id').populate({
-                path: 'cuenta',
-                select: 'funcionario dependencia -_id',
-                populate: [
-                    {
-                        path: 'funcionario',
-                        select: 'nombre paterno materno cargo -_id'
-                    },
-                    {
-                        path: 'dependencia',
-                        select: 'nombre -_id'
-                    }
-                ]
-            })
-        return [location]
-    }
-    location = location.map(element => element.receptor)
-    return location
-
 }

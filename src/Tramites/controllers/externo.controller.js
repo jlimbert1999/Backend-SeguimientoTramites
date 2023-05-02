@@ -3,9 +3,15 @@ const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
 const externoService = require('../services/externo.service')
+
 const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
 const { archiveProcedure } = require('../../Archivos/services/archivo.service');
 const { getPaginationParms } = require('../../../helpers/Pagintation');
+const observationService = require('./../services/observations.sevice')
+const salidaService = require('../../Bandejas/services/salida.service')
+const entradaService = require('../../Bandejas/services/entrada.service')
+const eventService = require('../models/events.model')
+
 
 router.get('/tipos', async (req = request, res = response) => {
     try {
@@ -32,12 +38,19 @@ router.get('/', async (req = request, res = response) => {
 })
 router.get('/:id', async (req = request, res = response) => {
     try {
-        const { tramite, workflow, location } = await externoService.getOne(req.params.id)
+        const [tramite, observations, location, workflow, events] = await Promise.all([
+            externoService.getOne(req.params.id),
+            observationService.getObservationsOfProcedure(req.params.id),
+            entradaService.getLocationProcedure(req.params.id),
+            salidaService.getWorkflowProcedure(req.params.id),
+
+        ])
         return res.status(200).json({
-            ok:true,
+            ok: true,
             tramite,
             location,
-            workflow
+            workflow,
+            observations
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -82,8 +95,7 @@ router.put('/:id', async (req = request, res = response) => {
 router.put('/concluir/:id', async (req = request, res = response) => {
     try {
         let { descripcion } = req.body
-        const procedure = await externoService.concludeProcedure(req.params.id, descripcion, req.id_funcionario)
-        await archiveProcedure(procedure, 'tramites_externos', req.id_funcionario, descripcion)
+        await archiveProcedure(req.params.id, req.id_funcionario, descripcion, 'tramites_externos')
         return res.status(200).json({
             ok: true,
             message: 'Tramite concluido y archivado'
