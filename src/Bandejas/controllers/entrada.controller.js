@@ -9,6 +9,9 @@ const archivoService = require('../../Archivos/services/archivo.service')
 const eventService = require('../../Tramites/services/events.service')
 const entradaService = require('../services/entrada.service')
 const salidaService = require('../services/salida.service')
+const { getActiveIntituciones } = require('../../Configuraciones/services/instituciones.service')
+const { getDependenciesOfInstitucion } = require('../../Configuraciones/services/dependencias.service')
+const { getAccountByDependencie } = require('../../Configuraciones/services/cuentas.service')
 // ENTRADAS
 router.get('/', async (req = request, res = response) => {
     try {
@@ -43,6 +46,38 @@ router.get('/users/:text', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
+router.get('/instituciones', async (req = request, res = response) => {
+    try {
+        const institutions = await getActiveIntituciones()
+        return res.status(200).json({
+            institutions
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.get('/dependencias/:id_institucion', async (req = request, res = response) => {
+    try {
+        const dependencies = await getDependenciesOfInstitucion(req.params.id_institucion)
+        return res.status(200).json({
+            dependencies
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.get('/cuentas/:id_dependencia', async (req = request, res = response) => {
+    try {
+        const accounts = await getAccountByDependencie(req.params.id_dependencia)
+        return res.status(200).json({
+            accounts    
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+
 
 router.get('/:id', async (req = request, res = response) => {
     try {

@@ -5,9 +5,12 @@ const internoService = require('../services/interno.service')
 const observationService = require('./../services/observations.sevice')
 const salidaService = require('../../Bandejas/services/salida.service')
 const entradaService = require('../../Bandejas/services/entrada.service')
+const eventService = require('../../Tramites/services/events.service')
+const archiveService = require('../../Archivos/services/archivo.service')
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
 const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
+const { getPaginationParms } = require('../../../helpers/Pagintation');
 
 router.get('/tipos', async (req = request, res = response) => {
     try {
@@ -23,7 +26,8 @@ router.get('/tipos', async (req = request, res = response) => {
 
 router.get('/', async (req = request, res = response) => {
     try {
-        const { tramites, length } = await internoService.get(req.id_cuenta, req.query.limit, req.query.offset)
+        const { limit, offset } = getPaginationParms(req.query)
+        const { tramites, length } = await internoService.get(req.id_cuenta, limit, offset)
         return res.status(200).json({
             ok: true,
             tramites,
@@ -67,6 +71,7 @@ router.put('/:id', async (req = request, res = response) => {
     try {
         const tramite = await internoService.edit(req.params.id, req.body)
         return res.status(200).json({
+            ok: true,
             tramite
         })
     } catch (error) {
@@ -96,5 +101,39 @@ router.get('/search/:text', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
+
+router.put('/concluir/:id', async (req = request, res = response) => {
+    try {
+        let { descripcion } = req.body
+        await Promise.all([
+            internoService.concludeProcedure(req.params.id),
+            archiveService.archiveProcedure(req.id_cuenta, req.id_funcionario, req.params.id, descripcion, 'tramites_internos'),
+            eventService.addEventProcedure(req.params.id, req.id_funcionario, `Ha concluido el tramite debido a: ${descripcion}`, 'tramites_internos')
+        ])
+        return res.status(200).json({
+            ok: true,
+            message: 'Tramite concluido y archivado'
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.put('/cancelar/:id', async (req = request, res = response) => {
+    try {
+        const { descripcion } = req.body
+        await Promise.all([
+            internoService.cancelProcedure(req.params.id),
+            eventService.addEventProcedure(req.params.id, req.id_funcionario, `Ha anulado el tramite debido a: ${descripcion}`, 'tramites_internos')
+        ])
+        return res.status(200).json({
+            ok: true,
+            message: 'Tramite anulado'
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+
+
 
 module.exports = router

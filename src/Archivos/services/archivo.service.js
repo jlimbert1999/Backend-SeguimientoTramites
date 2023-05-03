@@ -34,31 +34,15 @@ exports.archiveMail = async (id_mailIn, id_account, id_officer, description) => 
             : await InternoModel.findByIdAndUpdate(mail.tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
     }
 }
-exports.archiveProcedure = async (id_procedure, id_officer, description, group) => {
-    const procedure = group === 'tramites_externos'
-        ? await ExternoModel.findById(id_procedure)
-        : await InternoModel.findById(id_procedure)
-    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
-    const workflow = await SalidaModel.findOne({ tramite: id_procedure })
-    if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
-    await Promise.all([
-        ArchivosModel.create({
-            account: procedure.cuenta,
-            procedure: id_procedure,
-            officer: id_officer,
-            group,
-            description
-        }),
-        EventModel.create({
-            procedure: id_procedure,
-            officer: id_officer,
-            group,
-            description: `Ha concluido el tramite debido a: ${description}`
-        })
-    ])
-    group === 'tramites_externos'
-        ? await ExternoModel.findByIdAndUpdate(id_procedure, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
-        : await InternoModel.findByIdAndUpdate(id_procedure, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
+exports.archiveProcedure = async (id_account, id_officer, id_procedure, description, group) => {
+    const archive = {
+        account: id_account,
+        officer: id_officer,
+        procedure: id_procedure,
+        group,
+        description
+    }
+    await ArchivosModel.create(archive)
 }
 
 exports.get = async (id_account) => {
@@ -138,7 +122,7 @@ exports.unarchive = async (id_archive, id_officer, description) => {
     })
     archive.group === 'tramites_externos'
         ? await ExternoModel.findByIdAndUpdate(archive.procedure, { estado: newState })
-        : await InternoModel.findByIdAndUpdate(archive.procedure, { estado: newState})
+        : await InternoModel.findByIdAndUpdate(archive.procedure, { estado: newState })
 }
 
 

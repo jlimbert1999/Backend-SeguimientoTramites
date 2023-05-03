@@ -3,7 +3,6 @@ const ExternoModel = require('../models/externo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const { default: mongoose } = require('mongoose')
 
-
 exports.get = async (id_cuenta, limit, offset) => {
     offset = parseInt(offset) ? offset : 0
     limit = parseInt(limit) ? limit : 10
@@ -67,7 +66,6 @@ exports.search = async (text, limit, offset, id_cuenta) => {
     const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
     return { tramites, length }
 }
-
 exports.add = async (id_cuenta, tramite, solicitante, representante) => {
     tramite.cuenta = id_cuenta
     tramite.alterno = `${tramite.alterno}-${process.env.CONFIG_YEAR}`
@@ -91,32 +89,8 @@ exports.edit = async (id_tramite, updateData) => {
     if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido aceptado para la evaluacion' });
     if (representante) Object.assign(tramite, { representante })
     Object.assign(tramite, { solicitante })
-    const newTramite = await ExternoModel.findByIdAndUpdate(id_tramite, tramite, { new: true })
+    return await ExternoModel.findByIdAndUpdate(id_tramite, tramite, { new: true })
         .populate('tipo_tramite', 'nombre -_id')
-    return newTramite
-}
-
-exports.concludeProcedure = async (id_tramite, descripcion, id_funcionario) => {
-    const procedure = await ExternoModel.findById(id_tramite)
-    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
-    const workflow = await SalidaModel.findOne({ tramite: id_tramite })
-    if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
-    await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO' })
-    return procedure
-}
-
-exports.cancelProcedure = async (id_tramite, id_funcionario, descripcion) => {
-    const procedure = await ExternoModel.findById(id_tramite)
-    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
-    const isSend = await SalidaModel.findOne({ tramite: id_tramite, tipo: 'tramites_externos', $or: [{ recibdo: null }, { recibido: true }] })
-    if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede anular' });
-    await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'ANULADO', $push: { eventos: { funcionario: id_funcionario, descripcion: `Tramite anulado debido a: ${descripcion}` } } })
-}
-
-
-
-const addLeadingZeros = (num, totalLength) => {
-    return String(num).padStart(totalLength, '0');
 }
 exports.getOne = async (id_tramite) => {
     const procedure = await ExternoModel.findById(id_tramite)
@@ -131,4 +105,21 @@ exports.getOne = async (id_tramite) => {
         })
     if (!procedure) throw ({ status: 400, message: 'El tramite no existe' });
     return procedure
+}
+exports.concludeProcedure = async (id_tramite) => {
+    const procedure = await ExternoModel.findById(id_tramite)
+    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
+    const workflow = await SalidaModel.findOne({ tramite: id_tramite })
+    if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
+    await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
+}
+exports.cancelProcedure = async (id_tramite) => {
+    const procedure = await ExternoModel.findById(id_tramite)
+    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
+    const isSend = await SalidaModel.findOne({ tramite: id_tramite, tipo: 'tramites_externos', $or: [{ recibdo: null }, { recibido: true }] })
+    if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede anular' });
+    await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'ANULADO' })
+}
+const addLeadingZeros = (num, totalLength) => {
+    return String(num).padStart(totalLength, '0');
 }
