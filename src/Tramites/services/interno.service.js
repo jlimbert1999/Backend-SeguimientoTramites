@@ -52,9 +52,6 @@ exports.edit = async (id_procedure, procedure) => {
         .populate('tipo_tramite', '-_id nombre')
 }
 exports.search = async (id_cuenta, limit, offset, text) => {
-    offset = offset ? offset : 0
-    limit = limit ? limit : 10
-    offset = offset * limit
     const regex = new RegExp(text, 'i')
     const [tramites, length] = await Promise.all([
         InternoModel.find({ cuenta: id_cuenta, $or: [{ alterno: regex }, { detalle: regex }, { cite: regex }, { 'destinatario.nombre': regex }] })
@@ -64,30 +61,6 @@ exports.search = async (id_cuenta, limit, offset, text) => {
         InternoModel.count({ cuenta: id_cuenta, $or: [{ alterno: regex }, { detalle: regex }, { cite: regex }, { 'destinatario.nombre': regex }] })
     ])
     return { tramites, length }
-}
-
-exports.getUsers = async (text) => {
-    const regex = new RegExp(text, 'i')
-    return await UsersModel.aggregate([
-        {
-            $addFields: {
-                fullname: {
-                    $concat: ["$nombre", " ", { $ifNull: ["$paterno", ""] }, " ", { $ifNull: ["$materno", ""] }]
-                }
-            },
-        },
-        {
-            $match: {
-                activo: true,
-                $or: [
-                    { fullname: regex },
-                    { cargo: regex }
-                ]
-            }
-        },
-        { $project: { __v: 0 } },
-        { $limit: 5 }
-    ]);
 }
 exports.concludeProcedure = async (id_procedure) => {
     const procedure = await InternoModel.findById(id_procedure)

@@ -2,15 +2,16 @@ const router = require('express').Router()
 const { request, response } = require('express');
 
 const internoService = require('../services/interno.service')
-const observationService = require('./../services/observations.sevice')
-const salidaService = require('../../Bandejas/services/salida.service')
-const entradaService = require('../../Bandejas/services/entrada.service')
-const eventService = require('../../Tramites/services/events.service')
-const archiveService = require('../../Archivos/services/archivo.service')
-
 const { ServerErrorResponde } = require('../../../helpers/responses')
+const { getPaginationParams } = require('../../../helpers/Pagintation');
+
 const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
-const { getPaginationParms } = require('../../../helpers/Pagintation');
+const { getOfficerByText } = require('../../Configuraciones/services/funcionarios.service')
+const { getObservationsOfProcedure } = require('./../services/observations.sevice')
+const { getWorkflowProcedure } = require('../../Bandejas/services/salida.service')
+const { getLocationProcedure } = require('../../Bandejas/services/entrada.service')
+const { archiveProcedure } = require('../../Archivos/services/archivo.service')
+const { addEventProcedure, getEventsOfProcedure } = require('../../Tramites/services/events.service')
 
 router.get('/tipos', async (req = request, res = response) => {
     try {
@@ -26,7 +27,7 @@ router.get('/tipos', async (req = request, res = response) => {
 
 router.get('/', async (req = request, res = response) => {
     try {
-        const { limit, offset } = getPaginationParms(req.query)
+        const { limit, offset } = getPaginationParams(req.query)
         const { tramites, length } = await internoService.get(req.id_cuenta, limit, offset)
         return res.status(200).json({
             ok: true,
@@ -39,18 +40,20 @@ router.get('/', async (req = request, res = response) => {
 })
 router.get('/:id', async (req = request, res = response) => {
     try {
-        const [tramite, observations, location, workflow] = await Promise.all([
+        const [tramite, observations, location, workflow, events] = await Promise.all([
             internoService.getOne(req.params.id),
-            observationService.getObservationsOfProcedure(req.params.id),
-            entradaService.getLocationProcedure(req.params.id),
-            salidaService.getWorkflowProcedure(req.params.id)
+            getObservationsOfProcedure(req.params.id),
+            getLocationProcedure(req.params.id),
+            getWorkflowProcedure(req.params.id),
+            getEventsOfProcedure(req.params.id)
         ])
         return res.status(200).json({
             ok: true,
             tramite,
             location,
             workflow,
-            observations
+            observations,
+            events
         })
     } catch (error) {
         ServerErrorResponde(error, res)
@@ -81,7 +84,7 @@ router.put('/:id', async (req = request, res = response) => {
 
 router.get('/usuarios/:text', async (req = request, res = response) => {
     try {
-        const users = await internoService.getUsers(req.params.text)
+        const users = await getOfficerByText(req.params.text)
         return res.status(200).json({
             users
         })
@@ -92,7 +95,8 @@ router.get('/usuarios/:text', async (req = request, res = response) => {
 
 router.get('/search/:text', async (req = request, res = response) => {
     try {
-        const { tramites, length } = await internoService.search(req.id_cuenta, req.query.limit, req.query.offset, req.params.text)
+        const { limit, offset } = getPaginationParams(req.query)
+        const { tramites, length } = await internoService.search(req.id_cuenta, limit, offset, req.params.text)
         return res.status(200).json({
             tramites,
             length
@@ -107,8 +111,8 @@ router.put('/concluir/:id', async (req = request, res = response) => {
         let { descripcion } = req.body
         await Promise.all([
             internoService.concludeProcedure(req.params.id),
-            archiveService.archiveProcedure(req.id_cuenta, req.id_funcionario, req.params.id, descripcion, 'tramites_internos'),
-            eventService.addEventProcedure(req.params.id, req.id_funcionario, `Ha concluido el tramite debido a: ${descripcion}`, 'tramites_internos')
+            archiveProcedure(req.id_cuenta, req.id_funcionario, req.params.id, descripcion, 'tramites_internos'),
+            addEventProcedure(req.params.id, req.id_funcionario, `Ha concluido el tramite debido a: ${descripcion}`, 'tramites_internos')
         ])
         return res.status(200).json({
             ok: true,
@@ -123,7 +127,7 @@ router.put('/cancelar/:id', async (req = request, res = response) => {
         const { descripcion } = req.body
         await Promise.all([
             internoService.cancelProcedure(req.params.id),
-            eventService.addEventProcedure(req.params.id, req.id_funcionario, `Ha anulado el tramite debido a: ${descripcion}`, 'tramites_internos')
+            addEventProcedure(req.params.id, req.id_funcionario, `Ha anulado el tramite debido a: ${descripcion}`, 'tramites_internos')
         ])
         return res.status(200).json({
             ok: true,

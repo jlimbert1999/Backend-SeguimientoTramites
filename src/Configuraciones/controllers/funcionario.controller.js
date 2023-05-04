@@ -2,9 +2,7 @@ const router = require('express').Router()
 const { request, response } = require('express');
 
 const { ServerErrorResponde } = require('../../../helpers/responses')
-const FuncionarioService = require('../services/funcionarios.service')
-
-const funcionarioService = new FuncionarioService()
+const funcionarioService = require('../services/funcionarios.service')
 
 router.post('', async (req = request, res = response) => {
     try {

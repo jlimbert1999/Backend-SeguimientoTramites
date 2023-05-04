@@ -3,6 +3,7 @@ const SalidaModel = require('../models/salida.model')
 const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const CuentaModel = require("../../Configuraciones/models/cuentas.model");
+const ObservationModel = require('../../Tramites/models/observations.model')
 const { default: mongoose } = require("mongoose");
 
 
@@ -237,26 +238,7 @@ exports.searchAccountsForSend = async (text, id_cuenta) => {
     ]);
     return cuentas
 }
-exports.concludeProcedure = async (id_bandeja, id_funcionario, descripcion) => {
-    const mail = await EntradaModel.findByIdAndDelete(id_bandeja)
-    let isProcessActive = await EntradaModel.findOne({ tramite: mail.tramite })
-    let query = {
-        $push: {
-            eventos: {
-                funcionario: id_funcionario, descripcion: `Tramite concluido debido a: ${descripcion}`
-            }
-        }
-    }
-    if (!isProcessActive) {
-        Object.assign(query, {
-            estado: 'CONCLUIDO', fecha_finalizacion: new Date()
-        })
-    }
-    mail.tipo === 'tramites_externos'
-        ? await ExternoModel.findByIdAndUpdate(mail.tramite, query)
-        : await InternoModel.findByIdAndUpdate(mail.tramite, query)
-    return mail
-}
+
 exports.aceptProcedure = async (id_bandeja) => {
     const mail = await EntradaModel.findByIdAndUpdate(id_bandeja, {
         recibido: true,
@@ -294,6 +276,21 @@ exports.declineProcedure = async (id_bandeja, motivo_rechazo) => {
             ? await ExternoModel.findByIdAndUpdate(mail.tramite, { estado: "INSCRITO" })
             : await InternoModel.findByIdAndUpdate(mail.tramite, { estado: "INSCRITO" });
     }
+}
+exports.concludeProcedure = async (id_mailIn, id_account) => {
+    const mail = await EntradaModel.findById(id_mailIn).populate('tramite', 'estado')
+    if (mail.tramite.estado === 'OBSERVADO') {
+        const pendingObservations = await ObservationModel.findOne({ procedure: mail.tramite._id, account: id_account, solved: false })
+        if (pendingObservations) throw ({ status: 400, message: `Usted tiene observaciones para este tramite sin resolver` });
+    }
+    const mailDelete = await EntradaModel.findByIdAndDelete(id_mailIn)
+    const isProcessActive = await EntradaModel.findOne({ tramite: mail.tramite._id })
+    if (!isProcessActive) {
+        mail.tipo === 'tramites_externos'
+            ? await ExternoModel.findByIdAndUpdate(mail.tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
+            : await InternoModel.findByIdAndUpdate(mail.tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
+    }
+    return mailDelete
 }
 exports.checkMailManager = async (id_procedure, id_account) => {
     const mail = await EntradaModel.findOne({ tramite: id_procedure, 'receptor.cuenta': id_account, recibido: true })

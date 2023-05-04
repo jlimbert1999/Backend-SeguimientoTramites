@@ -1,19 +1,20 @@
 const router = require('express').Router()
 const { request, response } = require('express');
 
-const { ServerErrorResponde } = require('../../../helpers/responses')
 const externoService = require('../services/externo.service')
+const { ServerErrorResponde } = require('../../../helpers/responses')
+const { getPaginationParams } = require('../../../helpers/Pagintation');
 
+const { getObservationsOfProcedure } = require('./../services/observations.sevice')
+const { getEventsOfProcedure, addEventProcedure } = require('../services/events.service')
 const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
-const archiveService = require('../../Archivos/services/archivo.service');
-const entradaService = require('../../Bandejas/services/entrada.service')
-const observationService = require('./../services/observations.sevice')
-const salidaService = require('../../Bandejas/services/salida.service')
-const { getPaginationParms } = require('../../../helpers/Pagintation');
-const eventService = require('../services/events.service')
+const { archiveProcedure } = require('../../Archivos/services/archivo.service');
+const { getLocationProcedure } = require('../../Bandejas/services/entrada.service')
+const { getWorkflowProcedure } = require('../../Bandejas/services/salida.service');
+const verifyRole = require('../../../middlewares/verifyRole');
 
 
-router.get('/tipos', async (req = request, res = response) => {
+router.get('/tipos', verifyRole('externos'), async (req = request, res = response) => {
     try {
         const types = await getProceduresTypesForRegister('EXTERNO')
         return res.status(200).json({
@@ -24,9 +25,10 @@ router.get('/tipos', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.get('/', async (req = request, res = response) => {
+router.get('/', verifyRole('externos'), async (req = request, res = response) => {
     try {
-        const { tramites, total } = await externoService.get(req.id_cuenta, req.query.limit, req.query.offset)
+        const { limit, offset } = getPaginationParams(req.query)
+        const { tramites, total } = await externoService.get(req.id_cuenta, limit, offset)
         return res.status(200).json({
             ok: true,
             tramites,
@@ -40,10 +42,10 @@ router.get('/:id', async (req = request, res = response) => {
     try {
         const [tramite, observations, location, workflow, events] = await Promise.all([
             externoService.getOne(req.params.id),
-            observationService.getObservationsOfProcedure(req.params.id),
-            entradaService.getLocationProcedure(req.params.id),
-            salidaService.getWorkflowProcedure(req.params.id),
-            eventService.getEventsOfProcedure(req.params.id)
+            getObservationsOfProcedure(req.params.id),
+            getLocationProcedure(req.params.id),
+            getWorkflowProcedure(req.params.id),
+            getEventsOfProcedure(req.params.id)
         ])
         return res.status(200).json({
             ok: true,
@@ -57,9 +59,9 @@ router.get('/:id', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.get('/buscar/:text', async (req = request, res = response) => {
+router.get('/buscar/:text', verifyRole('externos'), async (req = request, res = response) => {
     try {
-        const { limit, offset } = getPaginationParms(req.query)
+        const { limit, offset } = getPaginationParams(req.query)
         const { tramites, length } = await externoService.search(req.params.text, limit, offset, req.id_cuenta)
         return res.status(200).json({
             ok: true,
@@ -71,7 +73,7 @@ router.get('/buscar/:text', async (req = request, res = response) => {
     }
 })
 
-router.post('/', async (req = request, res = response) => {
+router.post('/', verifyRole('externos'), async (req = request, res = response) => {
     try {
         const tramite = await externoService.add(req.id_cuenta, req.body.tramite, req.body.solicitante, req.body.representante)
         return res.status(200).json({
@@ -81,7 +83,7 @@ router.post('/', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.put('/:id', async (req = request, res = response) => {
+router.put('/:id', verifyRole('externos'), async (req = request, res = response) => {
     try {
         const tramite = await externoService.edit(req.params.id, req.body)
         return res.status(200).json({
@@ -93,13 +95,13 @@ router.put('/:id', async (req = request, res = response) => {
     }
 })
 
-router.put('/concluir/:id', async (req = request, res = response) => {
+router.put('/concluir/:id', verifyRole('externos'), async (req = request, res = response) => {
     try {
         let { descripcion } = req.body
         await Promise.all([
             externoService.concludeProcedure(req.params.id),
-            archiveService.archiveProcedure(req.id_cuenta, req.id_funcionario, req.params.id, descripcion, 'tramites_externos'),
-            eventService.addEventProcedure(req.params.id, req.id_funcionario, `Ha concluido el tramite debido a: ${descripcion}`, 'tramites_externos')
+            archiveProcedure(req.id_cuenta, req.id_funcionario, req.params.id, descripcion, 'tramites_externos'),
+            addEventProcedure(req.params.id, req.id_funcionario, `Ha concluido el tramite debido a: ${descripcion}`, 'tramites_externos')
         ])
         return res.status(200).json({
             ok: true,
@@ -109,12 +111,12 @@ router.put('/concluir/:id', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.put('/cancelar/:id', async (req = request, res = response) => {
+router.put('/cancelar/:id', verifyRole('externos'), async (req = request, res = response) => {
     try {
         const { descripcion } = req.body
         await Promise.all([
             externoService.cancelProcedure(req.params.id),
-            eventService.addEventProcedure(req.params.id, req.id_funcionario, `Ha anulado el tramite debido a: ${descripcion}`, 'tramites_externos')
+            addEventProcedure(req.params.id, req.id_funcionario, `Ha anulado el tramite debido a: ${descripcion}`, 'tramites_externos')
         ])
         return res.status(200).json({
             ok: true,

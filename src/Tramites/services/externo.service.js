@@ -4,9 +4,6 @@ const SalidaModel = require('../../Bandejas/models/salida.model')
 const { default: mongoose } = require('mongoose')
 
 exports.get = async (id_cuenta, limit, offset) => {
-    offset = parseInt(offset) ? offset : 0
-    limit = parseInt(limit) ? limit : 10
-    offset = offset * limit
     const [tramites, total] = await Promise.all([
         await ExternoModel.find({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } })
             .sort({ _id: -1 })

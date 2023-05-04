@@ -1,14 +1,17 @@
 const router = require('express').Router()
 const { ServerErrorResponde } = require('../../helpers/responses')
+const { getPaginationParams } = require('../../helpers/Pagintation')
 const archivoService = require('./services/archivo.service')
 
 
 router.get('/', async (req = request, res = response) => {
     try {
-        const archives = await archivoService.get(req.id_cuenta)
+        const { limit, offset } = getPaginationParams(req.query)
+        const {archives, length} = await archivoService.get(req.id_cuenta, limit, offset)
         return res.status(200).json({
             ok: true,
-            archives
+            archives,
+            length
         })
     } catch (error) {
         ServerErrorResponde(error, res)
