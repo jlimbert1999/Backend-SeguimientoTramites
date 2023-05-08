@@ -33,6 +33,7 @@ exports.search = async (text, limit, offset, id_cuenta) => {
         {
             $match: {
                 cuenta: mongoose.Types.ObjectId(id_cuenta),
+                estado: { $ne: 'ANULADO' },
                 $or: [
                     { "solicitante.fullname": regex },
                     { alterno: regex },

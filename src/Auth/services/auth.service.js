@@ -18,11 +18,9 @@ exports.login = async (login, password) => {
         }
     }
     if (!account.activo || !account.funcionario) throw ({ status: 400, message: 'La cuenta ha sido deshabilitada' });
-    const imbox = await EntradaModel.count({ receptor: account._id })
     return {
         token: jwtHelper.createToken(account),
-        resources: account.rol.privileges.map(privilege => privilege.resource),
-        imbox
+        resources: account.rol.privileges.map(privilege => privilege.resource)
     }
 }
 
@@ -41,10 +39,12 @@ exports.renewToken = async (id_account) => {
         }
     }
     if (!account.activo || !account.funcionario) throw ({ status: 401, message: 'La cuenta ha sido deshabilitada' });
+    const imbox = await EntradaModel.count({ 'receptor.cuenta': account._id })
     return {
         token: jwtHelper.createToken(account),
         resources: account.rol.privileges.map(privilege => privilege.resource),
         code: account.dependencia.codigo,
+        imbox,
         menu: getMenuFrontend(account.rol.privileges.map(privilege => privilege.resource))
     }
 }

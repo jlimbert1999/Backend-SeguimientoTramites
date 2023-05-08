@@ -1,6 +1,6 @@
 const SalidaModel = require('../models/salida.model')
 const EntradaModel = require('../models/entrada.model')
-const  ExternoModel = require('../../Tramites/models/externo.model')
+const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const { default: mongoose } = require("mongoose");
 
@@ -297,10 +297,8 @@ exports.cancelOneSend = async (id_bandeja) => {
     if (mail.recibido !== undefined) throw ({ status: 400, message: 'El tramite ya ha sido evaluado por el funcionario receptor.' });
     await Promise.all([
         SalidaModel.findByIdAndDelete(id_bandeja),
-        EntradaModel.findOneAndDelete({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta, 'receptor.cuenta': mail.receptor.cuenta })
+        EntradaModel.findOneAndDelete({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta, 'receptor.cuenta': mail.receptor.cuenta, recibido: false })
     ])
-    const isProcessActive = await EntradaModel.findOne({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta })
-    if (isProcessActive) return 'Se ha cancelado uno de sus envios correctamente'
     const existWorkflow = await SalidaModel.findOne({ tramite: mail.tramite })
     if (!existWorkflow) {
         let tramiteDB = mail.tipo === 'tramites_externos'
@@ -308,20 +306,16 @@ exports.cancelOneSend = async (id_bandeja) => {
             : await InternoModel.findByIdAndUpdate(mail.tramite, { estado: "INSCRITO" })
         return `Todos los envios realizados para el tramite: ${tramiteDB.alterno} se han cancelado. El estado ahora es: INSCRITO.`
     }
-    let mailOld = await SalidaModel.findOne({ tramite: mail.tramite, 'receptor.cuenta': mail.emisor.cuenta, recibido: true }).sort({ _id: -1 })
-    mailOld = mailOld.toObject()
-    delete mailOld._id
-    delete mailOld.__v
-    const newMailOld = new EntradaModel(mailOld)
-    await newMailOld.save()
+    await recoverLastmail(mail.tramite, mail.emisor.cuenta)
     return `El tramite ahora se ecuentra en su bandeja de entrada`
 }
 exports.cancelAllSend = async (id_cuenta, id_tramite, fecha_envio) => {
-    const mails = await SalidaModel.find({ tramite: id_tramite, 'emisor.cuenta': id_cuenta, fecha_envio: new Date(fecha_envio) })
-    mails.forEach(mail => {
+    const sendMails = await SalidaModel.find({ tramite: id_tramite, 'emisor.cuenta': id_cuenta, fecha_envio: new Date(fecha_envio) })
+    if (sendMails.length === 0) throw ({ status: 400, message: 'No se econtraron los envios para cancelar' });
+    sendMails.forEach(mail => {
         if (mail.recibido !== undefined) throw ({ status: 400, message: 'No se puede cancelar el envio. Algunos funcionarios ya han evaluado el tramite' });
     })
-    for (const mail of mails) {
+    for (const mail of sendMails) {
         await Promise.all([
             SalidaModel.findByIdAndDelete(mail._id),
             EntradaModel.findOneAndDelete({ tramite: id_tramite, 'emisor.cuenta': id_cuenta, 'receptor.cuenta': mail.receptor.cuenta })
@@ -329,20 +323,22 @@ exports.cancelAllSend = async (id_cuenta, id_tramite, fecha_envio) => {
     }
     const existWorkflow = await SalidaModel.findOne({ tramite: id_tramite })
     if (!existWorkflow) {
-        let tramiteDB = mails[0].tipo === 'tramites_externos'
+        const tramiteDB = sendMails[0].tipo === 'tramites_externos'
             ? await ExternoModel.findByIdAndUpdate(id_tramite, { estado: "INSCRITO" })
             : await InternoModel.findByIdAndUpdate(id_tramite, { estado: "INSCRITO" })
         return `Todos los envios realizados para el tramite: ${tramiteDB.alterno} se han cancelado. El estado ahora es: INSCRITO.`
     }
-    let mailOld = await SalidaModel.findOne({ tramite: id_tramite, 'receptor.cuenta': id_cuenta, recibido: true }).sort({ _id: -1 })
-    mailOld = mailOld.toObject()
-    delete mailOld._id
-    delete mailOld.__v
-    const newMailOld = new EntradaModel(mailOld)
-    await newMailOld.save()
+    await recoverLastmail(id_tramite, id_cuenta)
     return `El tramite ahora se ecuentra en su bandeja de entrada`
 }
 
+const recoverLastmail = async (id_procedure, id_emiter) => {
+    let mailOld = await SalidaModel.findOne({ tramite: id_procedure, 'receptor.cuenta': id_emiter, recibido: true }).sort({ _id: -1 })
+    mailOld = mailOld.toObject()
+    delete mailOld._id
+    delete mailOld.__v
+    return await EntradaModel.findOneAndUpdate({ tramite: mailOld.tramite, 'receptor.cuenta': mailOld.receptor.cuenta, 'emisor.cuenta': mailOld.emisor.cuenta, recibido: mailOld.recibido }, mailOld, { upsert: true, new: true })
+}
 exports.getWorkflowProcedure = async (id_procedure) => {
     return await SalidaModel.find({ tramite: id_procedure }).select('-_id -__v')
         .populate({

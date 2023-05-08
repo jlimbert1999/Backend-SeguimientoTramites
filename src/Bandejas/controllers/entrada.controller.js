@@ -5,13 +5,13 @@ const entradaService = require('../services/entrada.service')
 
 const { getOne: getProcedureExternal } = require('../../Tramites/services/externo.service')
 const { getOne: getProcedureInternal } = require('../../Tramites/services/interno.service')
-const { getObservationsOfProcedure, addObservation, markAsSolved } = require('../../Tramites/services/observations.sevice')
-const { addEventProcedure, getEventsOfProcedure } = require('../../Tramites/services/events.service')
+const { addObservation, markAsSolved } = require('../../Tramites/services/observations.sevice')
+const { addEventProcedure } = require('../../Tramites/services/events.service')
 const { getDependenciesOfInstitucion } = require('../../Configuraciones/services/dependencias.service')
 const { getActiveIntituciones } = require('../../Configuraciones/services/instituciones.service')
 const { getAccountByDependencie } = require('../../Configuraciones/services/cuentas.service')
 const { archiveMail } = require('../../Archivos/services/archivo.service')
-const { getWorkflowProcedure } = require('../services/salida.service')
+
 // ENTRADAS
 router.get('/', async (req = request, res = response) => {
     try {
@@ -80,16 +80,9 @@ router.get('/cuentas/:id_dependencia', async (req = request, res = response) => 
 router.get('/:id', async (req = request, res = response) => {
     try {
         const mail = await entradaService.getDetailsOfMail(req.params.id)
-        const promises = [
-            entradaService.getLocationProcedure(mail.tramite),
-            getObservationsOfProcedure(mail.tramite),
-            getWorkflowProcedure(mail.tramite),
-            getEventsOfProcedure(mail.tramite)
-        ]
-        mail.tipo === 'tramites_externos'
-            ? promises.unshift(getProcedureExternal(mail.tramite))
-            : promises.unshift(getProcedureInternal(mail.tramite))
-        const [procedure, location, observations, workflow, events] = await Promise.all(promises)
+        const { procedure, location, observations, workflow, events } = mail.tipo === 'tramites_externos'
+            ? await getProcedureExternal(mail.tramite._id)
+            : await getProcedureInternal(mail.tramite._id)
         return res.status(200).json({
             ok: true,
             mail,

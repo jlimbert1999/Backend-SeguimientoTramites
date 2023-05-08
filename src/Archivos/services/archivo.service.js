@@ -90,6 +90,106 @@ exports.get = async (id_account, limit, offset) => {
     const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
     return { archives, length }
 }
+exports.search = async (id_account, text, group, limit, offset) => {
+    const account = await AccountModel.findById(id_account).select('dependencia')
+    const regex = new RegExp(text, "i");
+    group = group === 'EXTERNO' ? 'tramites_externos' : 'tramites_internos'
+    const data = await ArchivosModel.aggregate([
+        {
+            $match: {
+                group: group
+            },
+        },
+        {
+            $lookup: {
+                from: 'cuentas',
+                localField: "account",
+                foreignField: "_id",
+                as: "account",
+            },
+        },
+        {
+            $unwind: "$account"
+        },
+        {
+            $project: {
+                'account.password': 0,
+                'account.login': 0,
+                'account.activo': 0
+            }
+        },
+        {
+            $lookup: {
+                from: 'funcionarios',
+                localField: "officer",
+                foreignField: "_id",
+                as: "officer",
+            },
+        },
+        {
+            $unwind: "$officer"
+        },
+        {
+            $addFields: {
+                "officer.fullname": {
+                    $concat: [
+                        "$officer.nombre",
+                        " ",
+                        { $ifNull: ["$officer.paterno", ""] },
+                        " ",
+                        { $ifNull: ["$officer.materno", ""] },
+                    ],
+                },
+            },
+        },
+        {
+            $lookup: {
+                from: group,
+                localField: "procedure",
+                foreignField: "_id",
+                as: "procedure",
+            },
+        },
+        {
+            $unwind: "$procedure"
+        },
+        {
+            $match: {
+                'account.dependencia': ObjectId(account.dependencia),
+                $or: [
+                    { 'procedure.alterno': regex },
+                    { 'procedure.detalle': regex },
+                    { 'procedure.cite': regex },
+                    { 'officer.fullname': regex }
+                ]
+            }
+        },
+        {
+            $sort: {
+                date: -1
+            }
+        },
+        {
+            $facet: {
+                paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                totalCount: [
+                    {
+                        $count: 'count'
+                    }
+                ]
+            }
+        }
+    ]);
+    await ArchivosModel.populate(data[0].paginatedResults,
+        {
+            path: 'procedure',
+            select: 'alterno estado'
+        }
+    )
+    const archives = data[0].paginatedResults
+    const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
+    return { archives, length }
+}
 exports.unarchive = async (id_archive, id_officer, description) => {
     const archive = await ArchivosModel.findByIdAndDelete(id_archive).populate('procedure', 'estado')
     if (!archive) throw ({ status: 400, message: `El tramite ya ha sido desarchivado` });

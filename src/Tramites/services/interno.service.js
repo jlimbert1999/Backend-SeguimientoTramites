@@ -1,7 +1,6 @@
 require('dotenv').config()
 const InternoModel = require('../models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
-const UsersModel = require('../../Configuraciones/models/funcionarios.model')
 const { generateAlterno } = require('../../../helpers/Alterno')
 
 exports.get = async (id_cuenta, limit, offset) => {
@@ -31,14 +30,8 @@ exports.getOne = async (id_procedure) => {
 }
 
 exports.add = async (tramite, id_cuenta) => {
-    console.log()
-    tramite.cuenta = id_cuenta
     tramite.alterno = await generateAlterno(id_cuenta, tramite.tipo_tramite, 'tramites_internos')
-    const regex = new RegExp(tramite.alterno, 'i')
-    let correlativo = await InternoModel.find({ alterno: regex }).count()
-    correlativo += 1
-    tramite.alterno = `${tramite.alterno}-${addLeadingZeros(correlativo, 5)}`
-
+    tramite.cuenta = id_cuenta
     const newTramite = new InternoModel(tramite)
     const tramiteDB = await newTramite.save()
     await InternoModel.populate(tramiteDB, { path: 'tipo_tramite', select: '-_id nombre' })
@@ -56,11 +49,11 @@ exports.edit = async (id_procedure, procedure) => {
 exports.search = async (id_cuenta, limit, offset, text) => {
     const regex = new RegExp(text, 'i')
     const [tramites, length] = await Promise.all([
-        InternoModel.find({ cuenta: id_cuenta, $or: [{ alterno: regex }, { detalle: regex }, { cite: regex }, { 'destinatario.nombre': regex }] })
+        InternoModel.find({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' }, $or: [{ alterno: regex }, { detalle: regex }, { cite: regex }, { 'destinatario.nombre': regex }] })
             .skip(offset)
             .limit(limit)
             .populate('tipo_tramite', '-_id nombre'),
-        InternoModel.count({ cuenta: id_cuenta, $or: [{ alterno: regex }, { detalle: regex }, { cite: regex }, { 'destinatario.nombre': regex }] })
+        InternoModel.count({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' }, $or: [{ alterno: regex }, { detalle: regex }, { cite: regex }, { 'destinatario.nombre': regex }] })
     ])
     return { tramites, length }
 }

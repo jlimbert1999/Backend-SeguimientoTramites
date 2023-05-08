@@ -21,14 +21,20 @@ exports.generateAlterno = async (id_account, id_typeProcedure, group) => {
     ])
     if (!account.dependencia) throw ({ status: 400, message: 'Esta cuenta no esta habilitada para el registro de tramites' });
     if (!account.dependencia.institucion) throw ({ status: 400, message: 'Esta cuenta no esta habilitada para el registro de tramites' });
-    let correlativo = 0
     let alterno = `${typeProcedure.segmento}-${account.dependencia.institucion.sigla}-${process.env.CONFIG_YEAR}`
     const regex = new RegExp(alterno, 'i')
-    correlativo = group === 'tramites_externos'
-        ? await ExternoModel.find({ alterno: regex }).count()
-        : await InternoModel.find({ alterno: regex }).count()
+    let correlativo = 0
+    let numberZeros = 0
+    if (group === 'tramites_externos') {
+        correlativo = await ExternoModel.find({ alterno: regex }).count()
+        numberZeros = 6
+    }
+    else {
+        correlativo = await InternoModel.find({ alterno: regex }).count()
+        numberZeros = 5
+    }
     correlativo += 1
-    return `${alterno}-${addLeadingZeros(correlativo, 6)}`
+    return `${alterno}-${addLeadingZeros(correlativo, numberZeros)}`
 }
 const addLeadingZeros = (num, totalLength) => {
     return String(num).padStart(totalLength, '0');

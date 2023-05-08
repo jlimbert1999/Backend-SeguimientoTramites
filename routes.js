@@ -25,6 +25,7 @@ const InternoController = require('./src/Tramites/controllers/interno.controller
 const EntradaController = require('./src/Bandejas/controllers/entrada.controller')
 const SalidaController = require('./src/Bandejas/controllers/salida.controller')
 
+const SharedController = require('./src/shared/shared.controller')
 const verifyRole = require('./middlewares/verifyRole')
 const verifyToken = require('./middlewares/verifyToken')
 
@@ -41,12 +42,14 @@ router.use('/dependencias', [verifyToken, verifyRole('dependencias')], Dependenc
 router.use('/funcionarios', [verifyToken, verifyRole('usuarios')], FuncionarioController)
 router.use('/configuraciones', [verifyToken, verifyRole('tipos')], TipoController)
 router.use('/configuraciones', [verifyToken, verifyRole('roles')], RolController)
-router.use('/externos', verifyToken, ExternoController)
+router.use('/externos', [verifyToken, verifyRole('externos')], ExternoController)
 router.use('/internos', [verifyToken, verifyRole('internos')], InternoController)
 
 router.use('/entradas', [verifyToken, verifyRole('entradas')], EntradaController)
 router.use('/salidas', [verifyToken, verifyRole('salidas')], SalidaController)
 router.use('/archivos', [verifyToken, verifyRole('archivos')], ArchivoController)
 router.use('/reportes', ReporteController)
+
+router.use('/shared', verifyToken, SharedController)
 
 module.exports = router
