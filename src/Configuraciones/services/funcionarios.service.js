@@ -70,7 +70,7 @@ exports.addMultipleUsers = async (funcionarios) => {
 }
 exports.getOfficerByText = async (text) => {
     const regex = new RegExp(text, 'i')
-    return await UsersModel.aggregate([
+    return await FuncionarioModel.aggregate([
         {
             $addFields: {
                 fullname: {

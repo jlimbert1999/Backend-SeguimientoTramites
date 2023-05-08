@@ -2,6 +2,7 @@ require('dotenv').config()
 const InternoModel = require('../models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const UsersModel = require('../../Configuraciones/models/funcionarios.model')
+const { generateAlterno } = require('../../../helpers/Alterno')
 
 exports.get = async (id_cuenta, limit, offset) => {
     const [tramites, length] = await Promise.all([
@@ -30,8 +31,9 @@ exports.getOne = async (id_procedure) => {
 }
 
 exports.add = async (tramite, id_cuenta) => {
+    console.log()
     tramite.cuenta = id_cuenta
-    tramite.alterno = `${tramite.alterno}-${process.env.CONFIG_YEAR}`
+    tramite.alterno = await generateAlterno(id_cuenta, tramite.tipo_tramite, 'tramites_internos')
     const regex = new RegExp(tramite.alterno, 'i')
     let correlativo = await InternoModel.find({ alterno: regex }).count()
     correlativo += 1

@@ -1,7 +1,7 @@
-require('dotenv').config()
 const ExternoModel = require('../models/externo.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const { default: mongoose } = require('mongoose')
+const { generateAlterno } = require('../../../helpers/Alterno')
 
 exports.get = async (id_cuenta, limit, offset) => {
     const [tramites, total] = await Promise.all([
@@ -64,14 +64,10 @@ exports.search = async (text, limit, offset, id_cuenta) => {
     return { tramites, length }
 }
 exports.add = async (id_cuenta, tramite, solicitante, representante) => {
+    tramite.alterno = await generateAlterno(id_cuenta, tramite.tipo_tramite, 'tramites_externos')
     tramite.cuenta = id_cuenta
-    tramite.alterno = `${tramite.alterno}-${process.env.CONFIG_YEAR}`
     if (representante) Object.assign(tramite, { representante })
     Object.assign(tramite, { solicitante })
-    const regex = new RegExp(tramite.alterno, 'i')
-    let correlativo = await ExternoModel.find({ alterno: regex }).count()
-    correlativo += 1
-    tramite.alterno = `${tramite.alterno}-${addLeadingZeros(correlativo, 6)}`
     tramite.pin = Math.floor(100000 + Math.random() * 900000)
     const newTramite = new ExternoModel(tramite)
     const tramiteDB = await newTramite.save()
@@ -116,7 +112,4 @@ exports.cancelProcedure = async (id_tramite) => {
     const isSend = await SalidaModel.findOne({ tramite: id_tramite, tipo: 'tramites_externos', $or: [{ recibdo: null }, { recibido: true }] })
     if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede anular' });
     await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'ANULADO' })
-}
-const addLeadingZeros = (num, totalLength) => {
-    return String(num).padStart(totalLength, '0');
 }

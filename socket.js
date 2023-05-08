@@ -1,4 +1,6 @@
 const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
+require('dotenv').config()
 const { Groupware } = require('./class/groupware')
 const Group = new Groupware()
 
@@ -9,9 +11,15 @@ function startSocketServer(server) {
         }
     });
     io.use((socket, next) => {
-        if (socket.handshake.auth.token) {
-            Group.addUser(socket.id, socket.handshake.auth.token)
+        try {
+            const token = socket.handshake.auth.token
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            socket.handshake.auth['id_account'] = decoded.id_account
+            Group.addUser(socket.id, decoded)
             next();
+        } catch (error) {
+            socket.disconnect()
+            return
         }
     });
 
@@ -46,9 +54,8 @@ function startSocketServer(server) {
                 });
             }
         })
-
         client.on('disconnect', () => {
-            Group.deleteUser(client.id, client.handshake.auth.token)
+            Group.deleteUser(client.id, client.handshake.auth['id_account'])
             client.broadcast.emit('listar', Group.getUsers())
         })
     });

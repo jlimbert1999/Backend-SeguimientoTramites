@@ -46,7 +46,7 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
     for (const account of receptores) {
         const foundDuplicate = await EntradaModel.findOne({
             tramite: data.tramite,
-            'receptor.cuenta': account,
+            'receptor.cuenta': account._id,
             'emisor.cuenta': id_cuenta
         });
         if (foundDuplicate) {
