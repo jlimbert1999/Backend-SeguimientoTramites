@@ -46,6 +46,10 @@ const BandejaEntradaScheme = Schema({
     type: Boolean,
     default: false,
   },
+  reenvio: {
+    type: Boolean,
+    default: false,
+  }
 });
 BandejaEntradaScheme.method("toJSON", function () {
   //convertir el documento mongoose a object

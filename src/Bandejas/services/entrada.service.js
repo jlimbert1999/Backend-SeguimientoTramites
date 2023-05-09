@@ -8,9 +8,6 @@ const { default: mongoose } = require("mongoose");
 
 
 exports.get = async (id_cuenta, limit, offset) => {
-    offset = offset ? parseInt(offset) : 0;
-    limit = limit ? parseInt(limit) : 10;
-    offset = offset * limit;
     const [mails, length] = await Promise.all([
         EntradaModel.find({ 'receptor.cuenta': id_cuenta })
             .sort({ fecha_envio: -1 })
@@ -111,9 +108,6 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
     return MailsDB
 }
 exports.search = async (id_cuenta, text, group, offset, limit) => {
-    offset = offset ? parseInt(offset) : 0;
-    limit = limit ? parseInt(limit) : 10;
-    offset = offset * limit;
     const regex = new RegExp(text, "i");
     let data
     group = group === 'EXTERNO' ? 'tramites_externos' : 'tramites_internos'
@@ -299,13 +293,6 @@ exports.checkMailManager = async (id_procedure, id_account) => {
 }
 
 exports.getDetailsOfMail = async (id_bandeja) => {
-    const mail = await getOne(id_bandeja)
-    if (!mail) throw ({ status: 400, message: `El envio del tramite ha sido cancelado` });
-    return mail
-}
-
-
-const getOne = async (id_bandeja) => {
     const imbox = await EntradaModel.findById(id_bandeja)
         .select("cantidad fecha_envio motivo recibido tramite tipo")
         .populate({
@@ -326,6 +313,9 @@ const getOne = async (id_bandeja) => {
     if (!imbox) throw ({ status: 404, message: `El envio de este tramite ha sido cancelado` });
     return imbox
 }
+
+
+
 
 exports.getLocationProcedure = async (id_procedure) => {
     const receptors = await EntradaModel.find({ tramite: id_procedure })

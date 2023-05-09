@@ -1,41 +1,17 @@
 const router = require('express').Router()
 const { request, response } = require('express');
 const { ServerErrorResponde } = require('../../../helpers/responses')
+const { getPaginationParams } = require('../../../helpers/Pagintation')
 const entradaService = require('../services/entrada.service')
 
-const { getOne: getProcedureExternal } = require('../../Tramites/services/externo.service')
-const { getOne: getProcedureInternal } = require('../../Tramites/services/interno.service')
 const { addObservation, markAsSolved } = require('../../Tramites/services/observations.sevice')
 const { addEventProcedure } = require('../../Tramites/services/events.service')
 const { getDependenciesOfInstitucion } = require('../../Configuraciones/services/dependencias.service')
 const { getActiveIntituciones } = require('../../Configuraciones/services/instituciones.service')
 const { getAccountByDependencie } = require('../../Configuraciones/services/cuentas.service')
 const { archiveMail } = require('../../Archivos/services/archivo.service')
+const { getAllDataProcedure } = require('../../shared/shared.service')
 
-// ENTRADAS
-router.get('/', async (req = request, res = response) => {
-    try {
-        const { limit, offset } = req.query
-        const { mails, length } = await entradaService.get(req.id_cuenta, limit, offset)
-        return res.status(200).json({
-            mails,
-            length
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
-router.post('/', async (req = request, res = response) => {
-    try {
-        let { receptores, ...data } = req.body
-        const MailsDB = await entradaService.add(receptores, data, req.id_cuenta, req.id_funcionario)
-        return res.status(200).json({
-            mails: MailsDB
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
 router.get('/users/:text', async (req = request, res = response) => {
     try {
         const cuentas = await entradaService.searchAccountsForSend(req.params.text, req.id_cuenta)
@@ -77,12 +53,33 @@ router.get('/cuentas/:id_dependencia', async (req = request, res = response) => 
     }
 })
 
+router.get('/', async (req = request, res = response) => {
+    try {
+        const { limit, offset } = getPaginationParams(req.query)
+        const { mails, length } = await entradaService.get(req.id_cuenta, limit, offset)
+        return res.status(200).json({
+            mails,
+            length
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
+router.post('/', async (req = request, res = response) => {
+    try {
+        let { receptores, ...data } = req.body
+        const MailsDB = await entradaService.add(receptores, data, req.id_cuenta, req.id_funcionario)
+        return res.status(200).json({
+            mails: MailsDB
+        })
+    } catch (error) {
+        ServerErrorResponde(error, res)
+    }
+})
 router.get('/:id', async (req = request, res = response) => {
     try {
         const mail = await entradaService.getDetailsOfMail(req.params.id)
-        const { procedure, location, observations, workflow, events } = mail.tipo === 'tramites_externos'
-            ? await getProcedureExternal(mail.tramite._id)
-            : await getProcedureInternal(mail.tramite._id)
+        const { procedure, location, observations, workflow, events } = await getAllDataProcedure(mail.tipo, mail.tramite)
         return res.status(200).json({
             ok: true,
             mail,
@@ -104,7 +101,8 @@ router.get('/search/:type', async (req = request, res = response) => {
                 message: 'Seleccione el tipo de busqueda a realizar INTERNOS / EXTERNOS'
             })
         }
-        const { mails, length } = await entradaService.search(req.id_cuenta, req.query.text, req.params.type, req.query.offset, req.query.limit)
+        const { limit, offset } = getPaginationParams(req.query)
+        const { mails, length } = await entradaService.search(req.id_cuenta, req.query.text, req.params.type,offset, limit)
         return res.status(200).json({
             mails,
             length

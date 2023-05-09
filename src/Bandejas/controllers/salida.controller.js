@@ -1,11 +1,13 @@
 const router = require('express').Router()
 const { request, response } = require('express');
 const { ServerErrorResponde } = require('../../../helpers/responses')
+const { getPaginationParams } = require('../../../helpers/Pagintation')
 const salidaService = require('../services/salida.service');
 
 router.get('/', async (req = request, res = response) => {
     try {
-        const { mails, length } = await salidaService.get(req.id_cuenta, req.query.limit, req.query.offset)
+        const { limit, offset } = getPaginationParams(req.query)
+        const { mails, length } = await salidaService.get(req.id_cuenta, limit, offset)
         return res.status(200).json({
             mails,
             length
@@ -39,7 +41,8 @@ router.put('/all/:id_tramite', async (req = request, res = response) => {
 })
 router.get('/search/:type', async (req = request, res = response) => {
     try {
-        const { mails, length } = await salidaService.search(req.id_cuenta, req.query.text, req.params.type, req.query.offset, req.query.limit)
+        const { limit, offset } = getPaginationParams(req.query)
+        const { mails, length } = await salidaService.search(req.id_cuenta, req.query.text, req.params.type, offset, limit)
         return res.status(200).json({
             mails,
             length
