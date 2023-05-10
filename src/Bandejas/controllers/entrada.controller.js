@@ -102,7 +102,7 @@ router.get('/search/:type', async (req = request, res = response) => {
             })
         }
         const { limit, offset } = getPaginationParams(req.query)
-        const { mails, length } = await entradaService.search(req.id_cuenta, req.query.text, req.params.type,offset, limit)
+        const { mails, length } = await entradaService.search(req.id_cuenta, req.query.text, req.params.type, offset, limit)
         return res.status(200).json({
             mails,
             length
@@ -114,9 +114,10 @@ router.get('/search/:type', async (req = request, res = response) => {
 
 router.put('/aceptar/:id', async (req = request, res = response) => {
     try {
-        await entradaService.aceptProcedure(req.params.id)
+        const state = await entradaService.aceptProcedure(req.params.id)
         return res.status(200).json({
             ok: true,
+            state,
             message: 'Tramite aceptado!'
         })
     } catch (error) {

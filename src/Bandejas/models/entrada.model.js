@@ -43,12 +43,7 @@ const BandejaEntradaScheme = Schema({
     type: Date
   },
   recibido: {
-    type: Boolean,
-    default: false,
-  },
-  reenvio: {
-    type: Boolean,
-    default: false,
+    type: Boolean
   }
 });
 BandejaEntradaScheme.method("toJSON", function () {

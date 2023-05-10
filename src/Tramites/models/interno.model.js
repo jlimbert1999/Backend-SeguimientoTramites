@@ -73,7 +73,11 @@ const TramiteInternoScheme = Schema({
     }],
     detalle_conclusion: {
         type: String
-    }
+    },
+    enviado: {
+        type: Boolean,
+        default: false
+    },
 
 })
 TramiteInternoScheme.method('toJSON', function () {

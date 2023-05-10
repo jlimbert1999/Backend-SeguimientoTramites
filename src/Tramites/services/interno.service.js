@@ -64,13 +64,13 @@ exports.concludeProcedure = async (id_procedure) => {
     if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
     await InternoModel.findByIdAndUpdate(id_procedure, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
 }
-exports.cancelProcedure = async (id_procedure) => {
-    const procedure = await InternoModel.findById(id_procedure)
-    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
-    const isSend = await SalidaModel.findOne({ tramite: id_procedure, tipo: 'tramites_internos', $or: [{ recibdo: null }, { recibido: true }] })
-    if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede anular' });
-    await InternoModel.findByIdAndUpdate(id_procedure, { estado: 'ANULADO' })
-}
+// exports.cancelProcedure = async (id_procedure) => {
+//     const procedure = await InternoModel.findById(id_procedure)
+//     if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
+//     const isSend = await SalidaModel.findOne({ tramite: id_procedure, tipo: 'tramites_internos', $or: [{ recibdo: null }, { recibido: true }] })
+//     if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede anular' });
+//     await InternoModel.findByIdAndUpdate(id_procedure, { estado: 'ANULADO' })
+// }
 const addLeadingZeros = (num, totalLength) => {
     return String(num).padStart(totalLength, '0');
 }

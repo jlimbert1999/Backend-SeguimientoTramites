@@ -45,6 +45,24 @@ function startSocketServer(server) {
                 }
             })
         })
+        client.on('mail-all-cancel', ids_receivers => {
+            ids_receivers.forEach(id_receiver => {
+                const user = Group.getUser(id_receiver)
+                if (user) {
+                    user.socketIds.forEach(id_socket => {
+                        client.to(id_socket.toString()).emit('cancelmail')
+                    });
+                }
+            })
+        })
+        client.on('mail-one-cancel', id_receiver => {
+            const user = Group.getUser(id_receiver)
+            if (user) {
+                user.socketIds.forEach(id_socket => {
+                    client.to(id_socket.toString()).emit('cancelmail')
+                });
+            }
+        })
         client.on('expel', data => {
             const { id_cuenta, message } = data
             const user = Group.getUser(id_cuenta)

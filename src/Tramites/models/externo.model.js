@@ -69,7 +69,6 @@ const TramiteExternoScheme = Schema({
     representante: {
         type: RepresentanteSchema,
         required: false
-
     },
     solicitante: {
         type: SolicitanteSchema
@@ -154,7 +153,11 @@ const TramiteExternoScheme = Schema({
             }
 
         }
-    ]
+    ],
+    enviado: {
+        type: Boolean,
+        default: false
+    },
 })
 
 TramiteExternoScheme.method('toJSON', function () {

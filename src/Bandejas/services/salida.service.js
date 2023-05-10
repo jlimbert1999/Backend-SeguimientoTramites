@@ -131,7 +131,7 @@ exports.cancelOneSend = async (id_mailOut) => {
     if (sendMail.recibido !== undefined) throw ({ status: 400, message: 'El tramite ya ha sido evaluado por el funcionario receptor' });
     await Promise.all([
         SalidaModel.deleteOne({ _id: id_mailOut }),
-        EntradaModel.deleteOne({ tramite: sendMail.tramite, 'emisor.cuenta': sendMail.emisor.cuenta, 'receptor.cuenta': sendMail.receptor.cuenta, recibido: false })
+        EntradaModel.deleteOne({ tramite: sendMail.tramite, 'emisor.cuenta': sendMail.emisor.cuenta, 'receptor.cuenta': sendMail.receptor.cuenta, recibido: null })
     ])
     return await recoverLastMail(sendMail.tramite, sendMail.emisor.cuenta, sendMail.tipo)
 }
@@ -153,8 +153,8 @@ const recoverLastMail = async (id_procedure, id_currentEmitter, group) => {
     let mailOld = await SalidaModel.findOne({ tramite: id_procedure, 'receptor.cuenta': id_currentEmitter, recibido: true }).sort({ _id: -1 })
     if (!mailOld) {
         group === 'tramites_externos'
-            ? await ExternoModel.findByIdAndUpdate(id_procedure, { estado: "INSCRITO" })
-            : await InternoModel.findByIdAndUpdate(id_procedure, { estado: "INSCRITO" })
+            ? await ExternoModel.findByIdAndUpdate(id_procedure, { enviado: false })
+            : await InternoModel.findByIdAndUpdate(id_procedure, { enviado: false })
         return 'El tramite ahora se encuentra en su administracion para el reenvio'
     }
     mailOld = mailOld.toObject()

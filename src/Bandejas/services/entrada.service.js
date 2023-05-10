@@ -63,26 +63,16 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
             },
         });
     }
-
     await EntradaModel.findOneAndDelete({
         tramite: data.tramite,
         "receptor.cuenta": id_cuenta,
-        recibido: true
+        recibido: { $ne: null }
     });
     await SalidaModel.insertMany(mails);
     let MailsDB = await EntradaModel.insertMany(mails)
-    if (data.tipo === 'tramites_externos') {
-        const updatedProcedure = await ExternoModel.findById(data.tramite).select('estado')
-        updatedProcedure.estado !== 'OBSERVADO'
-            ? await ExternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
-            : null
-    }
-    else {
-        const updatedProcedure = await InternoModel.findById(data.tramite).select('estado')
-        updatedProcedure.estado !== 'OBSERVADO'
-            ? await InternoModel.findByIdAndUpdate(data.tramite, { estado: "EN REVISION" })
-            : null
-    }
+    data.tipo === 'tramites_externos'
+        ? await ExternoModel.findByIdAndUpdate(data.tramite, { enviado: true })
+        : await InternoModel.findByIdAndUpdate(data.tramite, { enviado: true })
     await EntradaModel.populate(MailsDB, [
         {
             path: "tramite",
@@ -234,19 +224,26 @@ exports.searchAccountsForSend = async (text, id_cuenta) => {
 }
 
 exports.aceptProcedure = async (id_bandeja) => {
-    const mail = await EntradaModel.findByIdAndUpdate(id_bandeja, {
+    let mail = await EntradaModel.findByIdAndUpdate(id_bandeja, {
         recibido: true,
-    }, { new: true });
+    }, { new: true }).populate('tramite', 'estado');
     if (!mail) throw ({ status: 400, message: `El envio de este tramite ha sido cancelado` });
     await SalidaModel.findOneAndUpdate(
         {
-            tramite: mail.tramite,
+            tramite: mail.tramite._id,
             "emisor.cuenta": mail.emisor.cuenta,
             "receptor.cuenta": mail.receptor.cuenta,
             recibido: null,
         },
         { recibido: true, fecha_recibido: new Date() }
     );
+    if (mail.tramite.estado !== 'OBSERVADO') {
+        mail.tipo === 'tramites_externos'
+            ? await ExternoModel.findByIdAndUpdate(mail.tramite._id, { estado: 'EN REVISION' })
+            : await InternoModel.findByIdAndUpdate(mail.tramite._id, { estado: 'EN REVISION' })
+        mail.tramite.estado = 'EN REVISION'
+    }
+    return mail.tramite.estado
 }
 exports.declineProcedure = async (id_bandeja, motivo_rechazo) => {
     const mail = await EntradaModel.findByIdAndDelete(id_bandeja)
@@ -262,13 +259,14 @@ exports.declineProcedure = async (id_bandeja, motivo_rechazo) => {
     );
     let mailOld = await SalidaModel.findOne({ tramite: mail.tramite, 'receptor.cuenta': mail.emisor.cuenta, recibido: true }).sort({ _id: -1 })
     if (mailOld) {
+        mailOld.recibido = false
         const newMailOld = new EntradaModel(mailOld)
         await EntradaModel.updateOne(newMailOld, { $setOnInsert: newMailOld }, { upsert: true })
     }
     else {
         mail.tipo === 'tramites_externos'
-            ? await ExternoModel.findByIdAndUpdate(mail.tramite, { estado: "INSCRITO" })
-            : await InternoModel.findByIdAndUpdate(mail.tramite, { estado: "INSCRITO" });
+            ? await ExternoModel.findByIdAndUpdate(mail.tramite, { enviado: false })
+            : await InternoModel.findByIdAndUpdate(mail.tramite, { enviado: false });
     }
 }
 exports.concludeProcedure = async (id_mailIn, id_account) => {
@@ -287,7 +285,7 @@ exports.concludeProcedure = async (id_mailIn, id_account) => {
     return mailDelete
 }
 exports.checkMailManager = async (id_procedure, id_account) => {
-    const mail = await EntradaModel.findOne({ tramite: id_procedure, 'receptor.cuenta': id_account, recibido: true })
+    const mail = await EntradaModel.findOne({ tramite: id_procedure, 'receptor.cuenta': id_account, recibido: { $ne: null } })
     if (!mail) throw ({ status: 400, message: `Usted aun no ha aceptado el tramite` });
     return mail
 }
@@ -313,9 +311,6 @@ exports.getDetailsOfMail = async (id_bandeja) => {
     if (!imbox) throw ({ status: 404, message: `El envio de este tramite ha sido cancelado` });
     return imbox
 }
-
-
-
 
 exports.getLocationProcedure = async (id_procedure) => {
     const receptors = await EntradaModel.find({ tramite: id_procedure })

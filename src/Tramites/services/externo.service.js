@@ -107,10 +107,10 @@ exports.concludeProcedure = async (id_tramite) => {
     if (workflow) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede concluir' });
     await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'CONCLUIDO', fecha_finalizacion: new Date() })
 }
-exports.cancelProcedure = async (id_tramite) => {
-    const procedure = await ExternoModel.findById(id_tramite)
-    if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
-    const isSend = await SalidaModel.findOne({ tramite: id_tramite, tipo: 'tramites_externos', $or: [{ recibdo: null }, { recibido: true }] })
-    if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede anular' });
-    await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'ANULADO' })
-}
+// exports.cancelProcedure = async (id_tramite) => {
+//     const procedure = await ExternoModel.findById(id_tramite)
+//     if (procedure.estado === 'CONCLUIDO' || procedure.estado === 'ANULADO') throw ({ status: 400, message: `El tramite ya esta ${procedure.estado}` });
+//     const isSend = await SalidaModel.findOne({ tramite: id_tramite, tipo: 'tramites_externos', $or: [{ recibdo: null }, { recibido: true }] })
+//     if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede anular' });
+//     await ExternoModel.findByIdAndUpdate(id_tramite, { estado: 'ANULADO' })
+// }

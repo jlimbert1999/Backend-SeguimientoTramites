@@ -68,7 +68,7 @@ exports.deleteRequirements = async (id_tipo, id_requisito) => {
     return requisito
 }
 
-exports.getProceduresTypesForRegister = async (groupProcedure) => {
+exports.getProceduresTypesForRegister = async (groupProcedure, role = '') => {
     const typesProcedures = await TipoModel.find({ activo: true, tipo: groupProcedure }).select('nombre segmento requerimientos')
     typesProcedures.forEach((element, i) => {
         typesProcedures[i].requerimientos = element.requerimientos.filter(requerimiento => requerimiento.activo === true)
