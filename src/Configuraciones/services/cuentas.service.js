@@ -385,3 +385,18 @@ exports.getAccountsByText = async (text) => {
     ]);
     return accounts
 }
+exports.getMyAccount = async (id_account) => {
+    const account = await CuentaModel.findById(id_account)
+        .select('login funcionario dependencia')
+        .populate({
+            path: 'dependencia',
+            select: 'nombre institucion',
+            populate: {
+                path: 'institucion',
+                select: 'nombre'
+            }
+        })
+        .populate('funcionario', 'nombre paterno materno cargo telefono dni')
+    if (!account) throw ({ status: 400, message: 'La cuenta no existe' });
+    return account
+}

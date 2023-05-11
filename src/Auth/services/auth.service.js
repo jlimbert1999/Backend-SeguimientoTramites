@@ -48,3 +48,4 @@ exports.renewToken = async (id_account) => {
         menu: getMenuFrontend(account.rol.privileges.map(privilege => privilege.resource))
     }
 }
+
