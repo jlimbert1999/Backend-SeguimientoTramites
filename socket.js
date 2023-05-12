@@ -16,6 +16,7 @@ function startSocketServer(server) {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
             socket.handshake.auth['id_account'] = decoded.id_account
             Group.addUser(socket.id, decoded)
+            socket.join(`${decoded.id_dependencie}`)
             next();
         } catch (error) {
             socket.disconnect()
@@ -62,6 +63,10 @@ function startSocketServer(server) {
                     client.to(id_socket.toString()).emit('cancelmail')
                 });
             }
+        })
+        client.on('archive', id_dependencie => {
+            console.log(id_dependencie);
+            client.to(id_dependencie.toString()).emit('notify', 'nuevo archivo')
         })
         client.on('expel', data => {
             const { id_cuenta, message } = data

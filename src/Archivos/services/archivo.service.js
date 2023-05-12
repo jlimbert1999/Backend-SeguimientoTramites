@@ -14,7 +14,7 @@ exports.archiveMail = async (id_account, id_officer, mail, description) => {
         procedure: lastSend.tramite,
         officer: id_officer,
         group: lastSend.tipo,
-        description
+        description: `Ha concluido el tramite debido a: ${description}`
     })
 }
 exports.archiveProcedure = async (id_account, id_officer, id_procedure, description, group) => {
@@ -23,7 +23,7 @@ exports.archiveProcedure = async (id_account, id_officer, id_procedure, descript
         officer: id_officer,
         procedure: id_procedure,
         group,
-        description
+        description: `Ha concluido el tramite debido a: ${description}`
     }
     await ArchivosModel.create(archive)
 }

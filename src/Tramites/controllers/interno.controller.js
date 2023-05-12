@@ -7,11 +7,8 @@ const { getPaginationParams } = require('../../../helpers/Pagintation');
 
 const { getProceduresTypesForRegister } = require('../../Configuraciones/services/tipos.service')
 const { getOfficerByText } = require('../../Configuraciones/services/funcionarios.service')
-const { getObservationsOfProcedure } = require('./../services/observations.sevice')
-const { getWorkflowProcedure } = require('../../Bandejas/services/salida.service')
-const { getLocationProcedure } = require('../../Bandejas/services/entrada.service')
 const { archiveProcedure } = require('../../Archivos/services/archivo.service')
-const { addEventProcedure, getEventsOfProcedure } = require('../../Tramites/services/events.service')
+const { addEventProcedure } = require('../../Tramites/services/events.service')
 
 router.get('/tipos', async (req = request, res = response) => {
     try {
@@ -33,27 +30,6 @@ router.get('/', async (req = request, res = response) => {
             ok: true,
             tramites,
             length
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
-router.get('/:id', async (req = request, res = response) => {
-    try {
-        const [tramite, observations, location, workflow, events] = await Promise.all([
-            internoService.getOne(req.params.id),
-            getObservationsOfProcedure(req.params.id),
-            getLocationProcedure(req.params.id),
-            getWorkflowProcedure(req.params.id),
-            getEventsOfProcedure(req.params.id)
-        ])
-        return res.status(200).json({
-            ok: true,
-            tramite,
-            location,
-            workflow,
-            observations,
-            events
         })
     } catch (error) {
         ServerErrorResponde(error, res)

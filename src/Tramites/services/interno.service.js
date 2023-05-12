@@ -12,7 +12,6 @@ exports.get = async (id_cuenta, limit, offset) => {
         InternoModel.count({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } })
     ])
     return { tramites, length }
-
 }
 exports.getOne = async (id_procedure) => {
     const procedure = await InternoModel.findOne({ _id: id_procedure })
@@ -28,7 +27,6 @@ exports.getOne = async (id_procedure) => {
     if (!procedure) throw ({ status: 404, message: 'El tramite no existe' });
     return procedure
 }
-
 exports.add = async (tramite, id_cuenta) => {
     tramite.alterno = await generateAlterno(id_cuenta, tramite.tipo_tramite, 'tramites_internos')
     tramite.cuenta = id_cuenta
@@ -36,7 +34,6 @@ exports.add = async (tramite, id_cuenta) => {
     const tramiteDB = await newTramite.save()
     await InternoModel.populate(tramiteDB, { path: 'tipo_tramite', select: '-_id nombre' })
     return tramiteDB
-
 }
 exports.edit = async (id_procedure, procedure) => {
     const procedureDB = await InternoModel.findById(id_procedure)

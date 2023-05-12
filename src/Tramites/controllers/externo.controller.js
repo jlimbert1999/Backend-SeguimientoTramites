@@ -9,7 +9,7 @@ const { getProceduresTypesForRegister } = require('../../Configuraciones/service
 const { archiveProcedure } = require('../../Archivos/services/archivo.service');
 
 
-router.get('/tipos',  async (req = request, res = response) => {
+router.get('/tipos', async (req = request, res = response) => {
     try {
         const types = await getProceduresTypesForRegister('EXTERNO')
         return res.status(200).json({
@@ -75,7 +75,7 @@ router.put('/concluir/:id', async (req = request, res = response) => {
         await Promise.all([
             externoService.concludeProcedure(req.params.id),
             archiveProcedure(req.id_cuenta, req.id_funcionario, req.params.id, descripcion, 'tramites_externos'),
-            addEventProcedure(req.params.id, req.id_funcionario, `Ha concluido el tramite debido a: ${descripcion}`, 'tramites_externos')
+            addEventProcedure(req.params.id, req.id_funcionario, descripcion, 'tramites_externos')
         ])
         return res.status(200).json({
             ok: true,
@@ -85,21 +85,21 @@ router.put('/concluir/:id', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.put('/cancelar/:id', async (req = request, res = response) => {
-    try {
-        const { descripcion } = req.body
-        await Promise.all([
-            externoService.cancelProcedure(req.params.id),
-            addEventProcedure(req.params.id, req.id_funcionario, `Ha anulado el tramite debido a: ${descripcion}`, 'tramites_externos')
-        ])
-        return res.status(200).json({
-            ok: true,
-            message: 'Tramite anulado'
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
+// router.put('/cancelar/:id', async (req = request, res = response) => {
+//     try {
+//         const { descripcion } = req.body
+//         await Promise.all([
+//             externoService.cancelProcedure(req.params.id),
+//             addEventProcedure(req.params.id, req.id_funcionario, `Ha anulado el tramite debido a: ${descripcion}`, 'tramites_externos')
+//         ])
+//         return res.status(200).json({
+//             ok: true,
+//             message: 'Tramite anulado'
+//         })
+//     } catch (error) {
+//         ServerErrorResponde(error, res)
+//     }
+// })
 
 
 module.exports = router
