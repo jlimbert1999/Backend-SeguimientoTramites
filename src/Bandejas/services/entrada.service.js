@@ -4,8 +4,7 @@ const ExternoModel = require('../../Tramites/models/externo.model')
 const InternoModel = require('../../Tramites/models/interno.model')
 const CuentaModel = require("../../Configuraciones/models/cuentas.model");
 const ObservationModel = require('../../Tramites/models/observations.model')
-const { updateMany} = require("mongoose");
-
+const { default: mongoose } = require("mongoose");
 
 exports.get = async (id_cuenta, limit, offset) => {
     const [mails, length] = await Promise.all([
