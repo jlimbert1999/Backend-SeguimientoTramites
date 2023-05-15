@@ -11,9 +11,11 @@ exports.get = async (id_cuenta, limit, offset) => {
             .limit(limit)
             .populate('tipo_tramite', 'nombre'),
         await ExternoModel.count({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } })
-    ]);
+    ])
     return { tramites, total }
 }
+
+
 exports.search = async (text, limit, offset, id_cuenta) => {
     const regex = new RegExp(text, 'i')
     const data = await ExternoModel.aggregate([

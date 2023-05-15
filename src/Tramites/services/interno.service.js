@@ -2,7 +2,6 @@ require('dotenv').config()
 const InternoModel = require('../models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const { generateAlterno } = require('../../../helpers/Alterno')
-
 exports.get = async (id_cuenta, limit, offset) => {
     const [tramites, length] = await Promise.all([
         InternoModel.find({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } }).sort({ _id: -1 })

@@ -64,23 +64,20 @@ const SolicitanteSchema = new Schema({
 const TramiteExternoScheme = Schema({
     tipo_tramite: {
         type: Schema.Types.ObjectId,
-        ref: 'tipos_tramites'
+        ref: 'tipos_tramites',
+        required: true
     },
     representante: {
-        type: RepresentanteSchema,
-        required: false
+        type: RepresentanteSchema
     },
     solicitante: {
-        type: SolicitanteSchema
+        type: SolicitanteSchema,
+        required: true
     },
     cuenta: {
         type: Schema.Types.ObjectId,
         ref: 'cuentas',
         required: true
-    },
-    ubicacion: {
-        type: Schema.Types.ObjectId,
-        ref: 'cuentas'
     },
     estado: {
         type: String,
@@ -118,42 +115,6 @@ const TramiteExternoScheme = Schema({
     cite: {
         type: String
     },
-    observaciones: [{
-        _id: false,
-        id_cuenta: String,
-        funcionario: String,
-        descripcion: String,
-        corregido: {
-            type: Boolean,
-            default: false
-        },
-        fecha: {
-            type: Date,
-            default: Date.now
-        }
-    }],
-    detalle_conclusion: {
-        type: String
-    },
-    eventos: [
-        {
-            _id: false,
-            funcionario: {
-                type: Schema.Types.ObjectId,
-                ref: 'funcionarios',
-                required: true
-            },
-            descripcion: {
-                type: String,
-                required: true
-            },
-            fecha: {
-                type: Date,
-                default: Date.now
-            }
-
-        }
-    ],
     enviado: {
         type: Boolean,
         default: false
