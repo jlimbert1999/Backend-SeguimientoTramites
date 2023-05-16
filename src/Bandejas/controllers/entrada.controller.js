@@ -112,9 +112,9 @@ router.get('/search/:type', async (req = request, res = response) => {
     }
 })
 
-router.put('/aceptar/:id', async (req = request, res = response) => {
+router.put('/acept/:id_mail', async (req = request, res = response) => {
     try {
-        const state = await entradaService.aceptProcedure(req.params.id)
+        const state = await entradaService.aceptProcedure(req.params.id_mail)
         return res.status(200).json({
             ok: true,
             state,

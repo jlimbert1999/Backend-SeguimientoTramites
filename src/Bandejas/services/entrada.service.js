@@ -223,9 +223,7 @@ exports.searchAccountsForSend = async (text, id_cuenta) => {
 }
 
 exports.aceptProcedure = async (id_bandeja) => {
-    let mail = await EntradaModel.findByIdAndUpdate(id_bandeja, {
-        recibido: true,
-    }, { new: true }).populate('tramite', 'estado');
+    let mail = await EntradaModel.findByIdAndUpdate(id_bandeja, { recibido: true }, { new: true }).populate('tramite', 'estado');
     if (!mail) throw ({ status: 400, message: `El envio de este tramite ha sido cancelado` });
     await SalidaModel.findOneAndUpdate(
         {
