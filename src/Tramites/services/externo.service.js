@@ -61,7 +61,7 @@ exports.search = async (text, limit, offset, id_cuenta) => {
         }
     ]);
 
-    await ExternoModel.populate(data[0].paginatedResults, { path: 'tipo_tramite', select: 'nombre -_id' })
+    await ExternoModel.populate(data[0].paginatedResults, { path: 'tipo_tramite', select: 'nombre' })
     let tramites = data[0].paginatedResults
     const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
     return { tramites, length }
@@ -69,12 +69,12 @@ exports.search = async (text, limit, offset, id_cuenta) => {
 exports.add = async (id_cuenta, tramite, solicitante, representante) => {
     tramite.alterno = await generateAlterno(id_cuenta, tramite.tipo_tramite, 'tramites_externos')
     tramite.cuenta = id_cuenta
-    if (representante) Object.assign(tramite, { representante })
-    Object.assign(tramite, { solicitante })
+    if (representante) tramite['representante'] = representante
+    tramite['solicitante'] = solicitante
     tramite.pin = Math.floor(100000 + Math.random() * 900000)
     const newTramite = new ExternoModel(tramite)
     const tramiteDB = await newTramite.save()
-    await ExternoModel.populate(tramiteDB, { path: 'tipo_tramite', select: 'nombre -_id' })
+    await ExternoModel.populate(tramiteDB, { path: 'tipo_tramite', select: 'nombre' })
     return tramiteDB
 }
 exports.edit = async (id_tramite, updateData) => {
@@ -90,13 +90,13 @@ exports.edit = async (id_tramite, updateData) => {
 }
 exports.getOne = async (id_tramite) => {
     const procedure = await ExternoModel.findById(id_tramite)
-        .populate('tipo_tramite', 'nombre -_id')
+        .populate('tipo_tramite', 'nombre')
         .populate({
             path: 'cuenta',
             select: '_id',
             populate: {
                 path: 'funcionario',
-                select: 'nombre paterno materno cargo -_id',
+                select: 'nombre paterno materno cargo',
             }
         })
     if (!procedure) throw ({ status: 400, message: 'El tramite no existe' });

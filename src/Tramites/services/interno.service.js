@@ -1,20 +1,19 @@
-require('dotenv').config()
 const InternoModel = require('../models/interno.model')
 const SalidaModel = require('../../Bandejas/models/salida.model')
 const { generateAlterno } = require('../../../helpers/Alterno')
 exports.get = async (id_cuenta, limit, offset) => {
     const [tramites, length] = await Promise.all([
         InternoModel.find({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } }).sort({ _id: -1 })
+            .populate('tipo_tramite', 'nombre')
             .skip(offset)
-            .limit(limit)
-            .populate('tipo_tramite', '-_id nombre'),
+            .limit(limit),
         InternoModel.count({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } })
     ])
     return { tramites, length }
 }
 exports.getOne = async (id_procedure) => {
     const procedure = await InternoModel.findOne({ _id: id_procedure })
-        .populate('tipo_tramite', '-_id nombre')
+        .populate('tipo_tramite', 'nombre')
         .populate({
             path: 'cuenta',
             select: '_id',
@@ -31,7 +30,7 @@ exports.add = async (tramite, id_cuenta) => {
     tramite.cuenta = id_cuenta
     const newTramite = new InternoModel(tramite)
     const tramiteDB = await newTramite.save()
-    await InternoModel.populate(tramiteDB, { path: 'tipo_tramite', select: '-_id nombre' })
+    await InternoModel.populate(tramiteDB, { path: 'tipo_tramite', select: 'nombre' })
     return tramiteDB
 }
 exports.edit = async (id_procedure, procedure) => {
@@ -40,7 +39,7 @@ exports.edit = async (id_procedure, procedure) => {
     const isSend = await SalidaModel.findOne({ tramite: id_procedure, recibido: true, tipo: 'tramites_internos' })
     if (isSend) throw ({ status: 405, message: 'El tramite ya ha sido aceptado para la evaluacion' });
     return await InternoModel.findByIdAndUpdate(id_procedure, procedure, { new: true })
-        .populate('tipo_tramite', '-_id nombre')
+        .populate('tipo_tramite', 'nombre')
 }
 exports.search = async (id_cuenta, limit, offset, text) => {
     const regex = new RegExp(text, 'i')
@@ -48,7 +47,7 @@ exports.search = async (id_cuenta, limit, offset, text) => {
         InternoModel.find({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' }, $or: [{ alterno: regex }, { detalle: regex }, { cite: regex }, { 'destinatario.nombre': regex }] })
             .skip(offset)
             .limit(limit)
-            .populate('tipo_tramite', '-_id nombre'),
+            .populate('tipo_tramite', 'nombre'),
         InternoModel.count({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' }, $or: [{ alterno: regex }, { detalle: regex }, { cite: regex }, { 'destinatario.nombre': regex }] })
     ])
     return { tramites, length }
@@ -67,6 +66,3 @@ exports.concludeProcedure = async (id_procedure) => {
 //     if (isSend) throw ({ status: 400, message: 'El tramite ya ha sido enviado, por lo que no se puede anular' });
 //     await InternoModel.findByIdAndUpdate(id_procedure, { estado: 'ANULADO' })
 // }
-const addLeadingZeros = (num, totalLength) => {
-    return String(num).padStart(totalLength, '0');
-}

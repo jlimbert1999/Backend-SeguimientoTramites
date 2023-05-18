@@ -126,20 +126,20 @@ exports.search = async (id_cuenta, text, group, offset, limit) => {
     return { mails, length }
 }
 exports.cancelOneSend = async (id_mailOut) => {
-    const sendMail = await SalidaModel.findById(id_mailOut)
-    if (!sendMail) throw ({ status: 400, message: 'No se encontro el envio realizado' });
-    if (sendMail.recibido !== undefined) throw ({ status: 400, message: 'El tramite ya ha sido evaluado por el funcionario receptor' });
+    const sendMail = await SalidaModel.findById(id_mailOut).populate('receptor.funcionario')
+    if (!sendMail) throw ({ status: 404, message: 'No se encontro el envio realizado para cancelar' });
+    if (sendMail.recibido !== undefined) throw ({ status: 400, message: `${createFullName(sendMail.receptor.funcionario)} ya ha aceptado el tramite` });
     await Promise.all([
         SalidaModel.deleteOne({ _id: id_mailOut }),
-        EntradaModel.deleteOne({ tramite: sendMail.tramite, 'emisor.cuenta': sendMail.emisor.cuenta, 'receptor.cuenta': sendMail.receptor.cuenta, recibido: null })
+        EntradaModel.deleteOne({ tramite: sendMail.tramite, 'emisor.cuenta': sendMail.emisor.cuenta, 'receptor.cuenta': sendMail.receptor.cuenta })
     ])
     return await recoverLastMail(sendMail.tramite, sendMail.emisor.cuenta, sendMail.tipo)
 }
 exports.cancelAllSend = async (id_account, id_procedure, sendDate) => {
-    const sendMails = await SalidaModel.find({ tramite: id_procedure, 'emisor.cuenta': id_account, fecha_envio: new Date(sendDate) })
-    if (sendMails.length === 0) throw ({ status: 400, message: 'No se encontro el envio realizado' });
+    const sendMails = await SalidaModel.find({ tramite: id_procedure, 'emisor.cuenta': id_account, fecha_envio: new Date(sendDate) }).populate('receptor.funcionario')
+    if (sendMails.length === 0) throw ({ status: 404, message: 'No se encontraron los envios realizados para cancelar' });
     sendMails.forEach(mail => {
-        if (mail.recibido !== undefined) throw ({ status: 400, message: 'No se puede cancelar el envio. Algunos funcionarios ya han evaluado el tramite' });
+        if (mail.recibido !== undefined) throw ({ status: 400, message: `El envio no puede cancelarse. El funcionario ${createFullName(mail.receptor.funcionario)} ya acepto el tramite` });
     })
     for (const mail of sendMails) {
         await Promise.all([
@@ -148,20 +148,6 @@ exports.cancelAllSend = async (id_account, id_procedure, sendDate) => {
         ])
     }
     return await recoverLastMail(id_procedure, id_account, sendMails[0].tipo)
-}
-const recoverLastMail = async (id_procedure, id_currentEmitter, group) => {
-    let mailOld = await SalidaModel.findOne({ tramite: id_procedure, 'receptor.cuenta': id_currentEmitter, recibido: true }).sort({ _id: -1 })
-    if (!mailOld) {
-        group === 'tramites_externos'
-            ? await ExternoModel.findByIdAndUpdate(id_procedure, { enviado: false })
-            : await InternoModel.findByIdAndUpdate(id_procedure, { enviado: false })
-        return 'El tramite ahora se encuentra en su administracion para el reenvio'
-    }
-    mailOld = mailOld.toObject()
-    delete mailOld._id
-    delete mailOld.__v
-    await EntradaModel.findOneAndUpdate({ tramite: mailOld.tramite, 'receptor.cuenta': mailOld.receptor.cuenta, 'emisor.cuenta': mailOld.emisor.cuenta, recibido: mailOld.recibido }, mailOld, { upsert: true, new: true })
-    return 'El tramite ahora se encuentra en su bandeja de entrada para el reenvio'
 }
 
 exports.getWorkflowProcedure = async (id_procedure) => {
@@ -200,3 +186,20 @@ exports.getWorkflowProcedure = async (id_procedure) => {
         })
 
 }
+const recoverLastMail = async (id_procedure, id_currentEmitter, group) => {
+    let mailOld = await SalidaModel.findOne({ tramite: id_procedure, 'receptor.cuenta': id_currentEmitter, recibido: true }).sort({ _id: -1 })
+    if (!mailOld) {
+        group === 'tramites_externos'
+            ? await ExternoModel.findByIdAndUpdate(id_procedure, { enviado: false })
+            : await InternoModel.findByIdAndUpdate(id_procedure, { enviado: false })
+        return 'El tramite ahora se encuentra en su administracion para el reenvio'
+    }
+    mailOld = mailOld.toObject()
+    delete mailOld._id
+    delete mailOld.__v
+    await EntradaModel.findOneAndUpdate({ tramite: mailOld.tramite, 'receptor.cuenta': mailOld.receptor.cuenta, 'emisor.cuenta': mailOld.emisor.cuenta, recibido: mailOld.recibido }, mailOld, { upsert: true, new: true })
+    return 'El tramite ahora se encuentra en su bandeja de entrada para el reenvio'
+}
+
+
+const createFullName = (officer) => [officer.nombre, officer.paterno, officer.materno].filter(Boolean).join(" ");

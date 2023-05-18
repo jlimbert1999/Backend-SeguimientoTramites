@@ -75,7 +75,7 @@ router.put('/concluir/:id', async (req = request, res = response) => {
         await Promise.all([
             externoService.concludeProcedure(req.params.id),
             archiveProcedure(req.id_cuenta, req.id_funcionario, req.params.id, descripcion, 'tramites_externos'),
-            addEventProcedure(req.params.id, req.id_funcionario, descripcion, 'tramites_externos')
+            addEventProcedure(req.params.id, req.id_funcionario, `Tramite concluido debido a: ${descripcion}`, 'tramites_externos')
         ])
         return res.status(200).json({
             ok: true,

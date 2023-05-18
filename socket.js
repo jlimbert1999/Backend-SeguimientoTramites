@@ -51,7 +51,7 @@ function startSocketServer(server) {
                 const user = Group.getUser(id_receiver)
                 if (user) {
                     user.socketIds.forEach(id_socket => {
-                        client.to(id_socket.toString()).emit('cancelmail')
+                        client.to(id_socket.toString()).emit('cancel-mail')
                     });
                 }
             })
@@ -60,7 +60,7 @@ function startSocketServer(server) {
             const user = Group.getUser(id_receiver)
             if (user) {
                 user.socketIds.forEach(id_socket => {
-                    client.to(id_socket.toString()).emit('cancelmail')
+                    client.to(id_socket.toString()).emit('cancel-mail')
                 });
             }
         })
