@@ -98,22 +98,6 @@ router.put('/concluir/:id', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-router.put('/cancelar/:id', async (req = request, res = response) => {
-    try {
-        const { descripcion } = req.body
-        await Promise.all([
-            internoService.cancelProcedure(req.params.id),
-            addEventProcedure(req.params.id, req.id_funcionario, `Ha anulado el tramite debido a: ${descripcion}`, 'tramites_internos')
-        ])
-        return res.status(200).json({
-            ok: true,
-            message: 'Tramite anulado'
-        })
-    } catch (error) {
-        ServerErrorResponde(error, res)
-    }
-})
-
 
 
 module.exports = router

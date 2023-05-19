@@ -7,7 +7,7 @@ const archivoService = require('./services/archivo.service')
 router.get('/', async (req = request, res = response) => {
     try {
         const { limit, offset } = getPaginationParams(req.query)
-        const { archives, length } = await archivoService.get(req.id_cuenta, limit, offset)
+        const { archives, length } = await archivoService.get(req.id_dependencia, limit, offset)
         return res.status(200).json({
             ok: true,
             archives,
@@ -22,7 +22,7 @@ router.get('/', async (req = request, res = response) => {
 router.get('/:group', async (req = request, res = response) => {
     try {
         const { limit, offset } = getPaginationParams(req.query)
-        const { archives, length } = await archivoService.search(req.id_cuenta, req.query.text, req.params.group, limit, offset)
+        const { archives, length } = await archivoService.search(req.id_dependencia, req.query.text, req.params.group, limit, offset)
         return res.status(200).json({
             ok: true,
             archives,

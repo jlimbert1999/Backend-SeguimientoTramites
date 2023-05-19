@@ -65,7 +65,6 @@ function startSocketServer(server) {
             }
         })
         client.on('archive', id_dependencie => {
-            console.log(id_dependencie);
             client.to(id_dependencie.toString()).emit('notify', 'nuevo archivo')
         })
         client.on('expel', data => {

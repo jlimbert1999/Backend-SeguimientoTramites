@@ -27,8 +27,7 @@ exports.archiveProcedure = async (id_account, id_officer, id_procedure, descript
     }
     await ArchivosModel.create(archive)
 }
-exports.get = async (id_account, limit, offset) => {
-    const account = await AccountModel.findById(id_account).select('dependencia')
+exports.get = async (id_dependencie, limit, offset) => {
     const data = await ArchivosModel.aggregate([
         {
             $lookup: {
@@ -45,23 +44,14 @@ exports.get = async (id_account, limit, offset) => {
             $project: {
                 'account.password': 0,
                 'account.login': 0,
-                'account.activo': 0
+                'account.activo': 0,
+                'account.rol': 0,
+                'account.funcionario': 0,
             }
         },
         {
-            $lookup: {
-                from: 'funcionarios',
-                localField: "officer",
-                foreignField: "_id",
-                as: "officer",
-            },
-        },
-        {
-            $unwind: "$officer"
-        },
-        {
             $match: {
-                'account.dependencia': ObjectId(account.dependencia)
+                'account.dependencia': ObjectId(id_dependencie)
             }
         },
         {
@@ -81,17 +71,30 @@ exports.get = async (id_account, limit, offset) => {
         }
     ]);
     await ArchivosModel.populate(data[0].paginatedResults,
-        {
-            path: 'procedure',
-            select: 'alterno estado'
-        }
+        [
+            {
+                path: 'procedure',
+                select: 'alterno estado detalle'
+            },
+            {
+                path: 'officer',
+                select: 'nombre paterno materno cargo'
+            },
+            {
+                path: 'account',
+                select: 'funcionario',
+                populate: {
+                    path: 'funcionario',
+                    select: 'nombre paterno cargo'
+                }
+            }
+        ]
     )
     const archives = data[0].paginatedResults
     const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
     return { archives, length }
 }
-exports.search = async (id_account, text, group, limit, offset) => {
-    const account = await AccountModel.findById(id_account).select('dependencia')
+exports.search = async (id_dependencie, text, group, limit, offset) => {
     const regex = new RegExp(text, "i");
     group = group === 'EXTERNO' ? 'tramites_externos' : 'tramites_internos'
     const data = await ArchivosModel.aggregate([
@@ -112,37 +115,6 @@ exports.search = async (id_account, text, group, limit, offset) => {
             $unwind: "$account"
         },
         {
-            $project: {
-                'account.password': 0,
-                'account.login': 0,
-                'account.activo': 0
-            }
-        },
-        {
-            $lookup: {
-                from: 'funcionarios',
-                localField: "officer",
-                foreignField: "_id",
-                as: "officer",
-            },
-        },
-        {
-            $unwind: "$officer"
-        },
-        {
-            $addFields: {
-                "officer.fullname": {
-                    $concat: [
-                        "$officer.nombre",
-                        " ",
-                        { $ifNull: ["$officer.paterno", ""] },
-                        " ",
-                        { $ifNull: ["$officer.materno", ""] },
-                    ],
-                },
-            },
-        },
-        {
             $lookup: {
                 from: group,
                 localField: "procedure",
@@ -154,13 +126,25 @@ exports.search = async (id_account, text, group, limit, offset) => {
             $unwind: "$procedure"
         },
         {
+            $project: {
+                'account._id': 1,
+                'account.dependencia': 1,
+                'procedure.alterno': 1,
+                'procedure.estado': 1,
+                'procedure.detalle': 1,
+                'group': 1,
+                'officer': 1,
+                'description': 1,
+                'date': 1,
+            }
+        },
+        {
             $match: {
-                'account.dependencia': ObjectId(account.dependencia),
+                'account.dependencia': ObjectId(id_dependencie),
                 $or: [
                     { 'procedure.alterno': regex },
                     { 'procedure.detalle': regex },
-                    { 'procedure.cite': regex },
-                    { 'officer.fullname': regex }
+                    { 'procedure.cite': regex }
                 ]
             }
         },
@@ -182,9 +166,9 @@ exports.search = async (id_account, text, group, limit, offset) => {
     ]);
     await ArchivosModel.populate(data[0].paginatedResults,
         {
-            path: 'procedure',
-            select: 'alterno estado'
-        }
+            path: 'officer',
+            select: 'nombre paterno materno cargo'
+        },
     )
     const archives = data[0].paginatedResults
     const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
@@ -209,18 +193,11 @@ exports.unarchive = async (id_archive, id_officer, description) => {
         officer: id_officer,
         procedure: archive.procedure._id,
         group: archive.group,
-        description: `Ha desarchivado el tramite debido a: ${description}`
+        description: `Desarchivo del tramite debido a: ${description}`
     })
     archive.group === 'tramites_externos'
         ? await ExternoModel.findByIdAndUpdate(archive.procedure, { estado: newState })
         : await InternoModel.findByIdAndUpdate(archive.procedure, { estado: newState })
-
-
-
-
-
-
-
 }
 
 

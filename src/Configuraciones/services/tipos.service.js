@@ -79,5 +79,5 @@ exports.getProceduresTypesForRegister = async (groupProcedure, role = '') => {
 exports.getNameOfTypesProcedures = async (group) => {
     group = group === 'tramites_externos' ? 'EXTERNO' : 'INTERNO'
     return await TipoModel.find({ activo: true, tipo: group })
-        .select('_id nombre')
+        .select('nombre')
 }
