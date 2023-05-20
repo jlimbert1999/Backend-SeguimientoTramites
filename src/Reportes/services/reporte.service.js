@@ -156,70 +156,119 @@ exports.getReportByUnit = async (group, params) => {
 }
 
 
-exports.getReportSearch = async (group, params) => {
-    let { limit, offset, start, end, estado, tipo_tramite, ...info } = params
+exports.getReportSearch = async (group, params, limit, offset) => {
+    let { start, end, ...info } = params
     let query = Object.keys(info).map(k => {
         switch (k) {
+            case 'alterno':
+                return { 'alterno': new RegExp(info[k]) }
+            case 'detalle':
+                return { 'detalle': new RegExp(info[k]) }
+            case 'cite':
+                return { 'cite': new RegExp(info[k]) }
+            case 'estado':
+                return { 'estado': info[k] }
+            case 'tipo_tramite':
+                return { 'tipo_tramite': ObjectId(info[k]) }
+            case 'dependencia':
+                return { 'cuenta.dependencia._id': ObjectId(info[k]) }
+            case 'institucion':
+                return { 'cuenta.dependencia.institucion': ObjectId(info[k]) }
             case 'solicitante':
                 return ({
                     $or: [
-                        { 'tramite.solicitante.nombre': new RegExp(info[k], 'i') },
-                        { 'tramite.solicitante.paterno': new RegExp(info[k], 'i') },
-                        { 'tramite.solicitante.materno': new RegExp(info[k], 'i') },
-                        { 'tramite.solicitante.dni': new RegExp(info[k], 'i') }
+                        { 'solicitante.nombre': new RegExp(info[k], 'i') },
+                        { 'solicitante.paterno': new RegExp(info[k], 'i') },
+                        { 'solicitante.materno': new RegExp(info[k], 'i') },
+                        { 'solicitante.dni': new RegExp(info[k], 'i') },
                     ]
                 })
-                break;
             case 'representante':
                 return ({
                     $or: [
-                        { 'tramite.representante.nombre': new RegExp(info[k], 'i') },
-                        { 'tramite.representante.paterno': new RegExp(info[k], 'i') },
-                        { 'tramite.representante.materno': new RegExp(info[k], 'i') },
-                        { 'tramite.representante.dni': new RegExp(info[k], 'i') }
+                        { 'representante.nombre': new RegExp(info[k], 'i') },
+                        { 'representante.paterno': new RegExp(info[k], 'i') },
+                        { 'representante.materno': new RegExp(info[k], 'i') },
+                        { 'representante.dni': new RegExp(info[k], 'i') }
                     ]
                 })
-                break;
             case 'remitente':
                 return ({
                     $or: [
-                        { 'tramite.remitente.nombre': new RegExp(info[k], 'i') },
-                        { 'tramite.remitente.cargo': new RegExp(info[k], 'i') },
+                        { 'remitente.nombre': new RegExp(info[k], 'i') },
+                        { 'remitente.cargo': new RegExp(info[k], 'i') },
                     ]
                 })
-                break;
             case 'destinatario':
                 return ({
                     $or: [
-                        { 'tramite.destinatario.nombre': new RegExp(info[k], 'i') },
-                        { 'tramite.destinatario.cargo': new RegExp(info[k], 'i') },
+                        { 'destinatario.nombre': new RegExp(info[k], 'i') },
+                        { 'destinatario.cargo': new RegExp(info[k], 'i') },
                     ]
                 })
-                break;
 
-            default:
-                return ({ [k]: new RegExp(info[k], 'i') })
-                break;
         }
     });
     let fecha_registro = {}
     start ? Object.assign(fecha_registro, { $gte: new Date(start) }) : null
     end ? Object.assign(fecha_registro, { $lt: new Date(end) }) : null
     Object.keys(fecha_registro).length > 0 ? query.push({ fecha_registro }) : null
-    estado ? query.push({ 'estado': estado }) : null
-    limit = limit ? parseInt(limit) : 10;
-    offset = offset ? parseInt(offset) : 0;
-    offset = offset * limit
-    console.log(query);
-    const [procedures, length] = group === 'tramites_externos'
-        ? await Promise.all([
-            ExternoModel.find({ $and: query }).skip(offset).limit(limit),
-            ExternoModel.count({ $and: query })
-        ])
-        : await Promise.all([
-            InternoModel.find({ $and: query }).skip(offset).limit(limit),
-            InternoModel.count({ $and: query })
-        ])
+    const aggregate = [
+        {
+            $lookup: {
+                from: "cuentas",
+                localField: "cuenta",
+                foreignField: "_id",
+                as: "cuenta",
+            },
+        },
+        {
+            $unwind: {
+                path: "$cuenta",
+            },
+        },
+        {
+            $project: {
+                'receptor.cuenta.password': 0,
+                'receptor.cuenta.login': 0,
+                'receptor.cuenta.activo': 0,
+                'receptor.cuenta.rol': 0,
+                'receptor.cuenta.__v': 0
+            }
+        },
+        {
+            $lookup: {
+                from: "dependencias",
+                localField: "cuenta.dependencia",
+                foreignField: "_id",
+                as: "cuenta.dependencia",
+            },
+        },
+        {
+            $unwind: {
+                path: "$cuenta.dependencia",
+            },
+        },
+        {
+            $match: {
+                $and: query
+            }
+        },
+        {
+            $facet: {
+                paginatedResults: [{ $skip: offset }, { $limit: limit }],
+                totalCount: [
+                    {
+                        $count: 'count'
+                    }
+                ]
+            }
+        }]
+    const data = group === 'tramites_externos'
+        ? await ExternoModel.aggregate(aggregate)
+        : await InternoModel.aggregate(aggregate)
+    const procedures = data[0].paginatedResults
+    const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
     return { procedures, length }
 }
 

@@ -1,6 +1,7 @@
 const router = require('express').Router()
 const { request, response } = require('express');
 const { ServerErrorResponde } = require('../../helpers/responses')
+const { getPaginationParams } = require('../../helpers/Pagintation');
 
 const reporteService = require('./services/reporte.service')
 
@@ -69,9 +70,14 @@ router.get('/tipos/:group', async (req = request, res = response) => {
 
 router.get('/busqueda/:group', async (req = request, res = response) => {
     try {
+        const { offset, limit } = getPaginationParams(req.query)
+        console.log(offset)
+        console.log(limit)
+        delete req.query['limit']
+        delete req.query['offset']
         const isEmpty = Object.values(req.query).every(x => x === null || x === '');
         if (isEmpty) return res.status(400).json({ ok: false, message: 'No se selecciono ningun parametro para realizar la busqueda' })
-        const { procedures, length } = await reporteService.getReportSearch(req.params.group, req.query)
+        const { procedures, length } = await reporteService.getReportSearch(req.params.group, req.query, limit, offset)
         return res.status(200).json({
             procedures,
             length
@@ -80,7 +86,6 @@ router.get('/busqueda/:group', async (req = request, res = response) => {
         ServerErrorResponde(error, res)
     }
 })
-
 
 
 // GET DATA FOR PARAMS SEARCH 
