@@ -174,7 +174,7 @@ router.put('/concluir/:id', async (req = request, res = response) => {
         let { description } = req.body
         const mail = await entradaService.concludeProcedure(req.params.id, req.id_cuenta)
         await Promise.all([
-            archiveMail(req.id_cuenta, req.id_funcionario, mail, description),
+            archiveMail(req.id_dependencia, req.id_cuenta, req.id_funcionario, mail, description),
             addEventProcedure(mail.tramite, req.id_funcionario, `Ha concluido el tramite debido a: ${description}`, mail.tipo)
         ])
         return res.status(200).json({

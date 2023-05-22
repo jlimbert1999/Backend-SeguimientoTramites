@@ -87,7 +87,7 @@ router.put('/concluir/:id', async (req = request, res = response) => {
         let { descripcion } = req.body
         await Promise.all([
             internoService.concludeProcedure(req.params.id),
-            archiveProcedure(req.id_cuenta, req.id_funcionario, req.params.id, descripcion, 'tramites_internos'),
+            archiveProcedure(req.id_dependencia, req.id_cuenta, req.id_funcionario, req.params.id, descripcion, 'tramites_internos'),
             addEventProcedure(req.params.id, req.id_funcionario, `Ha concluido el tramite debido a: ${descripcion}`, 'tramites_internos')
         ])
         return res.status(200).json({

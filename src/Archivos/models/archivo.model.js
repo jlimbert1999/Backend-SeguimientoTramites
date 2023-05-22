@@ -14,6 +14,10 @@ const ArchivoScheme = Schema({
         required: true,
         enum: ['tramites_externos', 'tramites_internos']
     },
+    dependencie: {
+        type: Schema.Types.ObjectId,
+        ref: 'dependencias'
+    },
     account: {
         type: Schema.Types.ObjectId,
         ref: 'cuentas'

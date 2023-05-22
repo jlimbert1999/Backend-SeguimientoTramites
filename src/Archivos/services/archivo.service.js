@@ -6,9 +6,11 @@ const InternoModel = require('../../Tramites/models/interno.model')
 const AccountModel = require('../../Configuraciones/models/cuentas.model')
 const EventModel = require('../../Tramites/models/events.model')
 const ObjectId = require('mongoose').Types.ObjectId
-exports.archiveMail = async (id_account, id_officer, mail, description) => {
+
+exports.archiveMail = async (id_dependencie, id_account, id_officer, mail, description) => {
     const lastSend = await SalidaModel.findOne({ tramite: mail.tramite, 'emisor.cuenta': mail.emisor.cuenta, 'receptor.cuenta': mail.receptor.cuenta, recibido: true }).sort({ _id: -1 })
     await ArchivosModel.create({
+        dependencie: id_dependencie,
         location: lastSend._id,
         account: id_account,
         procedure: lastSend.tramite,
@@ -17,8 +19,9 @@ exports.archiveMail = async (id_account, id_officer, mail, description) => {
         description: description
     })
 }
-exports.archiveProcedure = async (id_account, id_officer, id_procedure, description, group) => {
+exports.archiveProcedure = async (id_dependencie, id_account, id_officer, id_procedure, description, group) => {
     const archive = {
+        dependencie: id_dependencie,
         account: id_account,
         officer: id_officer,
         procedure: id_procedure,
@@ -28,70 +31,16 @@ exports.archiveProcedure = async (id_account, id_officer, id_procedure, descript
     await ArchivosModel.create(archive)
 }
 exports.get = async (id_dependencie, limit, offset) => {
-    const data = await ArchivosModel.aggregate([
-        {
-            $lookup: {
-                from: 'cuentas',
-                localField: "account",
-                foreignField: "_id",
-                as: "account",
-            },
-        },
-        {
-            $unwind: "$account"
-        },
-        {
-            $project: {
-                'account.password': 0,
-                'account.login': 0,
-                'account.activo': 0,
-                'account.rol': 0,
-                'account.funcionario': 0,
-            }
-        },
-        {
-            $match: {
-                'account.dependencia': ObjectId(id_dependencie)
-            }
-        },
-        {
-            $sort: {
-                date: -1
-            }
-        },
-        {
-            $facet: {
-                paginatedResults: [{ $skip: offset }, { $limit: limit }],
-                totalCount: [
-                    {
-                        $count: 'count'
-                    }
-                ]
-            }
-        }
-    ]);
-    await ArchivosModel.populate(data[0].paginatedResults,
-        [
-            {
-                path: 'procedure',
-                select: 'alterno estado detalle'
-            },
-            {
-                path: 'officer',
-                select: 'nombre paterno materno cargo'
-            },
-            {
-                path: 'account',
-                select: 'funcionario',
-                populate: {
-                    path: 'funcionario',
-                    select: 'nombre paterno cargo'
-                }
-            }
-        ]
-    )
-    const archives = data[0].paginatedResults
-    const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
+
+    const [archives, length] = await Promise.all([
+        ArchivosModel.find({ dependencie: id_dependencie })
+            .populate('procedure', 'alterno estado detalle')
+            .populate('officer', 'nombre paterno materno cargo')
+            .skip(offset)
+            .limit(limit),
+        ArchivosModel.count({ dependencie: id_dependencie })
+    ])
+    console.log('mi', archives);
     return { archives, length }
 }
 exports.search = async (id_dependencie, text, group, limit, offset) => {
