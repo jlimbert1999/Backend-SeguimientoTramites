@@ -17,18 +17,6 @@ exports.get = async (id_cuenta, limit, offset) => {
                 select: "alterno estado detalle",
             })
             .populate({
-                path: "emisor.cuenta",
-                select: "_id",
-                populate: {
-                    path: "dependencia",
-                    select: "nombre -_id",
-                    populate: {
-                        path: "institucion",
-                        select: "sigla -_id",
-                    },
-                },
-            })
-            .populate({
                 path: "emisor.funcionario",
                 select: "nombre paterno materno cargo",
             }),
@@ -98,12 +86,12 @@ exports.add = async (receptores, data, id_cuenta, id_funcionario) => {
 }
 exports.search = async (id_cuenta, text, group, offset, limit) => {
     const regex = new RegExp(text, "i");
-    let data
     group = group === 'EXTERNO' ? 'tramites_externos' : 'tramites_internos'
-    data = await EntradaModel.aggregate([
+    const data = await EntradaModel.aggregate([
         {
             $match: {
-                tipo: group
+                tipo: group,
+                'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta)
             },
         },
         {
@@ -119,7 +107,6 @@ exports.search = async (id_cuenta, text, group, offset, limit) => {
         },
         {
             $match: {
-                'receptor.cuenta': mongoose.Types.ObjectId(id_cuenta),
                 $or: [
                     { "tramite.alterno": regex },
                     { "tramite.detalle": regex },
@@ -140,24 +127,10 @@ exports.search = async (id_cuenta, text, group, offset, limit) => {
         }
     ]);
 
-    await EntradaModel.populate(data[0].paginatedResults, [
-        {
-            path: "emisor.cuenta",
-            select: "_id",
-            populate: {
-                path: "dependencia",
-                select: "nombre -_id",
-                populate: {
-                    path: "institucion",
-                    select: "sigla -_id",
-                },
-            },
-        },
-        {
-            path: "emisor.funcionario",
-            select: "nombre paterno materno cargo",
-        }
-    ])
+    await EntradaModel.populate(data[0].paginatedResults, {
+        path: "emisor.funcionario",
+        select: "nombre paterno materno cargo",
+    })
     const mails = data[0].paginatedResults
     const length = data[0].totalCount[0] ? data[0].totalCount[0].count : 0
     return { mails, length }
@@ -268,6 +241,7 @@ exports.declineProcedure = async (id_bandeja, motivo_rechazo) => {
 }
 exports.concludeProcedure = async (id_mailIn, id_account) => {
     const mail = await EntradaModel.findById(id_mailIn).populate('tramite', 'estado')
+    if(!mail)  throw ({ status: 404, message: `El envio de este tramite ha sido cancelado` });
     if (mail.tramite.estado === 'OBSERVADO') {
         const pendingObservations = await ObservationModel.findOne({ procedure: mail.tramite._id, account: id_account, solved: false })
         if (pendingObservations) throw ({ status: 400, message: `Usted tiene observaciones para este tramite sin resolver` });

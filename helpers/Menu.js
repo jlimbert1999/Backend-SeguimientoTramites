@@ -73,7 +73,7 @@ const getmenuFrontend = (resources) => {
         menu.push(
           {
             text: "Externos",
-            icon: "folder",
+            icon: "folder_shared",
             routerLink: "tramites/externos",
           }
         )
@@ -82,7 +82,7 @@ const getmenuFrontend = (resources) => {
         menu.push(
           {
             text: "Internos",
-            icon: "description",
+            icon: "topic",
             routerLink: "tramites/internos"
           }
         )
@@ -131,7 +131,7 @@ const getmenuFrontend = (resources) => {
   resources.some(resorce => resorce.includes('reporte'))
     ? menu.push({
       text: "Reportes",
-      icon: "mail",
+      icon: "analytics",
       routerLink: "reportes",
     })
     : ''
