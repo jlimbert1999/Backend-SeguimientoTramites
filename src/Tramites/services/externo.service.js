@@ -3,6 +3,9 @@ const SalidaModel = require('../../Bandejas/models/salida.model')
 const { default: mongoose } = require('mongoose')
 const { generateAlterno } = require('../../../helpers/Alterno')
 
+const ArchivosModel = require('../../Archivos/models/archivo.model')
+const AccountModel = require('../../Configuraciones/models/cuentas.model')
+
 exports.get = async (id_cuenta, limit, offset) => {
     const [tramites, total] = await Promise.all([
         await ExternoModel.find({ cuenta: id_cuenta, estado: { $ne: 'ANULADO' } })

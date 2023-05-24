@@ -19,10 +19,6 @@ const TramiteInternoScheme = Schema({
         type: Schema.Types.ObjectId,
         ref: 'cuentas'
     },
-    ubicacion: {
-        type: Schema.Types.ObjectId,
-        ref: 'cuentas'
-    },
     detalle: {
         type: String,
         required: true
@@ -57,19 +53,17 @@ const TramiteInternoScheme = Schema({
         type: Date,
         default: Date.now()
     },
+    ubicacion: {
+        type: Schema.Types.ObjectId,
+        ref: 'cuentas'
+    },
     observaciones: [{
         _id: false,
         id_cuenta: String,
         funcionario: String,
         descripcion: String,
-        corregido: {
-            type: Boolean,
-            default: false
-        },
-        fecha: {
-            type: Date,
-            default: Date.now()
-        }
+        corregido: Boolean,
+        fecha: Date
     }],
     detalle_conclusion: {
         type: String

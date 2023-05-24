@@ -241,7 +241,7 @@ exports.declineProcedure = async (id_bandeja, motivo_rechazo) => {
 }
 exports.concludeProcedure = async (id_mailIn, id_account) => {
     const mail = await EntradaModel.findById(id_mailIn).populate('tramite', 'estado')
-    if(!mail)  throw ({ status: 404, message: `El envio de este tramite ha sido cancelado` });
+    if (!mail) throw ({ status: 404, message: `El envio de este tramite ha sido cancelado` });
     if (mail.tramite.estado === 'OBSERVADO') {
         const pendingObservations = await ObservationModel.findOne({ procedure: mail.tramite._id, account: id_account, solved: false })
         if (pendingObservations) throw ({ status: 400, message: `Usted tiene observaciones para este tramite sin resolver` });

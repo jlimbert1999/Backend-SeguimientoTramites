@@ -9,7 +9,16 @@ const BandejaSalidaScheme = Schema({
         funcionario: {
             type: Schema.Types.ObjectId,
             ref: 'funcionarios'
+        },
+        usuario: {
+            type: String,
+            required: true
+        },
+        cargo: {
+            type: String,
+            required: true
         }
+
     },
     receptor: {
         cuenta: {
@@ -19,6 +28,14 @@ const BandejaSalidaScheme = Schema({
         funcionario: {
             type: Schema.Types.ObjectId,
             ref: 'funcionarios'
+        },
+        usuario: {
+            type: String,
+            required: true
+        },
+        cargo: {
+            type: String,
+            required: true
         }
     },
     tramite: {
